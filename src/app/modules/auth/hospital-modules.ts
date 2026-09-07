@@ -14,6 +14,9 @@ export const DEFAULT_HOSPITAL_MODULES: HospitalEnabledModules = {
 const PHARMACY_ROUTE_PREFIXES = ['/pharmacy', '/pos-reports'];
 const LABORATORY_ROUTE_PREFIXES = ['/laboratory'];
 const WARD_ROUTE_PREFIXES = ['/ward', '/room-allotment', '/ward-admin'];
+const HOSPITAL_SETUP_ROUTE_PREFIXES = ['/hospital-setup'];
+const HOSPITAL_PATIENT_ROUTE_PREFIXES = ['/patients'];
+const HOSPITAL_BILLING_ROUTE_PREFIXES = ['/payments'];
 const CLINICAL_ROUTE_PREFIXES = [
   '/doctor-dashboard',
   '/doctors',
@@ -128,6 +131,25 @@ export const isLaboratoryModuleEnabled = (): boolean => readStoredHospitalModule
 export const isWardModuleEnabled = (): boolean => readStoredHospitalModules().ward;
 export const isClinicalModuleEnabled = (): boolean => readStoredHospitalModules().clinical;
 
+/** Departments / wards / rooms / birth-cert config — not for pharmacy-only or lab-only. */
+export const isHospitalSetupModuleAllowed = (): boolean => {
+  const modules = readStoredHospitalModules();
+  return Boolean(modules.clinical || modules.ward);
+};
+
+/**
+ * Hospital Patients + patient billing menus.
+ * Lab needs patients; OPD/ward need patients; pure pharmacy uses Pharmacy Customers instead.
+ */
+export const isHospitalPatientsModuleAllowed = (): boolean => {
+  const modules = readStoredHospitalModules();
+  return Boolean(modules.clinical || modules.ward || modules.laboratory);
+};
+
+/** Ward Settlements / Ward Requests under Pharmacy — only when ward ops exist. */
+export const isPharmacyWardIntegrationAllowed = (): boolean =>
+  isPharmacyModuleEnabled() && isWardModuleEnabled();
+
 const normalizeRoleKey = (value: string | null | undefined): string =>
   String(value || '')
     .trim()
@@ -141,7 +163,9 @@ const EXPLICIT_ROLE_MODULE_KEYS: Partial<Record<string, HospitalModuleKey>> = {
   laboratory: 'laboratory',
   labreceptionist: 'laboratory',
   labtechnician: 'laboratory',
+  labadmin: 'laboratory',
   wardadmin: 'ward',
+  wardreceptionist: 'ward',
   nurse: 'ward',
   doctor: 'clinical',
   receptionist: 'clinical',
@@ -159,7 +183,39 @@ export const resolveRoleModuleKey = (
     return byCode;
   }
 
-  return EXPLICIT_ROLE_MODULE_KEYS[normalizeRoleKey(role.name)] || null;
+  const byName = EXPLICIT_ROLE_MODULE_KEYS[normalizeRoleKey(role.name)];
+  if (byName) {
+    return byName;
+  }
+
+  // Heuristic for custom role names (e.g. "Senior Ward Clerk", "Lab Desk")
+  const key = normalizeRoleKey(role.name) || normalizeRoleKey(role.code);
+  if (!key) {
+    return null;
+  }
+  // Shared / admin roles stay unmapped → visible on every module scope
+  if (
+    key.includes('accountant') ||
+    key.includes('hospitaladmin') ||
+    key.includes('superadmin') ||
+    key === 'owner'
+  ) {
+    return null;
+  }
+  if (key.includes('ward') || key.includes('nurse') || key.includes('nursing')) {
+    return 'ward';
+  }
+  if (key.includes('lab') || key.includes('patholog')) {
+    return 'laboratory';
+  }
+  if (key.includes('pharmac') || key.includes('pos')) {
+    return 'pharmacy';
+  }
+  if (key.includes('doctor') || key.includes('physician') || key.includes('opd')) {
+    return 'clinical';
+  }
+
+  return null;
 };
 
 export const isRoleAllowedByHospitalModules = (
@@ -177,6 +233,65 @@ export const isRoleAllowedByHospitalModules = (
   }
 
   return Boolean(modules[moduleKey]);
+};
+
+/** Maps a permission string to a hospital module (null = shared / always allowed). */
+export const resolvePermissionModuleKey = (permission: string): HospitalModuleKey | null => {
+  const key = String(permission || '').trim().toLowerCase();
+  if (!key || key === '*') {
+    return null;
+  }
+
+  if (key.startsWith('lab_') || key.startsWith('lab.')) {
+    return 'laboratory';
+  }
+
+  if (
+    key.startsWith('ward.') ||
+    key.startsWith('rooms.') ||
+    key.startsWith('room_allotments.') ||
+    key.startsWith('pharmacy.ward_')
+  ) {
+    return 'ward';
+  }
+
+  if (
+    /^(products|categories|customers|suppliers|inventory|purchases|purchase_returns|sales|register_sessions|transfers|returns|stock_movements|reports|payments|expenses|stores|warehouses)\./.test(
+      key
+    )
+  ) {
+    return 'pharmacy';
+  }
+
+  if (
+    /^(departments|doctors|appointments|prescriptions|patients_history|hospital_dashboard)\./.test(key)
+  ) {
+    return 'clinical';
+  }
+
+  return null;
+};
+
+export const filterPermissionsByHospitalModules = (
+  permissions: string[] | null | undefined,
+  modules: HospitalEnabledModules = readStoredHospitalModules(),
+  modulesEnforced = readStoredHospitalModuleEnforcement(),
+): string[] => {
+  const list = Array.isArray(permissions) ? permissions.filter(Boolean) : [];
+  if (!modulesEnforced) {
+    return [...new Set(list)];
+  }
+
+  return [...new Set(list)].filter((permission) => {
+    if (permission === '*') {
+      return true;
+    }
+    const moduleKey = resolvePermissionModuleKey(permission);
+    if (!moduleKey) {
+      return true;
+    }
+    return Boolean(modules[moduleKey]);
+  });
 };
 
 const pathMatchesPrefix = (path: string, prefixes: string[]): boolean =>
@@ -206,6 +321,32 @@ export const resolveBlockedModuleForRoute = (path: string): HospitalModuleKey | 
 
   if (!modules.ward && pathMatchesPrefix(normalized, WARD_ROUTE_PREFIXES)) {
     return 'ward';
+  }
+
+  if (
+    !modules.clinical &&
+    !modules.ward &&
+    pathMatchesPrefix(normalized, HOSPITAL_SETUP_ROUTE_PREFIXES)
+  ) {
+    return 'clinical';
+  }
+
+  if (
+    !modules.clinical &&
+    !modules.ward &&
+    !modules.laboratory &&
+    pathMatchesPrefix(normalized, HOSPITAL_PATIENT_ROUTE_PREFIXES)
+  ) {
+    return 'clinical';
+  }
+
+  if (
+    !modules.clinical &&
+    !modules.ward &&
+    !modules.laboratory &&
+    pathMatchesPrefix(normalized, HOSPITAL_BILLING_ROUTE_PREFIXES)
+  ) {
+    return 'clinical';
   }
 
   if (!modules.clinical && pathMatchesPrefix(normalized, CLINICAL_ROUTE_PREFIXES)) {

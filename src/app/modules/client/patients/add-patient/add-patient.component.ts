@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
+  FormsModule,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
@@ -11,11 +12,16 @@ import { finalize } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { BackendService } from '../../../../core/services/backend.service';
 import { MooliOfflineService } from '../../../../core/services/mooli-offline.service';
+import {
+  ageYearsFromIsoDate,
+  isoDateFromAgeYears,
+  todayIsoDate,
+} from '../../../../core/utils/dob-age.util';
 import { Doctor, Patient, User } from '../../../../shared/models/hospital.model';
 
 @Component({
   selector: 'app-add-patient',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './add-patient.component.html',
   styleUrl: './add-patient.component.scss',
 })
@@ -27,6 +33,8 @@ export class AddPatientComponent implements OnInit {
   currentHospitalId: string | null = null;
   saving = false;
   bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  patientAgeYears: number | null = null;
+  readonly maxDateOfBirth = todayIsoDate();
 
   constructor(
     private fb: FormBuilder,
@@ -166,6 +174,24 @@ export class AddPatientComponent implements OnInit {
       chronicDiseases: (this.editingPatient.chronicDiseases || []).join(', '),
       currentMedications: (this.editingPatient.currentMedications || []).join(', '),
     });
+    this.patientAgeYears = ageYearsFromIsoDate(
+      this.editingPatient.dateOfBirth ? String(this.editingPatient.dateOfBirth).slice(0, 10) : ''
+    );
+  }
+
+  onPatientAgeYearsInput(): void {
+    const nextDob = isoDateFromAgeYears(
+      Number(this.patientAgeYears),
+      this.patientForm.get('dateOfBirth')?.value || ''
+    );
+    if (!nextDob) {
+      return;
+    }
+    this.patientForm.patchValue({ dateOfBirth: nextDob }, { emitEvent: false });
+  }
+
+  onPatientDateOfBirthInput(): void {
+    this.patientAgeYears = ageYearsFromIsoDate(this.patientForm.get('dateOfBirth')?.value || '');
   }
 
   private applyPhoneFromQuery(): void {

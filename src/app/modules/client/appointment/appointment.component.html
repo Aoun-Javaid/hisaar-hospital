@@ -544,9 +544,33 @@
               <option value="other">Other</option>
             </select>
           </label>
-          <label>
-            <span>Date of Birth</span>
-            <input type="date" formControlName="dateOfBirth" />
+          <label class="dob-age-field">
+            <span>Date of Birth / Age</span>
+            <div class="dob-age-row">
+              <div class="dob-age-input">
+                <input
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  max="120"
+                  [(ngModel)]="patientAgeYears"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="onPatientAgeYearsInput()"
+                  placeholder="Age"
+                  aria-label="Age in years"
+                />
+                <span>yrs</span>
+              </div>
+              <input
+                type="date"
+                formControlName="dateOfBirth"
+                [max]="maxDateOfBirth"
+                (change)="onPatientDateOfBirthInput()"
+                (input)="onPatientDateOfBirthInput()"
+                aria-label="Date of birth"
+              />
+            </div>
+            <small class="dob-age-hint">Type age (e.g. 45) for fast entry — exact date optional.</small>
           </label>
           <label>
             <span>Blood Group</span>

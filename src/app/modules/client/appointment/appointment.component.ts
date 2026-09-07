@@ -15,6 +15,11 @@ import { BackendService } from '../../../core/services/backend.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { resolveAssetUrl } from '../../../core/utils/asset.util';
 import { toCalendarYmd, todayYmd } from '../../../core/utils/calendar-date';
+import {
+  ageYearsFromIsoDate,
+  isoDateFromAgeYears,
+  todayIsoDate,
+} from '../../../core/utils/dob-age.util';
 import { AppDialogService } from '../../../core/services/app-dialog.service';
 import { MooliOfflineService, MooliQueuedWork } from '../../../core/services/mooli-offline.service';
 import {
@@ -92,6 +97,9 @@ export class AppointmentComponent implements OnInit {
   phoneLookupPerformed = false;
   phoneMatchedPatients: Patient[] = [];
   phoneMatchedTotal = 0;
+  /** Fast DOB entry for operators — years only; syncs with dateOfBirth. */
+  patientAgeYears: number | null = null;
+  readonly maxDateOfBirth = todayIsoDate();
   selectedPatient: Patient | null = null;
   patientLastVisit: PatientLastVisit | null = null;
   lastVisitLoading = false;
@@ -1260,7 +1268,23 @@ export class AppointmentComponent implements OnInit {
       chronicDiseases: '',
       currentMedications: '',
     });
+    this.patientAgeYears = null;
     this.addPatientModalOpen = true;
+  }
+
+  onPatientAgeYearsInput(): void {
+    const nextDob = isoDateFromAgeYears(
+      Number(this.patientAgeYears),
+      this.patientForm.get('dateOfBirth')?.value || ''
+    );
+    if (!nextDob) {
+      return;
+    }
+    this.patientForm.patchValue({ dateOfBirth: nextDob }, { emitEvent: false });
+  }
+
+  onPatientDateOfBirthInput(): void {
+    this.patientAgeYears = ageYearsFromIsoDate(this.patientForm.get('dateOfBirth')?.value || '');
   }
 
   closeAddPatientModal(): void {

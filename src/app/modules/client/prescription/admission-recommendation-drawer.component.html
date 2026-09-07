@@ -2,15 +2,21 @@
   <div class="admission-modal" role="dialog" aria-labelledby="admission-modal-title" (click)="$event.stopPropagation()">
     <header class="admission-modal__header">
       <div class="admission-modal__header-main">
+        <button type="button" class="admission-modal__back" aria-label="Back" (click)="closeDrawer()">
+          <i class="fa fa-arrow-left" aria-hidden="true"></i>
+        </button>
+
         <div class="admission-modal__title-block">
-          <h3 id="admission-modal-title">Admission Recommendation</h3>
-          <div class="admission-modal__meta">
-            <strong>{{ patientDisplayName() }}</strong>
-            <span>MR {{ patient?.patientNo || '—' }}</span>
-            <span>{{ patientAgeLabel() }} • {{ patientGenderLabel() }}</span>
-            <span>APT {{ appointment?.appointmentNo || '—' }}</span>
-            <span>{{ encounterDisplayLabel() }}</span>
+          <div class="admission-modal__title-row">
+            <span class="admission-modal__title-icon" aria-hidden="true"><i class="fa fa-bed"></i></span>
+            <h3 id="admission-modal-title">Admission Recommendation</h3>
           </div>
+          <p class="admission-modal__meta">
+            <strong>{{ patientDisplayName() }}</strong>
+            <span>• MR {{ patient?.patientNo || '—' }}</span>
+            <span>• {{ patientGenderLabel() }}</span>
+            <span>• APT {{ appointment?.appointmentNo || '—' }}</span>
+          </p>
         </div>
 
         <div class="admission-modal__header-actions">
@@ -21,6 +27,14 @@
             [getHtml]="buildAdmissionRecommendationDocumentHtml"
           ></app-hms-document-toolbar>
           <button type="button" class="modal-close-btn" aria-label="Close" (click)="closeDrawer()">&times;</button>
+        </div>
+      </div>
+
+      <div class="admission-modal__patient-banner" aria-hidden="false">
+        <span class="admission-modal__patient-banner-icon" aria-hidden="true"><i class="fa fa-bed"></i></span>
+        <div>
+          <strong>{{ patientDisplayName() }}</strong>
+          <p>MR {{ patient?.patientNo || '—' }} • {{ patientGenderLabel() }} • APT {{ appointment?.appointmentNo || '—' }}</p>
         </div>
       </div>
 
@@ -70,7 +84,20 @@
         <i class="fa fa-spinner fa-spin"></i> Loading form data…
       </div>
       <div class="admission-modal__hint admission-modal__hint--warn" *ngIf="lookupsError" data-testid="admission-lookups-error">{{ lookupsError }}</div>
-      <div class="admission-modal__hint admission-modal__hint--warn" *ngIf="lookupsWarning" data-testid="admission-lookups-warning">{{ lookupsWarning }}</div>
+      <div
+        class="admission-modal__alert"
+        *ngIf="lookupsWarning && !wardHintDismissed"
+        data-testid="admission-lookups-warning"
+      >
+        <i class="fa fa-info-circle" aria-hidden="true"></i>
+        <span>
+          {{ lookupsWarning }}
+          Activate wards in <strong>Hospital Setup → Wards</strong>
+          (or run <em>More → Add &amp; Activate Recommended Setup</em>).
+          Department = specialty; Ward = bed area (e.g. General Female / ICU / Maternity).
+        </span>
+        <button type="button" class="admission-modal__alert-dismiss" aria-label="Dismiss" (click)="dismissWardHint()">&times;</button>
+      </div>
       <div class="admission-modal__hint admission-modal__hint--warn" *ngIf="validationErrors.length" data-testid="admission-validation-errors">
         Required: {{ validationErrors.join(', ') }}
       </div>
@@ -78,27 +105,32 @@
       <form [formGroup]="form" class="admission-modal__form" [class.is-loading]="lookupsLoading" data-testid="admission-recommendation-form">
         <!-- ADMISSION -->
         <section *ngIf="activeSection === 'admission'" class="admission-panel">
+          <div class="admission-section-head">
+            <h4>Admission Details</h4>
+            <p>Provide admission information and select the recommended care settings.</p>
+          </div>
+
           <div class="admission-grid admission-grid--4">
             <label class="hms-form-field">
-              <span class="hms-form-field__label">Urgency *</span>
+              <span class="hms-form-field__label">Urgency <em>*</em></span>
               <select formControlName="urgency">
                 <option *ngFor="let item of urgencyOptions" [value]="item.value">{{ item.label }}</option>
               </select>
             </label>
             <label class="hms-form-field">
-              <span class="hms-form-field__label">Level of Care *</span>
+              <span class="hms-form-field__label">Level of Care <em>*</em></span>
               <select formControlName="levelOfCare">
                 <option *ngFor="let item of levelOptions" [value]="item.value">{{ item.label }}</option>
               </select>
             </label>
             <label class="hms-form-field">
-              <span class="hms-form-field__label">Priority *</span>
+              <span class="hms-form-field__label">Priority <em>*</em></span>
               <select formControlName="priority">
                 <option *ngFor="let item of priorityOptions" [value]="item.value">{{ item.label }}</option>
               </select>
             </label>
             <label class="hms-form-field">
-              <span class="hms-form-field__label">Expected Timing *</span>
+              <span class="hms-form-field__label">Expected Timing <em>*</em></span>
               <select formControlName="expectedTiming">
                 <option *ngFor="let item of timingOptions" [value]="item.value">{{ item.label }}</option>
               </select>
@@ -147,18 +179,43 @@
             <input type="datetime-local" formControlName="scheduledAt" />
           </label>
 
-          <div class="admission-grid admission-grid--3">
-            <label class="admission-field admission-field--wide">
-              <span>Reason for Admission *</span>
-              <textarea rows="3" formControlName="reasonForAdmission" data-testid="admission-reason"></textarea>
+          <div class="admission-section-head admission-section-head--spaced">
+            <h4>Clinical Information</h4>
+            <p>Provide the key clinical details supporting this admission recommendation.</p>
+          </div>
+
+          <div class="admission-clinical-stack">
+            <label class="admission-field admission-field--wide admission-field--counted">
+              <span>Reason for Admission <em>*</em></span>
+              <textarea
+                rows="3"
+                formControlName="reasonForAdmission"
+                maxlength="500"
+                placeholder="Enter reason for admission..."
+                data-testid="admission-reason"
+              ></textarea>
+              <small>{{ charCount('reasonForAdmission') }}/500</small>
             </label>
-            <label class="admission-field admission-field--wide">
-              <span>Provisional Diagnosis *</span>
-              <textarea rows="3" formControlName="provisionalDiagnosis" data-testid="admission-diagnosis"></textarea>
+            <label class="admission-field admission-field--wide admission-field--counted">
+              <span>Provisional Diagnosis <em>*</em></span>
+              <textarea
+                rows="3"
+                formControlName="provisionalDiagnosis"
+                maxlength="500"
+                placeholder="Enter provisional diagnosis..."
+                data-testid="admission-diagnosis"
+              ></textarea>
+              <small>{{ charCount('provisionalDiagnosis') }}/500</small>
             </label>
-            <label class="admission-field admission-field--wide">
+            <label class="admission-field admission-field--wide admission-field--counted">
               <span>Differential Diagnosis</span>
-              <textarea rows="3" formControlName="differentialDiagnosis"></textarea>
+              <textarea
+                rows="3"
+                formControlName="differentialDiagnosis"
+                maxlength="500"
+                placeholder="Enter differential diagnosis..."
+              ></textarea>
+              <small>{{ charCount('differentialDiagnosis') }}/500</small>
             </label>
           </div>
         </section>
@@ -510,36 +567,6 @@
           </div>
         </section>
       </form>
-
-      <aside class="admission-summary-strip" aria-label="Order summary">
-        <article class="admission-summary-card">
-          <small>Patient</small>
-          <strong>{{ patientDisplayName() }}</strong>
-          <span>MR {{ patient?.patientNo || '—' }}</span>
-          <span>{{ patientAgeLabel() }} • {{ patientGenderLabel() }}</span>
-        </article>
-        <article class="admission-summary-card">
-          <small>Appointment</small>
-          <strong>{{ appointment?.appointmentNo || '—' }}</strong>
-          <span>{{ appointmentDateLabel() }}</span>
-          <span>{{ appointmentTimeLabel() }}</span>
-        </article>
-        <article class="admission-summary-card">
-          <small>Doctor</small>
-          <strong>{{ doctorDisplayName() }}</strong>
-          <span>{{ departmentName() }}</span>
-        </article>
-        <article class="admission-summary-card">
-          <small>Encounter</small>
-          <strong>{{ encounterDisplayLabel() }}</strong>
-          <span>Open</span>
-        </article>
-        <article class="admission-summary-card">
-          <small>Order Status</small>
-          <strong>{{ record?.orderNo ? ('Order ' + record?.orderNo) : 'New Order' }}</strong>
-          <span class="admission-status-pill">{{ statusLabel(record?.status || 'draft') }}</span>
-        </article>
-      </aside>
       </ng-container>
     </div>
 

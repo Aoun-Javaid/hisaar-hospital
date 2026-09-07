@@ -100,7 +100,7 @@
                 <span class="role-badge role-badge--system" *ngIf="role.isSystemRole">System</span>
               </div>
               <p>{{ role.description || 'No description provided.' }}</p>
-              <div class="role-card__meta">{{ permissionCount(role) }} permissions</div>
+              <div class="role-card__meta">{{ permissionCountLabel(role) }}</div>
               <div class="role-card__tags" *ngIf="visibleCategories(role).length">
                 <span *ngFor="let tag of visibleCategories(role)">{{ tag }}</span>
                 <span class="role-card__more" *ngIf="hiddenCategoryCount(role)">+{{ hiddenCategoryCount(role) }}</span>
@@ -166,10 +166,15 @@
                 <span class="role-badge role-badge--custom" *ngIf="!selectedRole?.isSystemRole">Custom</span>
                 <span class="roles-perm-count">
                   <i class="fa fa-check-circle" aria-hidden="true"></i>
-                  {{ selectedPermissionCount() }} Permissions Assigned
+                  {{ selectedPermissionCountLabel() }}
                 </span>
               </div>
             </header>
+
+            <div class="roles-module-note" *ngIf="showModuleClipNote" role="note">
+              <i class="fa fa-info-circle" aria-hidden="true"></i>
+              <p>{{ moduleClipNote }}</p>
+            </div>
 
             <div class="roles-detail__fields">
               <label class="roles-field">
@@ -224,7 +229,10 @@
             <div class="roles-permissions__head">
               <div>
                 <h3>Permissions</h3>
-                <p>Configure module level permissions for this role.</p>
+                <p *ngIf="!showModuleClipNote">Configure module level permissions for this role.</p>
+                <p *ngIf="showModuleClipNote">
+                  Showing permission groups for enabled modules only. Disabled-module permissions remain on the role but are inactive until modules are turned on.
+                </p>
               </div>
               <div class="roles-permissions__bulk">
                 <button type="button" (click)="expandAllGroups()">

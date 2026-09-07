@@ -35,7 +35,7 @@
         </button>
         <div class="hospital-setup-more__menu" *ngIf="showMoreMenu">
           <button type="button" (click)="confirmAddDefaults()" [disabled]="syncing">
-            {{ syncing ? 'Adding…' : 'Add Default Departments & Wards' }}
+            {{ syncing ? 'Adding…' : 'Add & Activate Recommended Setup' }}
           </button>
         </div>
       </div>
@@ -48,6 +48,21 @@
     <button type="button" [class.is-active]="activeTab === 'rooms-beds'" (click)="setTab('rooms-beds')"><i class="fa fa-briefcase"></i><span>Rooms</span></button>
     <button type="button" [class.is-active]="activeTab === 'birth-certificates'" (click)="setTab('birth-certificates')"><i class="fa fa-file-text-o"></i><span>Birth Certificate</span></button>
   </nav>
+
+  <aside class="hospital-setup-guide" *ngIf="activeTab === 'departments' || activeTab === 'wards'">
+    <div class="hospital-setup-guide__item">
+      <strong>Department</strong>
+      <p>Clinical specialty for the admission (e.g. General Medicine, Surgery, OBGYN). Pick the consultant’s department.</p>
+    </div>
+    <div class="hospital-setup-guide__item">
+      <strong>Ward</strong>
+      <p>Physical care area / beds (e.g. General Female Ward, ICU, Maternity). Only <em>active</em> wards appear in Admission Recommendation.</p>
+    </div>
+    <div class="hospital-setup-guide__item">
+      <strong>What to activate</strong>
+      <p>Use <em>More → Add &amp; Activate Recommended Setup</em>, then deactivate specialties you do not offer. Activate extras (CCU, NICU, Dialysis…) when ready.</p>
+    </div>
+  </aside>
 
   <div class="hospital-setup-loading" *ngIf="loading"><span></span> Preparing hospital setup…</div>
 
@@ -486,13 +501,17 @@
     <span class="setup-confirm__icon"><i class="fa fa-building-o"></i></span>
     <div class="setup-confirm__copy">
       <span class="setup-confirm__eyebrow">Hospital Setup</span>
-      <h3 id="setup-defaults-title">Add default departments &amp; wards?</h3>
-      <p>Any missing standard departments and wards will be added. Your existing setup and records will stay unchanged.</p>
+      <h3 id="setup-defaults-title">Add &amp; activate recommended setup?</h3>
+      <p>
+        Adds the full catalog of standard departments and wards.
+        The starter set (Medicine, Surgery, OBGYN, Pediatrics, Emergency + General Male/Female, Maternity, Pediatric, Nursery, ICU, Emergency Observation) will be <strong>activated</strong>.
+        Extra specialties stay inactive until you turn them on.
+      </p>
     </div>
-    <div class="setup-confirm__note"><i class="fa fa-shield"></i><span>This is safe to run more than once. Existing items will not be duplicated.</span></div>
+    <div class="setup-confirm__note"><i class="fa fa-shield"></i><span>Safe to run again — existing items are not duplicated. You can activate / deactivate anytime.</span></div>
     <footer>
       <button type="button" class="btn-light" (click)="showDefaultsModal = false">Cancel</button>
-      <button type="button" class="btn-primary" (click)="addDefaultsConfirmed()"><i class="fa fa-plus"></i> Add Defaults</button>
+      <button type="button" class="btn-primary" (click)="addDefaultsConfirmed()"><i class="fa fa-check"></i> Add &amp; Activate</button>
     </footer>
   </div>
 </div>

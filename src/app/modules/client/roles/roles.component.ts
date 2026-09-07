@@ -13,15 +13,17 @@ import { ToastrService } from 'ngx-toastr';
 
 import { AppDialogService } from '../../../core/services/app-dialog.service';
 import { BackendService } from '../../../core/services/backend.service';
-import { isCurrentLaboratoryEdition } from '../../auth/product-edition';
 import {
-  isClinicalModuleEnabled,
-  isLaboratoryModuleEnabled,
-  isPharmacyModuleEnabled,
+  DEFAULT_HOSPITAL_MODULES,
+  HospitalEnabledModules,
+  filterPermissionsByHospitalModules,
   isRoleAllowedByHospitalModules,
-  isWardModuleEnabled,
+  normalizeHospitalModules,
+  readStoredHospitalModuleEnforcement,
+  readStoredHospitalModules,
 } from '../../auth/hospital-modules';
 import { Hospital, Role, User } from '../../../shared/models/hospital.model';
+import { isCurrentLaboratoryEdition } from '../../auth/product-edition';
 
 interface PermissionGroup {
   title: string;
@@ -257,18 +259,21 @@ export class RolesComponent implements OnInit {
   }
 
   get visiblePermissionGroups(): PermissionGroup[] {
+    const modules = this.scopedModules();
     const moduleGroupTitles: Record<string, () => boolean> = {
-      'Hospital Dashboard': isClinicalModuleEnabled,
-      Departments: isClinicalModuleEnabled,
-      Doctors: isClinicalModuleEnabled,
-      'Patient History': isClinicalModuleEnabled,
-      Appointments: isClinicalModuleEnabled,
-      Prescriptions: isClinicalModuleEnabled,
-      'Pharmacy / POS': isPharmacyModuleEnabled,
-      'POS Reports': isPharmacyModuleEnabled,
-      Laboratory: isLaboratoryModuleEnabled,
-      Rooms: isWardModuleEnabled,
-      'Room Allotments': isWardModuleEnabled,
+      Dashboard: () => modules.clinical,
+      Departments: () => modules.clinical,
+      Doctors: () => modules.clinical,
+      'Patient History': () => modules.clinical,
+      Appointments: () => modules.clinical,
+      Prescriptions: () => modules.clinical,
+      'Pharmacy / POS': () => modules.pharmacy,
+      'POS Reports': () => modules.pharmacy,
+      Laboratory: () => modules.laboratory,
+      Rooms: () => modules.ward,
+      'Room Allotments': () => modules.ward,
+      Patients: () => modules.clinical || modules.ward || modules.laboratory,
+      Billing: () => modules.clinical || modules.ward || modules.laboratory,
     };
 
     let groups = this.permissionGroups.filter((group) => {
@@ -369,8 +374,80 @@ export class RolesComponent implements OnInit {
     return (role?.permissions || []).filter((permission) => permission !== '*').length;
   }
 
+  effectivePermissionCount(role?: Role | null): number {
+    const perms = role?.permissions || [];
+    if (perms.includes('*')) {
+      return this.effectivePermissionCountFromList(
+        this.permissionGroups.flatMap((group) => group.permissions.map((item) => item.key))
+      );
+    }
+    return this.effectivePermissionCountFromList(perms);
+  }
+
   selectedPermissionCount(): number {
     return this.permissionSelections.controls.length;
+  }
+
+  selectedEffectivePermissionCount(): number {
+    const perms = this.permissionSelections.controls.map((control) => String(control.value || ''));
+    if (perms.includes('*')) {
+      return this.effectivePermissionCountFromList(
+        this.permissionGroups.flatMap((group) => group.permissions.map((item) => item.key))
+      );
+    }
+    return this.effectivePermissionCountFromList(perms);
+  }
+
+  permissionCountLabel(role: Role): string {
+    const stored = this.permissionCount(role);
+    if (!this.scopedModulesEnforced() || this.allModulesEnabled()) {
+      return `${stored} permissions`;
+    }
+    const effective = this.effectivePermissionCount(role);
+    if (effective >= stored) {
+      return `${stored} permissions`;
+    }
+    return `${effective} effective · ${stored} on role`;
+  }
+
+  selectedPermissionCountLabel(): string {
+    const stored = this.selectedPermissionCount();
+    if (!this.scopedModulesEnforced() || this.allModulesEnabled()) {
+      return `${stored} Permissions Assigned`;
+    }
+    const effective = this.selectedEffectivePermissionCount();
+    if (effective >= stored) {
+      return `${stored} Permissions Assigned`;
+    }
+    return `${effective} Effective · ${stored} on Role`;
+  }
+
+  get showModuleClipNote(): boolean {
+    return this.scopedModulesEnforced() && !this.allModulesEnabled();
+  }
+
+  get moduleClipNote(): string {
+    const modules = this.scopedModules();
+    const off: string[] = [];
+    if (!modules.clinical) off.push('Clinical / OPD');
+    if (!modules.ward) off.push('Ward');
+    if (!modules.laboratory) off.push('Laboratory');
+    if (!modules.pharmacy) off.push('Pharmacy');
+    const offLabel = off.length ? off.join(', ') : 'disabled modules';
+    return `This hospital has modules turned off (${offLabel}). Extra permissions stored on the role stay saved, but they will not apply in the app or APIs until those modules are enabled.`;
+  }
+
+  private effectivePermissionCountFromList(permissions: string[]): number {
+    return filterPermissionsByHospitalModules(
+      permissions.filter((permission) => permission !== '*'),
+      this.scopedModules(),
+      this.scopedModulesEnforced()
+    ).length;
+  }
+
+  private allModulesEnabled(): boolean {
+    const modules = this.scopedModules();
+    return Boolean(modules.pharmacy && modules.laboratory && modules.ward && modules.clinical);
   }
 
   roleCategories(role: Role): string[] {
@@ -667,7 +744,29 @@ export class RolesComponent implements OnInit {
   }
 
   visibleRoles(): Role[] {
-    return this.roles.filter((role) => isRoleAllowedByHospitalModules(role));
+    const modules = this.scopedModules();
+    const enforced = this.scopedModulesEnforced();
+    return this.roles.filter((role) => isRoleAllowedByHospitalModules(role, modules, enforced));
+  }
+
+  /** Modules for the hospital currently selected in Hospital Scope (or logged-in hospital). */
+  private scopedModules(): HospitalEnabledModules {
+    const hospital = this.hospitals.find((item) => item._id === this.selectedHospitalId);
+    if (hospital) {
+      if (!hospital.modulesEnforced) {
+        return { ...DEFAULT_HOSPITAL_MODULES };
+      }
+      return normalizeHospitalModules(hospital.enabledModules, hospital);
+    }
+    return readStoredHospitalModules();
+  }
+
+  private scopedModulesEnforced(): boolean {
+    const hospital = this.hospitals.find((item) => item._id === this.selectedHospitalId);
+    if (hospital) {
+      return Boolean(hospital.modulesEnforced);
+    }
+    return readStoredHospitalModuleEnforcement();
   }
 
   onHospitalChange(): void {

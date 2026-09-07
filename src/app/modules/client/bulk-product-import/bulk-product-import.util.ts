@@ -298,7 +298,9 @@ export const parseBulkMedicineFile = async (
   }
 
   const rows = dataRows.map((row) => {
-    const draft = createEmptyBulkRow(defaults);
+    // Do not stamp default storeId onto every row first — Excel Store column must win.
+    // Otherwise a leftover default storeId is sent while the sheet still shows another name.
+    const draft = createEmptyBulkRow();
     mappedIndexes.forEach(({ index, field }) => {
       const raw = cellToString(row[index]);
       if (field === 'discountEligible') {
@@ -316,9 +318,9 @@ export const parseBulkMedicineFile = async (
       }
       (draft as Record<string, unknown>)[field] = raw;
     });
-    if (!draft.storeId && defaults?.storeId) {
+    if (!draft.storeName.trim() && defaults?.storeId) {
       draft.storeId = defaults.storeId;
-      draft.storeName = defaults.storeName || draft.storeName;
+      draft.storeName = defaults.storeName || '';
     }
     return draft;
   });

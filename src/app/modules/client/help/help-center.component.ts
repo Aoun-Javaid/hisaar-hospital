@@ -6,6 +6,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { hasPermission, readStoredPermissions } from '../../auth/access-control';
 import {
   isClinicalModuleEnabled,
+  isHospitalSetupModuleAllowed,
   isLaboratoryModuleEnabled,
   isPharmacyModuleEnabled,
   isWardModuleEnabled,
@@ -233,7 +234,7 @@ export class HelpCenterComponent implements OnInit, OnDestroy {
       ward: isWardModuleEnabled(),
       accounts: this.hasAccountsAccess,
       nursery: isWardModuleEnabled(),
-      setup: canAccessHospitalSetup() || this.hasWildcard,
+      setup: isHospitalSetupModuleAllowed() && (canAccessHospitalSetup() || this.hasWildcard),
     };
   }
 

@@ -54,6 +54,15 @@ const WARD_TYPES = [
   'emergency_observation',
   'icu',
   'hdu',
+  'ccu',
+  'nicu',
+  'picu',
+  'labour',
+  'dialysis',
+  'day_care',
+  'burn',
+  'oncology',
+  'psychiatric',
   'private',
   'semi_private',
   'isolation',
@@ -597,11 +606,16 @@ export class HospitalSetupComponent implements OnInit {
   runAddDefaults(): void {
     this.syncing = true;
     this.backend
-      .syncHospitalMasterDataTemplates({ activateDefaults: false })
+      .syncHospitalMasterDataTemplates({
+        activateDefaults: true,
+        activateRecommended: true,
+      })
       .pipe(finalize(() => (this.syncing = false)))
       .subscribe({
         next: () => {
-          this.toastr.success('Default departments and wards added where missing.');
+          this.toastr.success(
+            'Recommended departments & wards added and activated. Deactivate any you do not use.'
+          );
           this.loadOverview();
         },
         error: () => this.toastr.error('Unable to add default setup.'),

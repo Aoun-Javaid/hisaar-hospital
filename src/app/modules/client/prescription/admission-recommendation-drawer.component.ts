@@ -78,6 +78,7 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
   lookupsWarning = '';
   validationErrors: string[] = [];
   activeSection = 'admission';
+  wardHintDismissed = false;
 
   departments: Department[] = [];
   wards: HospitalWard[] = [];
@@ -158,6 +159,7 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
       if (this.open) {
         this.validationErrors = [];
         this.recommendationSuccess = null;
+        this.wardHintDismissed = false;
         this.loadLookupsIfNeeded();
       }
       this.resetForm();
@@ -342,6 +344,14 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
 
   setSection(section: string): void {
     this.activeSection = section;
+  }
+
+  dismissWardHint(): void {
+    this.wardHintDismissed = true;
+  }
+
+  charCount(controlName: string): number {
+    return String(this.form.get(controlName)?.value || '').length;
   }
 
   addMedicationRow(): void {

@@ -93,8 +93,8 @@
                         <li *ngIf="canViewPharmacyPayments"><a [routerLink]="['/pharmacy/payments']">Payments</a></li>
                         <li *ngIf="canViewPharmacyRegisterSessions"><a [routerLink]="['/pharmacy/register-sessions']">Register Sessions</a></li>
                         <li *ngIf="canViewPharmacyExpenses"><a [routerLink]="['/pharmacy/expenses']">Expenses</a></li>
-                        <li *ngIf="hasNavAccess('pharmacy.ward_settlements.read')"><a [routerLink]="['/pharmacy/ward-settlements']">Ward Settlements</a></li>
-                        <li *ngIf="hasNavAccess('pharmacy.ward_requests.read')"><a [routerLink]="['/pharmacy/ward-requests']">Ward Requests</a></li>
+                        <li *ngIf="canViewPharmacyWardSettlements"><a [routerLink]="['/pharmacy/ward-settlements']">Ward Settlements</a></li>
+                        <li *ngIf="canViewPharmacyWardRequests"><a [routerLink]="['/pharmacy/ward-requests']">Ward Requests</a></li>
                         <li *ngIf="canViewPosReports"><a [routerLink]="['/pharmacy/reports']">Pharmacy Reports</a></li>
                     </ul>
                 </li>
@@ -201,8 +201,8 @@
                         <li *ngIf="hasNavAccess('accounts.reports.read')"><a [routerLink]="['/accounts/trial-balance']">Trial Balance</a></li>
                         <li *ngIf="hasNavAccess('accounts.reports.read')"><a [routerLink]="['/accounts/profit-loss']">Profit &amp; Loss</a></li>
                         <li *ngIf="hasNavAccess(['accounts.read', 'accounts.reports.read'])"><a [routerLink]="['/accounts/daily-collections']">Daily Collections</a></li>
-                        <li *ngIf="hasNavAccess('accounts.reports.read')"><a [routerLink]="['/accounts/doctor-performance']">Doctor Performance</a></li>
-                        <li *ngIf="hasNavAccess('accounts.patient_profitability.read')"><a [routerLink]="['/accounts/patient-profitability']">Patient Profitability</a></li>
+                        <li *ngIf="hasNavAccess('accounts.reports.read') && canViewDepartments"><a [routerLink]="['/accounts/doctor-performance']">Doctor Performance</a></li>
+                        <li *ngIf="hasNavAccess('accounts.patient_profitability.read') && (canViewPatients || canViewBilling)"><a [routerLink]="['/accounts/patient-profitability']">Patient Profitability</a></li>
                         <li *ngIf="hasNavAccess('financial_reconciliation.read')"><a [routerLink]="['/accounts/reconciliation']">Reconciliation</a></li>
                         <li *ngIf="canViewAuditLogs"><a [routerLink]="['/accounts/audit']">Audit</a></li>
                     </ul>

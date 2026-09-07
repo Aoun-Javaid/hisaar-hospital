@@ -1233,6 +1233,37 @@
   grid-column: 1 / -1;
 }
 
+.dob-age-field {
+  display: grid;
+  gap: 6px;
+}
+
+.dob-age-row {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(88px, 110px) minmax(0, 1fr);
+}
+
+.dob-age-input {
+  align-items: center;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: 1fr auto;
+}
+
+.dob-age-input span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dob-age-hint {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .modal-grid input,
 .modal-grid select,
 .modal-grid textarea {

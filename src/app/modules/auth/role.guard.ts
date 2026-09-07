@@ -19,7 +19,7 @@ import {
   isCurrentLaboratoryEdition,
   isLaboratoryEditionRouteAllowed,
 } from './product-edition';
-import { isHospitalModuleRouteAllowed } from './hospital-modules';
+import { isHospitalModuleRouteAllowed, isHospitalSetupModuleAllowed } from './hospital-modules';
 
 export const roleGuard = (accessRequirement: AccessRequirement): CanActivateFn => {
   return (_route, state) => {
@@ -86,16 +86,17 @@ export const hospitalPlatformListGuard: CanActivateFn = (_route, state) => {
   const currentPath = state.url.split('?')[0];
 
   if (isHospitalScopedUser()) {
-    const target = hasRouteAccess(
-      { any: ['departments.create', 'departments.update', 'hospitals.update', '*'] },
-      permissions
-    )
-      ? '/hospital-setup'
-      : resolveDefaultRoute(permissions);
+    const canSetup =
+      isHospitalSetupModuleAllowed() &&
+      hasRouteAccess(
+        { any: ['departments.create', 'departments.update', 'hospitals.update', '*'] },
+        permissions
+      );
+    const target = canSetup ? '/hospital-setup' : resolveDefaultRoute(permissions);
     if (target !== currentPath) {
       return router.parseUrl(target);
     }
-    return router.parseUrl('/dashboard');
+    return router.parseUrl(resolveDefaultRoute(permissions) || '/settings');
   }
 
   return roleGuard(['hospitals.read'])(_route, state);
@@ -103,9 +104,13 @@ export const hospitalPlatformListGuard: CanActivateFn = (_route, state) => {
 
 export const hospitalPlatformManageGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
+  const permissions = readStoredPermissions();
 
   if (isHospitalScopedUser()) {
-    return router.parseUrl('/hospital-setup');
+    if (isHospitalSetupModuleAllowed()) {
+      return router.parseUrl('/hospital-setup');
+    }
+    return router.parseUrl(resolveDefaultRoute(permissions) || '/settings');
   }
 
   return roleGuard(['hospitals.create', 'hospitals.update'])(_route, state);

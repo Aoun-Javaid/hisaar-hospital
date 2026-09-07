@@ -21,8 +21,11 @@ import {
 import { isCurrentLaboratoryEdition } from '../../auth/product-edition';
 import {
   isClinicalModuleEnabled,
+  isHospitalPatientsModuleAllowed,
+  isHospitalSetupModuleAllowed,
   isLaboratoryModuleEnabled,
   isPharmacyModuleEnabled,
+  isPharmacyWardIntegrationAllowed,
   isWardModuleEnabled,
 } from '../../auth/hospital-modules';
 import { canAccessHospitalSetup } from '../../auth/hospital-scope';
@@ -415,10 +418,16 @@ export class LeftmenuComponent implements OnInit, AfterViewInit {
   }
 
   get canViewPatients(): boolean {
+    if (!isHospitalPatientsModuleAllowed()) {
+      return false;
+    }
     return this.canViewAllRoutes || this.hasPermission('patients.read');
   }
 
   get canManagePatients(): boolean {
+    if (!isHospitalPatientsModuleAllowed()) {
+      return false;
+    }
     return (
       this.canViewAllRoutes ||
       this.hasPermission('patients.create') ||
@@ -468,7 +477,7 @@ export class LeftmenuComponent implements OnInit, AfterViewInit {
   }
 
   get canViewHospitalSetup(): boolean {
-    if (this.isLaboratoryEdition) {
+    if (this.isLaboratoryEdition || !isHospitalSetupModuleAllowed()) {
       return false;
     }
     return this.canViewAllRoutes || canAccessHospitalSetup();
@@ -483,6 +492,9 @@ export class LeftmenuComponent implements OnInit, AfterViewInit {
   }
 
   get canViewBilling(): boolean {
+    if (!isHospitalPatientsModuleAllowed()) {
+      return false;
+    }
     return (
       this.canViewAllRoutes ||
       this.hasPermission('encounters.read') ||
@@ -496,12 +508,29 @@ export class LeftmenuComponent implements OnInit, AfterViewInit {
   }
 
   get canManageBilling(): boolean {
+    if (!isHospitalPatientsModuleAllowed()) {
+      return false;
+    }
     return (
       this.canViewAllRoutes ||
       this.hasPermission('ledger_payments.create') ||
       this.hasPermission('bills.create') ||
       this.hasPermission('bills.update_payment')
     );
+  }
+
+  get canViewPharmacyWardSettlements(): boolean {
+    if (!isPharmacyWardIntegrationAllowed()) {
+      return false;
+    }
+    return this.canViewAllRoutes || this.hasPermission('pharmacy.ward_settlements.read');
+  }
+
+  get canViewPharmacyWardRequests(): boolean {
+    if (!isPharmacyWardIntegrationAllowed()) {
+      return false;
+    }
+    return this.canViewAllRoutes || this.hasPermission('pharmacy.ward_requests.read');
   }
 
   get canViewHospitalAdministration(): boolean {

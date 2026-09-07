@@ -103,6 +103,11 @@ export class PharmacyProductsComponent implements OnInit {
       if (params.get('productModal') === '1') {
         setTimeout(() => this.openProductModal());
       }
+      const storeId = params.get('storeId');
+      if (storeId) {
+        this.productForm.storeId = storeId;
+        this.loadProducts();
+      }
     });
 
     this.refreshCurrentUser();

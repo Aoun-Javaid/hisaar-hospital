@@ -1,16 +1,18 @@
 :host {
-  --rx-blue: #1168c8;
-  --rx-blue-soft: #eaf3ff;
-  --rx-ink: #111827;
-  --rx-muted: #6b7280;
-  --rx-line: #e5e7eb;
-  --rx-soft-line: #edf1f7;
+  --rx-blue: #2563eb;
+  --rx-blue-deep: #1d4ed8;
+  --rx-blue-soft: #eff6ff;
+  --rx-ink: #0f172a;
+  --rx-muted: #64748b;
+  --rx-line: #e2e8f0;
+  --rx-soft-line: #edf2f7;
   --rx-panel: #ffffff;
+  --rx-required: #ef4444;
 }
 
 .admission-modal-backdrop {
   align-items: center;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.48);
   display: flex;
   inset: 0;
   justify-content: center;
@@ -22,14 +24,14 @@
 .admission-modal {
   background: var(--rx-panel);
   border: 1px solid var(--rx-line);
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
   display: grid;
   grid-template-rows: auto 1fr auto;
-  height: min(90vh, 920px);
-  max-width: 1420px;
+  height: min(92vh, 940px);
+  max-width: 1120px;
   overflow: hidden;
-  width: min(94vw, 1420px);
+  width: min(96vw, 1120px);
 }
 
 .admission-modal__header {
@@ -45,27 +47,55 @@
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  padding: 14px 18px 10px;
+  padding: 16px 20px 10px;
+}
+
+.admission-modal__back {
+  display: none;
+}
+
+.admission-modal__title-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.admission-modal__title-icon {
+  align-items: center;
+  background: var(--rx-blue-soft);
+  border-radius: 10px;
+  color: var(--rx-blue);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 14px;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
 }
 
 .admission-modal__title-block h3 {
   color: var(--rx-ink);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  margin: 0 0 6px;
+  margin: 0;
 }
 
 .admission-modal__meta {
   color: var(--rx-muted);
   display: flex;
   flex-wrap: wrap;
-  font-size: 12px;
-  gap: 6px 12px;
+  font-size: 12.5px;
+  gap: 4px 2px;
+  margin: 6px 0 0 46px;
 }
 
 .admission-modal__meta strong {
   color: var(--rx-ink);
   font-weight: 700;
+}
+
+.admission-modal__patient-banner {
+  display: none;
 }
 
 .admission-modal__header-actions {
@@ -78,22 +108,31 @@
 
 .admission-modal__tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
-  padding: 0 18px 12px;
+  overflow-x: auto;
+  padding: 0 20px 14px;
+  scrollbar-width: thin;
 }
 
 .admission-modal__tabs button {
   align-items: center;
-  background: var(--rx-panel);
+  background: #fff;
   border: 1px solid var(--rx-line);
   border-radius: 999px;
   color: var(--rx-ink);
   display: inline-flex;
-  font-size: 12px;
-  gap: 6px;
-  min-height: 32px;
-  padding: 5px 12px;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 7px;
+  min-height: 36px;
+  padding: 6px 14px;
+  white-space: nowrap;
+}
+
+.admission-modal__tabs button i {
+  color: var(--rx-blue);
 }
 
 .admission-modal__tabs button.is-active {
@@ -102,9 +141,13 @@
   color: #fff;
 }
 
+.admission-modal__tabs button.is-active i {
+  color: #fff;
+}
+
 .admission-modal__body {
   overflow: auto;
-  padding: 14px 18px 18px;
+  padding: 16px 20px 20px;
 }
 
 .admission-modal__loading {
@@ -113,14 +156,68 @@
   margin-bottom: 10px;
 }
 
+.admission-modal__alert {
+  align-items: flex-start;
+  background: var(--rx-blue-soft);
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  color: #1e3a8a;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+}
+
+.admission-modal__alert i {
+  color: var(--rx-blue);
+  margin-top: 2px;
+}
+
+.admission-modal__alert span {
+  flex: 1;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.admission-modal__alert-dismiss {
+  background: transparent;
+  border: 0;
+  color: var(--rx-muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
 .admission-modal__form {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .admission-panel {
   display: grid;
   gap: 14px;
+}
+
+.admission-section-head h4 {
+  color: var(--rx-ink);
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.admission-section-head p {
+  color: var(--rx-muted);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.admission-section-head--spaced {
+  margin-top: 8px;
+}
+
+.admission-clinical-stack {
+  display: grid;
+  gap: 12px;
 }
 
 .admission-grid {
@@ -149,29 +246,67 @@
   grid-column: 1 / -1;
 }
 
-.admission-field span {
+.admission-field span,
+:host ::ng-deep .hms-form-field__label {
   color: var(--rx-ink);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admission-field em,
+:host ::ng-deep .hms-form-field__label em {
+  color: var(--rx-required);
+  font-style: normal;
 }
 
 .admission-field input,
 .admission-field select,
 .admission-field textarea,
-.admission-search {
-  background: #fff;
+.admission-search,
+:host ::ng-deep .hms-form-field select,
+:host ::ng-deep .hms-form-field input,
+:host ::ng-deep .hms-doctor-select__trigger {
+  background: #f8fafc;
   border: 1px solid var(--rx-line);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--rx-ink);
   font-size: 13px;
   min-height: 44px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   width: 100%;
+}
+
+:host ::ng-deep .hms-doctor-select {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+:host ::ng-deep .hms-doctor-select__trigger {
+  padding: 6px 10px;
 }
 
 .admission-field textarea {
   min-height: 96px;
   resize: vertical;
+}
+
+.admission-field--counted {
+  position: relative;
+}
+
+.admission-field--counted small {
+  bottom: 8px;
+  color: var(--rx-muted);
+  font-size: 11px;
+  position: absolute;
+  right: 12px;
+}
+
+.admission-field--counted textarea {
+  padding-bottom: 28px;
 }
 
 .admission-field--doctor {
@@ -492,9 +627,9 @@
   border-top: 1px solid var(--rx-line);
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   justify-content: flex-end;
-  padding: 12px 18px;
+  padding: 14px 20px;
   position: sticky;
   bottom: 0;
   z-index: 2;
@@ -503,14 +638,15 @@
 .btn-light,
 .btn-primary {
   border: 1px solid var(--rx-line);
-  border-radius: 6px;
-  font-size: 12px;
-  min-height: 36px;
-  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 42px;
+  padding: 8px 16px;
 }
 
 .btn-light {
-  background: var(--rx-panel);
+  background: #fff;
   color: #1f2937;
 }
 
@@ -518,6 +654,12 @@
   background: var(--rx-blue);
   border-color: var(--rx-blue);
   color: #fff;
+  min-width: 180px;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--rx-blue-deep);
+  border-color: var(--rx-blue-deep);
 }
 
 .btn-light:disabled,
@@ -530,7 +672,7 @@
   align-items: center;
   background: #fff;
   border: 1px solid var(--rx-line);
-  border-radius: 6px;
+  border-radius: 10px;
   color: var(--rx-muted);
   display: inline-flex;
   font-size: 22px;
@@ -583,24 +725,122 @@
 
   .admission-modal {
     border-radius: 0;
-    height: 100vh;
+    height: 100dvh;
     max-width: none;
     width: 100vw;
   }
 
   .admission-modal__header-main {
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
+    gap: 8px;
+    padding: 12px 14px 8px;
+  }
+
+  .admission-modal__back {
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--rx-line);
+    border-radius: 10px;
+    color: var(--rx-ink);
+    display: inline-flex;
+    flex-shrink: 0;
+    height: 36px;
+    justify-content: center;
+    width: 36px;
+  }
+
+  .admission-modal__title-block {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+  }
+
+  .admission-modal__title-row {
+    justify-content: center;
+  }
+
+  .admission-modal__title-icon {
+    display: none;
+  }
+
+  .admission-modal__title-block h3 {
+    font-size: 16px;
+  }
+
+  .admission-modal__meta {
+    display: none;
+  }
+
+  .admission-modal__patient-banner {
+    align-items: center;
+    background: var(--rx-blue-soft);
+    border-radius: 12px;
+    display: flex;
+    gap: 10px;
+    margin: 0 14px 10px;
+    padding: 10px 12px;
+  }
+
+  .admission-modal__patient-banner-icon {
+    align-items: center;
+    background: #fff;
+    border-radius: 999px;
+    color: var(--rx-blue);
+    display: inline-flex;
+    flex-shrink: 0;
+    height: 34px;
+    justify-content: center;
+    width: 34px;
+  }
+
+  .admission-modal__patient-banner strong {
+    color: var(--rx-ink);
+    display: block;
+    font-size: 14px;
+  }
+
+  .admission-modal__patient-banner p {
+    color: var(--rx-muted);
+    font-size: 11.5px;
+    margin: 2px 0 0;
   }
 
   .admission-modal__header-actions {
-    justify-content: flex-start;
-    width: 100%;
+    flex-shrink: 0;
+    justify-content: flex-end;
+    width: auto;
+  }
+
+  .admission-modal__header-actions app-hms-document-toolbar {
+    display: none;
+  }
+
+  .admission-modal__tabs {
+    padding: 0 14px 12px;
+  }
+
+  .admission-modal__body {
+    padding: 12px 14px 16px;
   }
 
   .admission-grid--2,
   .admission-grid--3,
   .admission-grid--4 {
     grid-template-columns: 1fr;
+  }
+
+  .admission-panel > .admission-grid--4:first-of-type {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admission-panel > .admission-grid--aligned {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admission-panel > .admission-grid--aligned > :first-child,
+  .admission-panel > .admission-grid--aligned > :nth-child(2) {
+    grid-column: 1 / -1;
   }
 
   .admission-vitals-row,
@@ -613,6 +853,23 @@
     height: 42px;
     width: 42px;
   }
+
+  .admission-modal__footer {
+    gap: 8px;
+    justify-content: stretch;
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .admission-modal__footer .btn-light,
+  .admission-modal__footer .btn-primary {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .admission-modal__footer .btn-primary {
+    flex: 1.35 1 auto;
+    min-width: 0;
+  }
 }
 
 @media (max-width: 390px) {
@@ -620,6 +877,18 @@
   .admission-modal__header-actions .btn-primary {
     font-size: 11px;
     padding-inline: 8px;
+  }
+
+  .admission-modal__footer {
+    flex-wrap: wrap;
+  }
+
+  .admission-modal__footer .btn-light {
+    flex: 1 1 calc(50% - 4px);
+  }
+
+  .admission-modal__footer .btn-primary {
+    flex: 1 1 100%;
   }
 }
 
@@ -674,15 +943,3 @@
   margin-top: 0.85rem;
 }
 
-@media (max-width: 390px) {
-  .admission-modal-backdrop {
-    padding: 0;
-  }
-
-  .admission-modal {
-    border-radius: 0;
-    height: 100vh;
-    max-width: none;
-    width: 100vw;
-  }
-}

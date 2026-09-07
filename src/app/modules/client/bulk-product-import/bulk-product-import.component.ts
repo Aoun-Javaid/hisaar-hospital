@@ -203,13 +203,19 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
 
   loadLookups(): void {
     this.loadingLookups = true;
+    const user = this.readStoredUser();
     this.backend.getStores({ limit: 100 }).subscribe({
       next: (result) => {
         this.stores = result.items || [];
-        if (this.stores.length) {
-          this.defaultStoreId = this.stores[0]._id;
-          this.defaultStoreName = this.stores[0].name || '';
+        const assigned = user?.storeId
+          ? this.stores.find((store) => store._id === user.storeId)
+          : undefined;
+        const fallback = assigned || this.stores[0];
+        if (fallback) {
+          this.defaultStoreId = fallback._id;
+          this.defaultStoreName = fallback.name || '';
         }
+        this.resolveRowStores();
         this.cdr.markForCheck();
       },
       error: () => this.toastr.error('Unable to load stores.'),
@@ -227,6 +233,46 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
         },
         error: () => this.toastr.error('Unable to load categories.'),
       });
+  }
+
+  private readStoredUser(): { storeId?: string } | null {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null') as { storeId?: string } | null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Map Store column names to real store IDs; never keep a mismatched default storeId. */
+  private resolveRowStores(): void {
+    if (!this.rows.length || !this.stores.length) return;
+    this.rows = this.rows.map((row) => {
+      const name = row.storeName.trim().toLowerCase();
+      if (name) {
+        const byName = this.stores.find(
+          (store) => String(store.name || '').trim().toLowerCase() === name
+        );
+        if (byName) {
+          return { ...row, storeId: byName._id, storeName: byName.name || row.storeName };
+        }
+        // Unknown name — drop any default storeId so validation fails clearly
+        return { ...row, storeId: '' };
+      }
+      if (row.storeId) {
+        const byId = this.stores.find((store) => store._id === row.storeId);
+        if (byId) {
+          return { ...row, storeName: byId.name || row.storeName };
+        }
+      }
+      if (this.defaultStoreId) {
+        return {
+          ...row,
+          storeId: this.defaultStoreId,
+          storeName: this.defaultStoreName,
+        };
+      }
+      return row;
+    });
   }
 
   downloadTemplate(): void {
@@ -247,6 +293,7 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
         storeName: this.defaultStoreName,
       });
       this.rows = rows;
+      this.resolveRowStores();
       this.revalidate();
       this.step = 2;
       this.previewMode = 'sheet';
@@ -358,6 +405,7 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
   }
 
   revalidate(): void {
+    this.resolveRowStores();
     const storeNames = new Set(
       this.stores.map((store) => String(store.name || '').trim().toLowerCase()).filter(Boolean)
     );
@@ -410,16 +458,32 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (response) => {
           const count = response.data?.createdCount ?? payload.items.length;
-          this.toastr.success(response.message || `${count} medicines added successfully.`);
+          const storeId =
+            response.data?.products?.[0]?.storeId ||
+            payload.items.find((item) => item.storeId)?.storeId ||
+            this.defaultStoreId;
+          const storeName =
+            this.stores.find((store) => store._id === storeId)?.name ||
+            this.defaultStoreName ||
+            'selected store';
+          this.toastr.success(
+            response.message || `${count} medicines added to ${storeName}.`
+          );
           if (this.tutorialActive) this.finishTutorial(true);
-          void this.router.navigate(['/pharmacy/products']);
+          void this.router.navigate(['/pharmacy/products'], {
+            queryParams: storeId ? { storeId } : undefined,
+          });
         },
         error: (err: HttpErrorResponse) => {
           const details = err?.error?.details;
           const rowErrors = (details?.errors || []) as BulkBackendRowError[];
           if (rowErrors.length) {
             this.applyBackendRowErrors(rowErrors);
-            this.toastr.error(err?.error?.message || 'Bulk import failed validation.');
+            const first = rowErrors[0];
+            const detailMsg = first?.message
+              ? `Row ${first.row}: ${first.message}`
+              : err?.error?.message || 'Bulk import failed validation.';
+            this.toastr.error(detailMsg);
             this.rowFilter = 'errors';
             this.step = 2;
             return;

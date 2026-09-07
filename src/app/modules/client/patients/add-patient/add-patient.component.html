@@ -47,8 +47,33 @@
                                     </select>
                                 </div>
                                 <div class="col-md-4 form-group">
-                                    <label>Date of Birth</label>
-                                    <input class="form-control" type="date" formControlName="dateOfBirth">
+                                    <label>Date of Birth / Age</label>
+                                    <div class="dob-age-row">
+                                        <div class="dob-age-input">
+                                            <input
+                                                class="form-control"
+                                                type="number"
+                                                inputmode="numeric"
+                                                min="0"
+                                                max="120"
+                                                [(ngModel)]="patientAgeYears"
+                                                [ngModelOptions]="{ standalone: true }"
+                                                (ngModelChange)="onPatientAgeYearsInput()"
+                                                placeholder="Age"
+                                                aria-label="Age in years"
+                                            />
+                                            <span>yrs</span>
+                                        </div>
+                                        <input
+                                            class="form-control"
+                                            type="date"
+                                            formControlName="dateOfBirth"
+                                            [max]="maxDateOfBirth"
+                                            (change)="onPatientDateOfBirthInput()"
+                                            (input)="onPatientDateOfBirthInput()"
+                                        />
+                                    </div>
+                                    <small class="text-muted">Type age (e.g. 45) for fast entry — exact date optional.</small>
                                 </div>
                                 <div class="col-md-4 form-group">
                                     <label>Blood Group</label>

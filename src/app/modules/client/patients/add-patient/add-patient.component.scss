@@ -2,3 +2,24 @@
   background: white;
   margin-bottom: 1rem;
 }
+
+.dob-age-row {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(88px, 110px) minmax(0, 1fr);
+}
+
+.dob-age-input {
+  align-items: center;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: 1fr auto;
+}
+
+.dob-age-input span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+

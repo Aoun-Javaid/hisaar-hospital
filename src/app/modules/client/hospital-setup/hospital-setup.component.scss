@@ -90,6 +90,41 @@
   color: #fff;
 }
 
+.hospital-setup-guide {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 12px 14px;
+}
+
+.hospital-setup-guide__item strong {
+  color: #1e3a8a;
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.hospital-setup-guide__item p {
+  color: #1e40af;
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.hospital-setup-guide__item em {
+  font-style: normal;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .hospital-setup-guide {
+    grid-template-columns: 1fr;
+  }
+}
+
 .hospital-setup-card {
   background: #fff;
   border: 1px solid #e5e7eb;

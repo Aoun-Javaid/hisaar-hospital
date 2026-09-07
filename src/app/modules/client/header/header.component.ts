@@ -8,6 +8,8 @@ import { HospitalNotificationService, HospitalNotificationItem } from '../../../
 import { NotificationSoundService } from '../../../core/services/notification-sound.service';
 import { User } from '../../../shared/models/hospital.model';
 import { readStoredPermissions, resolveDefaultRoute } from '../../auth/access-control';
+import { isPharmacyModuleEnabled } from '../../auth/hospital-modules';
+import { isCurrentLaboratoryEdition } from '../../auth/product-edition';
 import { GlobalSearchComponent } from './global-search.component';
 
 @Component({
@@ -110,6 +112,9 @@ export class HeaderComponent implements OnInit {
   }
 
   get canOpenPos(): boolean {
+    if (isCurrentLaboratoryEdition() || !isPharmacyModuleEnabled()) {
+      return false;
+    }
     return this.posPermissions.every((permission) => this.backend.hasPermission(permission));
   }
 
