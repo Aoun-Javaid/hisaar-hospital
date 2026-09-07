@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { catchError, map, Observable, of, shareReplay, tap } from 'rxjs';
 import { CONFIG } from '../../../../config';
 import { AuthService } from './auth.service';
+import { normalizeEmail } from '../utils/email.util';
 import {
   isDoctorRole,
   normalizeAccessKey,
@@ -170,11 +171,36 @@ export class BackendService {
       return body;
     }
 
-    return Object.fromEntries(
+    const cleaned = Object.fromEntries(
       Object.entries(body as Record<string, unknown>).filter(
         ([, value]) => value !== undefined
       )
     );
+
+    if (typeof cleaned['email'] === 'string') {
+      cleaned['email'] = normalizeEmail(cleaned['email']);
+    }
+
+    const owner = cleaned['owner'];
+    if (owner && typeof owner === 'object' && !Array.isArray(owner)) {
+      const ownerRecord = { ...(owner as Record<string, unknown>) };
+      if (typeof ownerRecord['email'] === 'string') {
+        ownerRecord['email'] = normalizeEmail(ownerRecord['email']);
+      }
+      cleaned['owner'] = ownerRecord;
+    }
+
+    return cleaned;
+  }
+
+  private withNormalizedEmail(payload: Record<string, unknown>): Record<string, unknown> {
+    if (typeof payload['email'] !== 'string') {
+      return payload;
+    }
+    return {
+      ...payload,
+      email: normalizeEmail(payload['email']),
+    };
   }
 
   unwrapList<T>(response: ApiResponse<PaginatedResponse<T>>): T[] {
@@ -274,7 +300,10 @@ export class BackendService {
   }
 
   login(payload: { email: string; password: string }): Observable<ApiResponse<{ token: string; user: User }>> {
-    return this.post<{ token: string; user: User }>(CONFIG.auth.login, payload);
+    return this.post<{ token: string; user: User }>(CONFIG.auth.login, {
+      ...payload,
+      email: normalizeEmail(payload.email),
+    });
   }
 
   getMe(): Observable<User> {
@@ -286,7 +315,11 @@ export class BackendService {
     email?: string;
     phone?: string;
   }): Observable<ApiResponse<User>> {
-    return this.patch<User>(CONFIG.auth.me, payload);
+    const body = { ...payload };
+    if (typeof body.email === 'string') {
+      body.email = normalizeEmail(body.email);
+    }
+    return this.patch<User>(CONFIG.auth.me, body);
   }
 
   getMyCompany(): Observable<CompanyProfile> {
@@ -1514,7 +1547,7 @@ export class BackendService {
   }
 
   createUser(payload: Record<string, unknown>): Observable<ApiResponse<User>> {
-    return this.post<User>(CONFIG.users, payload);
+    return this.post<User>(CONFIG.users, this.withNormalizedEmail(payload));
   }
 
   getUser(id: string, params?: Record<string, unknown>): Observable<User> {
@@ -1529,7 +1562,7 @@ export class BackendService {
     params?: Record<string, unknown>
   ): Observable<ApiResponse<User>> {
     const url = params ? `${CONFIG.users}/${id}?${this.cleanParams(params).toString()}` : `${CONFIG.users}/${id}`;
-    return this.patch<User>(url, payload);
+    return this.patch<User>(url, this.withNormalizedEmail(payload));
   }
 
   deleteUser(id: string, params?: Record<string, unknown>): Observable<ApiResponse<User>> {

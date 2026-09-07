@@ -52,7 +52,12 @@ export class AuthService {
 
   login(email: string, password: string): Observable<any> {
     return this.http
-      .post<ApiEnvelope<AuthPayload>>(CONFIG.auth.login, { email, password })
+      .post<ApiEnvelope<AuthPayload>>(CONFIG.auth.login, {
+        email: String(email || '')
+          .trim()
+          .toLowerCase(),
+        password,
+      })
       .pipe(
         tap((response) => {
           this.persistAuthResponse(response?.data);

@@ -17,6 +17,7 @@ import { Hospital, Role, Store, User } from '../../../../shared/models/hospital.
 import { ProfilePhotoFieldComponent } from '../../../../shared/components/profile-photo-field/profile-photo-field.component';
 import { ImageViewerModalComponent } from '../../../../shared/components/image-viewer-modal/image-viewer-modal.component';
 import { resolveAssetUrl } from '../../../../core/utils/asset.util';
+import { normalizeEmail } from '../../../../core/utils/email.util';
 import { isRoleAllowedByHospitalModules } from '../../../auth/hospital-modules';
 
 @Component({
@@ -232,7 +233,7 @@ export class CreateUserComponent implements OnInit, OnDestroy {
       roleId: value.roleId,
       hospitalId,
       name: value.name,
-      email: value.email,
+      email: normalizeEmail(value.email),
       phone: value.phone || undefined,
       storeId: value.storeId || null,
       status: value.status,
