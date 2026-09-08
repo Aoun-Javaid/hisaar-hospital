@@ -1,109 +1,334 @@
-<div id="main-content" class="pharmacy-page">
+<div id="main-content" class="pharmacy-page ppay">
   <div class="pharmacy-shell pharmacy-admin-page">
-    <header class="pharmacy-hero">
+    <header class="pharmacy-hero ppay-hero">
       <div class="pharmacy-hero-main">
-        <h1>Pharmacy Payments</h1>
+        <h1><i class="fa fa-credit-card"></i> Pharmacy Payments</h1>
         <p>Track POS-linked payment records and create payment entries against sales, returns, and expenses.</p>
       </div>
-      <div class="pharmacy-hero-actions">
-        <button class="btn btn-primary" type="button" (click)="openCreate()" [disabled]="!canCreate">
-          Add Payment
+      <div class="pharmacy-hero-actions ppay-actions">
+        <button class="ppay-btn ghost danger" type="button" (click)="exportPdf()" [disabled]="!visiblePayments.length">
+          <i class="fa fa-file-pdf-o"></i>
+          <span>Export PDF</span>
+        </button>
+        <button class="ppay-btn ghost" type="button" (click)="printRegister()" [disabled]="!visiblePayments.length">
+          <i class="fa fa-print"></i>
+          <span>Print</span>
+        </button>
+        <button class="ppay-btn primary" type="button" (click)="openCreate()" [disabled]="!canCreate">
+          <i class="fa fa-plus"></i>
+          <span>Add Payment</span>
         </button>
       </div>
     </header>
 
-    <div class="pharmacy-filter-card">
-      <div class="pharmacy-filter-head">
+    <section class="ppay-highlights" aria-label="Payment highlights">
+      <article class="ppay-total-card">
+        <div class="ppay-total-main">
+          <div class="ppay-icon total"><i class="fa fa-money"></i></div>
+          <div>
+            <span>Total Amount</span>
+            <strong>{{ currency(totalAmount) }}</strong>
+            <small>{{ visiblePayments.length }} payment{{ visiblePayments.length === 1 ? '' : 's' }}</small>
+          </div>
+        </div>
+        <div class="ppay-spark" aria-hidden="true"></div>
+      </article>
+
+      <div class="ppay-method-grid">
+        <article class="ppay-method-card" *ngFor="let item of methodHighlights" [attr.data-method]="item.key">
+          <div class="ppay-method-top">
+            <div class="ppay-icon" [attr.data-method]="item.key"><i class="fa" [ngClass]="item.icon"></i></div>
+            <div class="ppay-method-copy">
+              <span>{{ item.label }}</span>
+              <em>{{ item.percent | number:'1.0-1' }}%</em>
+            </div>
+          </div>
+          <strong>{{ currency(item.amount) }}</strong>
+          <small *ngIf="item.key !== 'credit'">{{ item.count }} payment{{ item.count === 1 ? '' : 's' }}</small>
+          <small *ngIf="item.key === 'credit'">{{ item.count }} unpaid sale{{ item.count === 1 ? '' : 's' }}</small>
+        </article>
+      </div>
+    </section>
+
+    <div class="pharmacy-filter-card ppay-filters">
+      <div class="ppay-filter-head">
         <div>
-          <h2>Payment Filters</h2>
-          <p>Filter payment activity by store, method, and date range.</p>
+          <h2><i class="fa fa-filter"></i> Payment Filters</h2>
+          <p>Filter payment activity by store, method, date range, or search by reference or note.</p>
         </div>
       </div>
 
-      <div class="pharmacy-filter-grid">
-        <label>
-          <span>Store</span>
-          <select class="form-select" [(ngModel)]="storeId">
-            <option value="">All stores</option>
-            <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
-          </select>
-        </label>
+      <div class="ppay-filter-body">
+        <div class="ppay-filter-grid">
+          <label class="ppay-field">
+            <span>Store</span>
+            <select class="form-select" [(ngModel)]="storeId">
+              <option value="">All stores</option>
+              <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
+            </select>
+          </label>
 
-        <label>
-          <span>Method</span>
-          <select class="form-select" [(ngModel)]="method">
-            <option value="">All</option>
-            <option *ngFor="let item of methods" [value]="item">{{ item }}</option>
-          </select>
-        </label>
+          <label class="ppay-field">
+            <span>Method</span>
+            <select class="form-select" [(ngModel)]="method">
+              <option value="">All methods</option>
+              <option *ngFor="let item of methods" [value]="item">{{ methodLabel(item) }}</option>
+            </select>
+          </label>
 
-        <label>
-          <span>From Date</span>
-          <input class="form-control" type="date" [(ngModel)]="fromDate" />
-        </label>
+          <label class="ppay-field">
+            <span>From Date</span>
+            <div class="ppay-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="fromDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
 
-        <label>
-          <span>To Date</span>
-          <input class="form-control" type="date" [(ngModel)]="toDate" />
-        </label>
+          <label class="ppay-field">
+            <span>To Date</span>
+            <div class="ppay-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="toDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
 
-        <div class="pharmacy-filter-actions">
-          <button class="btn btn-outline-primary" type="button" (click)="loadPayments()">Apply</button>
-          <button class="btn btn-outline-secondary" type="button" (click)="reset()">Reset</button>
+          <label class="ppay-field ppay-field-search">
+            <span>Search</span>
+            <div class="ppay-input-wrap">
+              <i class="fa fa-search ppay-leading-icon" aria-hidden="true"></i>
+              <input class="form-control" type="search" [(ngModel)]="searchQuery"
+                (ngModelChange)="onSortOrPageChange()" placeholder="Search reference, note..." />
+            </div>
+          </label>
+        </div>
+
+        <div class="ppay-filter-actions">
+          <button class="ppay-btn primary" type="button" (click)="loadPayments()">
+            <i class="fa fa-filter"></i>
+            <span>Apply Filters</span>
+          </button>
+          <button class="ppay-btn ghost" type="button" (click)="reset()">
+            <i class="fa fa-refresh"></i>
+            <span>Reset</span>
+          </button>
         </div>
       </div>
     </div>
 
-    <div class="pharmacy-table-card">
-      <div class="pharmacy-table-head">
+    <div class="pharmacy-table-card ppay-register">
+      <div class="pharmacy-table-head ppay-register-head">
         <div>
           <h2>Payment Register</h2>
-          <p>{{ payments.length }} payment records are currently visible.</p>
+          <p>{{ visiblePayments.length }} payment records are currently visible.</p>
+        </div>
+        <div class="ppay-register-tools">
+          <label>
+            <span>Sort by</span>
+            <select class="form-select" [(ngModel)]="sortKey" (ngModelChange)="onSortOrPageChange()">
+              <option value="dateDesc">Date (Newest)</option>
+              <option value="dateAsc">Date (Oldest)</option>
+              <option value="amountDesc">Amount (High → Low)</option>
+              <option value="amountAsc">Amount (Low → High)</option>
+            </select>
+          </label>
+          <label>
+            <span>Show</span>
+            <select class="form-select" [(ngModel)]="pageSize" (ngModelChange)="onSortOrPageChange()">
+              <option [ngValue]="10">10 per page</option>
+              <option [ngValue]="25">25 per page</option>
+              <option [ngValue]="50">50 per page</option>
+              <option [ngValue]="0">All</option>
+            </select>
+          </label>
         </div>
       </div>
 
       <div class="card-body">
         <div *ngIf="loading" class="pharmacy-empty-state">Loading payments...</div>
-        <div *ngIf="!loading && !payments.length" class="pharmacy-empty-state">No payments found.</div>
-        <div class="table-responsive" *ngIf="!loading && payments.length">
+        <div *ngIf="!loading && !visiblePayments.length" class="pharmacy-empty-state">
+          No payments found for the selected filters.
+        </div>
+
+        <div class="table-responsive ppay-desktop-table" *ngIf="!loading && visiblePayments.length">
           <table class="table align-middle">
             <thead>
               <tr>
-                <th>Date</th>
+                <th>Date &amp; Time</th>
                 <th>Reference</th>
                 <th>Store</th>
                 <th>Method</th>
-                <th>Reference No.</th>
                 <th>Amount</th>
                 <th>Note</th>
+                <th class="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let payment of payments">
-                <td>{{ date(payment.paymentDate) }}</td>
+              <tr *ngFor="let payment of pagedPayments">
+                <td>
+                  <div class="ppay-datetime">{{ dateTime(payment.paymentDate) }}</div>
+                </td>
                 <td>
                   <div class="fw-semibold">{{ referenceTypeLabel(payment.referenceType) }}</div>
-                  <small class="text-muted" *ngIf="referenceDocLabel(payment)">{{ referenceDocLabel(payment) }}</small>
+                  <small class="ppay-doc-link" *ngIf="referenceDocLabel(payment)">{{ referenceDocLabel(payment) }}</small>
                 </td>
                 <td>{{ storeName(payment.storeId) }}</td>
-                <td>{{ payment.method }}</td>
-                <td>{{ payment.referenceNo || '-' }}</td>
-                <td>{{ currency(payment.amount) }}</td>
-                <td>{{ payment.note || '-' }}</td>
+                <td>
+                  <div class="ppay-method-cell">
+                    <span class="ppay-method-pill" [attr.data-method]="methodClass(payment.method)">
+                      <i class="fa" [ngClass]="methodIcon(payment.method)"></i>
+                      {{ methodLabel(payment.method) }}
+                    </span>
+                    <small class="ppay-method-detail" *ngIf="methodDetail(payment)">{{ methodDetail(payment) }}</small>
+                  </div>
+                </td>
+                <td class="ppay-amount">{{ currency(payment.amount) }}</td>
+                <td>{{ displayNote(payment) }}</td>
+                <td class="text-end">
+                  <div class="ppay-row-actions">
+                    <button type="button" class="ppay-icon-btn" title="View" (click)="openDetail(payment)">
+                      <i class="fa fa-eye"></i>
+                    </button>
+                    <button type="button" class="ppay-icon-btn" title="Print" (click)="printSingle(payment)">
+                      <i class="fa fa-print"></i>
+                    </button>
+                    <button type="button" class="ppay-icon-btn danger" title="Export PDF" (click)="exportSinglePdf(payment)">
+                      <i class="fa fa-file-pdf-o"></i>
+                    </button>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
+
+        <div class="ppay-mobile-list" *ngIf="!loading && visiblePayments.length">
+          <article class="ppay-mobile-card" *ngFor="let payment of pagedPayments">
+            <div class="ppay-mobile-top">
+              <div>
+                <div class="ppay-datetime">{{ dateTime(payment.paymentDate) }}</div>
+                <strong class="ppay-doc-link" *ngIf="referenceDocLabel(payment); else typeOnly">
+                  {{ referenceDocLabel(payment) }}
+                </strong>
+                <ng-template #typeOnly>
+                  <strong>{{ referenceTypeLabel(payment.referenceType) }}</strong>
+                </ng-template>
+              </div>
+              <div class="ppay-row-actions">
+                <button type="button" class="ppay-icon-btn" title="View" (click)="openDetail(payment)">
+                  <i class="fa fa-eye"></i>
+                </button>
+                <button type="button" class="ppay-icon-btn" title="Print" (click)="printSingle(payment)">
+                  <i class="fa fa-print"></i>
+                </button>
+                <button type="button" class="ppay-icon-btn danger" title="Export PDF" (click)="exportSinglePdf(payment)">
+                  <i class="fa fa-file-pdf-o"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="ppay-mobile-meta">
+              <span>{{ storeName(payment.storeId) }}</span>
+              <div class="ppay-method-cell">
+                <span class="ppay-method-pill" [attr.data-method]="methodClass(payment.method)">
+                  <i class="fa" [ngClass]="methodIcon(payment.method)"></i>
+                  {{ methodLabel(payment.method) }}
+                </span>
+                <small class="ppay-method-detail" *ngIf="methodDetail(payment)">{{ methodDetail(payment) }}</small>
+              </div>
+            </div>
+
+            <div class="ppay-mobile-amount">{{ currency(payment.amount) }}</div>
+            <p>{{ displayNote(payment) }}</p>
+          </article>
+        </div>
+
+        <div class="ppay-register-footer" *ngIf="!loading && visiblePayments.length">
+          <div class="ppay-footer-total">
+            <i class="fa fa-money"></i>
+            <strong>Total Visible Amount: {{ currency(totalAmount) }}</strong>
+          </div>
+          <div class="ppay-footer-meta">
+            <span>{{ visiblePayments.length }} payment{{ visiblePayments.length === 1 ? '' : 's' }}</span>
+            <div class="ppay-pager" *ngIf="pageSize > 0 && totalPages > 1">
+              <button type="button" class="ppay-icon-btn" [disabled]="page <= 1" (click)="goToPage(page - 1)">
+                <i class="fa fa-chevron-left"></i>
+              </button>
+              <span>{{ page }} / {{ totalPages }}</span>
+              <button type="button" class="ppay-icon-btn" [disabled]="page >= totalPages" (click)="goToPage(page + 1)">
+                <i class="fa fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="modal-backdrop fade show" *ngIf="modalOpen"></div>
+    <div class="modal-backdrop fade show" *ngIf="modalOpen || detailOpen"></div>
+
+    <div class="modal fade show d-block" *ngIf="detailOpen && selectedPayment">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content ppay-detail-modal">
+          <div class="modal-header">
+            <h5 class="modal-title">Payment Details</h5>
+            <button type="button" class="ppay-modal-close" (click)="closeDetail()" aria-label="Close">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <dl class="ppay-detail-grid">
+              <div>
+                <dt>Date &amp; Time</dt>
+                <dd>{{ dateTime(selectedPayment.paymentDate) }}</dd>
+              </div>
+              <div>
+                <dt>Reference</dt>
+                <dd>
+                  {{ referenceTypeLabel(selectedPayment.referenceType) }}
+                  <span *ngIf="referenceDocLabel(selectedPayment)"> · {{ referenceDocLabel(selectedPayment) }}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Store</dt>
+                <dd>{{ storeName(selectedPayment.storeId) }}</dd>
+              </div>
+              <div>
+                <dt>Method</dt>
+                <dd>
+                  {{ methodLabel(selectedPayment.method) }}
+                  <span *ngIf="methodDetail(selectedPayment)"> · {{ methodDetail(selectedPayment) }}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Amount</dt>
+                <dd class="ppay-amount">{{ currency(selectedPayment.amount) }}</dd>
+              </div>
+              <div>
+                <dt>Note</dt>
+                <dd>{{ displayNote(selectedPayment) }}</dd>
+              </div>
+            </dl>
+          </div>
+          <div class="modal-footer">
+            <button class="ppay-btn ghost" type="button" (click)="printSingle(selectedPayment)">
+              <i class="fa fa-print"></i> Print
+            </button>
+            <button class="ppay-btn ghost danger" type="button" (click)="exportSinglePdf(selectedPayment)">
+              <i class="fa fa-file-pdf-o"></i> PDF
+            </button>
+            <button class="ppay-btn primary" type="button" (click)="closeDetail()">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal fade show d-block" *ngIf="modalOpen">
       <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Add Payment</h5>
-            <button type="button" class="btn-close" (click)="closeModal()"></button>
+            <button type="button" class="ppay-modal-close" (click)="closeModal()" aria-label="Close">
+              <i class="fa fa-times"></i>
+            </button>
           </div>
           <div class="modal-body">
             <div class="row g-3">
@@ -131,7 +356,7 @@
               <div class="col-md-4">
                 <label class="form-label">Method</label>
                 <select class="form-select" [(ngModel)]="form.method">
-                  <option *ngFor="let item of methods" [value]="item">{{ item }}</option>
+                  <option *ngFor="let item of methods" [value]="item">{{ methodLabel(item) }}</option>
                 </select>
               </div>
               <div class="col-md-4">
@@ -146,8 +371,8 @@
                 </select>
               </div>
               <div class="col-md-6">
-                <label class="form-label">Reference No.</label>
-                <input class="form-control" [(ngModel)]="form.referenceNo" />
+                <label class="form-label">External Ref (optional)</label>
+                <input class="form-control" [(ngModel)]="form.referenceNo" placeholder="Cheque / bank slip no." />
               </div>
               <div class="col-12">
                 <label class="form-label">Note</label>

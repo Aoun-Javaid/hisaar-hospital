@@ -87,12 +87,12 @@ export class EncounterLedgerComponent implements OnInit {
     return this.encounters.reduce((sum, item) => sum + Math.max(item.summary?.balance || 0, 0), 0);
   }
 
-  get kpiPaidOnPage(): number {
-    return this.encounters.reduce((sum, item) => sum + (item.summary?.totalPaid || 0), 0);
+  get kpiBilledOnPage(): number {
+    return this.encounters.reduce((sum, item) => sum + (item.summary?.totalCharges || 0), 0);
   }
 
-  get kpiActiveAdmissions(): number {
-    return this.encounters.filter((item) => item.status === 'admitted' || item.type === 'admission').length;
+  get kpiPaidOnPage(): number {
+    return this.encounters.reduce((sum, item) => sum + (item.summary?.totalPaid || 0), 0);
   }
 
   get chipCounts(): { all: number; admitted: number; discharged: number; due: number } {
@@ -236,6 +236,8 @@ export class EncounterLedgerComponent implements OnInit {
       `${this.patientName(encounter)}${encounter.patient?.patientNo ? ` (${encounter.patient.patientNo})` : ''}`,
       encounter.type,
       encounter.status,
+      formatHmsMoney(encounter.summary?.totalCharges || 0),
+      formatHmsMoney(encounter.summary?.totalPaid || 0),
       formatHmsMoney(encounter.summary?.balance || 0),
     ]);
 
@@ -246,11 +248,14 @@ export class EncounterLedgerComponent implements OnInit {
       metaRows: [
         { label: 'Rows', value: String(this.filteredEncounters.length) },
         { label: 'Page', value: String(this.page) },
+        { label: 'Billed (page)', value: formatHmsMoney(this.kpiBilledOnPage) },
+        { label: 'Paid (page)', value: formatHmsMoney(this.kpiPaidOnPage) },
+        { label: 'Outstanding', value: formatHmsMoney(this.kpiOutstanding) },
       ],
       bodyHtml: buildHmsTableHtml(
-        ['Encounter', 'Patient', 'Type', 'Status', 'Balance'],
+        ['Encounter', 'Patient', 'Type', 'Status', 'Billed', 'Paid', 'Balance'],
         rows,
-        { numericColumns: [4], emptyMessage: 'No encounters to export.' }
+        { numericColumns: [4, 5, 6], emptyMessage: 'No encounters to export.' }
       ),
     });
   };
@@ -270,9 +275,9 @@ export class EncounterLedgerComponent implements OnInit {
           { header: 'Patient No', key: 'patientNo' },
           { header: 'Type', key: 'type' },
           { header: 'Status', key: 'status' },
-          { header: 'Balance', key: 'balance' },
           { header: 'Billed', key: 'billed' },
           { header: 'Paid', key: 'paid' },
+          { header: 'Balance', key: 'balance' },
         ],
         rows: this.filteredEncounters.map((encounter) => ({
           encounterNo: encounter.encounterNo,
@@ -280,9 +285,9 @@ export class EncounterLedgerComponent implements OnInit {
           patientNo: encounter.patient?.patientNo || '',
           type: encounter.type,
           status: encounter.status,
-          balance: encounter.summary?.balance || 0,
           billed: encounter.summary?.totalCharges || 0,
           paid: encounter.summary?.totalPaid || 0,
+          balance: encounter.summary?.balance || 0,
         })),
       },
     ]);

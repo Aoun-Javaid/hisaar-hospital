@@ -37,9 +37,25 @@ yarn-error.log
 testem.log
 /typings
 
-# Local QA working log — never commit
-HMS_CURSOR_QA_ISSUES.md
-
 # System files
 .DS_Store
 Thumbs.db
+
+# ── Local / QA / sample artifacts (keep off git; main app code only) ──
+context.txt
+HMS_*.md
+docs/HMS_*.md
+docs/samples/
+*.xlsx
+*.xls
+# Sample CSVs under docs only (do not ignore app source CSVs if any)
+docs/**/*.csv
+ui-screenshots/
+test-results/
+playwright-report/
+playwright/.cache/
+*.local.js
+*.local.ts
+.env
+.env.*
+!.env.example

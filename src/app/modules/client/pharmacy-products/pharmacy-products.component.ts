@@ -47,6 +47,17 @@ type ProductFormSection = 'basic' | 'pricing' | 'batch' | 'optional';
 })
 export class PharmacyProductsComponent implements OnInit {
   products: ProductCatalogItem[] = [];
+  productsTotal = 0;
+  productsTotalPages = 1;
+  productsPage = 1;
+  /** Rows per page: 10 (default), 100, 200, or all (up to API max). */
+  pageSizeChoice: 10 | 100 | 200 | 'all' = 10;
+  readonly pageSizeOptions: Array<{ value: 10 | 100 | 200 | 'all'; label: string }> = [
+    { value: 10, label: '10' },
+    { value: 100, label: '100' },
+    { value: 200, label: '200' },
+    { value: 'all', label: 'All' },
+  ];
   categories: Category[] = [];
   stores: Store[] = [];
   productSearch = '';
@@ -90,6 +101,7 @@ export class PharmacyProductsComponent implements OnInit {
   showBulkTip = false;
 
   private readonly bulkTipStorageKey = 'hms-bulk-medicines-catalog-tip-seen';
+  private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -156,23 +168,52 @@ export class PharmacyProductsComponent implements OnInit {
   }
 
   get filteredProducts(): ProductCatalogItem[] {
-    const query = this.normalizeText(this.productSearch);
-    if (!query) {
-      return this.products;
-    }
+    // Search + pagination are server-side via loadProducts().
+    return this.products;
+  }
 
-    return this.products.filter((product) =>
-      this.normalizeText(
-        [
-          product.name,
-          product.sku,
-          product.barcode,
-          product.batchNumber,
-          product.brand,
-          product.unit,
-        ].join(' '),
-      ).includes(query),
-    );
+  get pageRangeLabel(): string {
+    if (!this.productsTotal) return '0 products';
+    if (this.pageSizeChoice === 'all') {
+      return `Showing all ${this.productsTotal} products`;
+    }
+    const size = this.pageSizeChoice;
+    const start = (this.productsPage - 1) * size + 1;
+    const end = Math.min(this.productsPage * size, this.productsTotal);
+    return `Showing ${start}–${end} of ${this.productsTotal}`;
+  }
+
+  get visiblePageNumbers(): number[] {
+    const total = Math.max(1, this.productsTotalPages);
+    const current = this.productsPage;
+    const windowSize = 5;
+    let start = Math.max(1, current - Math.floor(windowSize / 2));
+    const end = Math.min(total, start + windowSize - 1);
+    start = Math.max(1, end - windowSize + 1);
+    const pages: number[] = [];
+    for (let p = start; p <= end; p += 1) pages.push(p);
+    return pages;
+  }
+
+  onProductSearchChange(): void {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+    this.searchDebounceTimer = setTimeout(() => {
+      this.productsPage = 1;
+      this.loadProducts();
+    }, 300);
+  }
+
+  onPageSizeChange(): void {
+    this.productsPage = 1;
+    this.loadProducts();
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.productsTotalPages || page === this.productsPage) return;
+    this.productsPage = page;
+    this.loadProducts();
   }
 
   refreshCurrentUser(): void {
@@ -201,23 +242,47 @@ export class PharmacyProductsComponent implements OnInit {
   loadProducts(): void {
     if (!this.canViewProducts) {
       this.products = [];
+      this.productsTotal = 0;
+      this.productsTotalPages = 1;
       return;
     }
 
     this.productsLoading = true;
+    const search = this.productSearch.trim();
+    const limit =
+      this.pageSizeChoice === 'all'
+        ? 5000
+        : this.pageSizeChoice;
+    const page = this.pageSizeChoice === 'all' ? 1 : this.productsPage;
+
     this.backend
       .getProducts({
-        limit: 100,
+        page,
+        limit,
         isActive: true,
         storeId: this.currentStoreId() || undefined,
+        ...(search ? { search } : {}),
       })
       .pipe(finalize(() => (this.productsLoading = false)))
       .subscribe({
         next: (result) => {
           this.products = result.items;
+          this.productsTotal = result.pagination?.total ?? result.items.length;
+          this.productsTotalPages = Math.max(
+            1,
+            result.pagination?.totalPages ??
+              (this.pageSizeChoice === 'all'
+                ? 1
+                : Math.ceil(this.productsTotal / this.pageSizeChoice) || 1),
+          );
+          if (this.productsPage > this.productsTotalPages) {
+            this.productsPage = this.productsTotalPages;
+          }
         },
         error: (err) => {
           this.products = [];
+          this.productsTotal = 0;
+          this.productsTotalPages = 1;
           this.toastr.error(err?.error?.message || 'Unable to load products.');
         },
       });
@@ -281,6 +346,7 @@ export class PharmacyProductsComponent implements OnInit {
   }
 
   onStoreChange(): void {
+    this.productsPage = 1;
     this.loadProducts();
   }
 

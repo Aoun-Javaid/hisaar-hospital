@@ -445,10 +445,10 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
     id: 'pharmacy',
     title: 'Pharmacy Workflow',
     description: 'Issue ward medicines and complete counter sales with stock updates.',
-    commonTaskSlugs: ['bulk-add-medicines', 'pharmacy-ward-medicine'],
-    quickTaskSlugs: ['bulk-add-medicines', 'pharmacy-ward-medicine'],
+    commonTaskSlugs: ['bulk-add-medicines', 'pharmacy-pos-sale', 'pharmacy-ward-medicine'],
+    quickTaskSlugs: ['bulk-add-medicines', 'pharmacy-pos-sale', 'pharmacy-ward-medicine'],
     moduleGuideKeys: ['pharmacy'],
-    preferredGuideSlugs: ['bulk-add-medicines', 'pharmacy-ward-medicine'],
+    preferredGuideSlugs: ['bulk-add-medicines', 'pharmacy-pos-sale', 'pharmacy-ward-medicine'],
     desktopBlocks: [
       { type: 'heading', text: 'Medicine Catalog' },
       {

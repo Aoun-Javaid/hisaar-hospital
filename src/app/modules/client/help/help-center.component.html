@@ -368,6 +368,20 @@
                 </ng-container>
               </p>
               <code class="help-route-chip" *ngIf="article.route">{{ article.route }}</code>
+              <div class="help-route-actions" *ngIf="article.route">
+                <a
+                  class="hms-btn hms-btn-secondary"
+                  [routerLink]="article.route"
+                >Open page</a>
+                <a
+                  *ngIf="article.hasInteractiveTutorial"
+                  class="hms-btn hms-btn-primary"
+                  [routerLink]="article.route"
+                  [queryParams]="{ tutorial: '1' }"
+                >
+                  <i class="fa fa-graduation-cap"></i> Start interactive tutorial
+                </a>
+              </div>
             </section>
 
             <section class="help-context-card" *ngIf="article.beforeStart.length">

@@ -102,6 +102,8 @@ export type BulkBackendRowError = {
 
 export const BULK_MAX_ROWS = 500;
 export const BULK_MAX_FILE_BYTES = 5 * 1024 * 1024;
+/** Client sends this many medicines per API call so proxies don't hang on one 500-row POST. */
+export const BULK_SAVE_CHUNK_SIZE = 25;
 
 export const BULK_PRODUCT_UNITS = [
   'tablet',

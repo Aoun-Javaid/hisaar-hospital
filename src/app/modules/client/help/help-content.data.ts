@@ -27,6 +27,8 @@ export interface HelpArticle {
   errors?: string[];
   related: string[];
   route?: string;
+  /** When true, Help Center shows “Start interactive tutorial” → opens route with ?tutorial=1 */
+  hasInteractiveTutorial?: boolean;
 }
 
 export interface HelpQuickTask {
@@ -95,8 +97,12 @@ export const HELP_SEARCH_ALIASES: Record<string, string[]> = {
   'x-ray': ['radiology-imaging-guide'],
   radiology: ['radiology-imaging-guide'],
   scan: ['radiology-imaging-guide'],
-  'pharmacy sale': ['pharmacy-ward-medicine'],
-  pos: ['pharmacy-ward-medicine'],
+  'pharmacy sale': ['pharmacy-pos-sale', 'pharmacy-ward-medicine'],
+  pos: ['pharmacy-pos-sale', 'pharmacy-ward-medicine'],
+  'pharmacy pos': ['pharmacy-pos-sale'],
+  'open pos': ['pharmacy-pos-sale'],
+  'scan barcode': ['pharmacy-pos-sale', 'bulk-add-medicines'],
+  'pos tutorial': ['pharmacy-pos-sale'],
   'medicine issue': ['pharmacy-ward-medicine'],
   payment: ['receive-patient-payment', 'patient-ledger-payments'],
   cash: ['patient-ledger-payments', 'receive-patient-payment'],
@@ -192,7 +198,8 @@ export const HELP_QUICK_TASKS: HelpQuickTask[] = [
   { label: 'Pharmacy Issue', slug: 'pharmacy-ward-medicine', icon: 'fa-shopping-cart' },
   { label: 'Add Medicine', slug: 'bulk-add-medicines', icon: 'fa-plus' },
   { label: 'Bulk Add Medicines', slug: 'bulk-add-medicines', icon: 'fa-table' },
-  { label: 'Open Pharmacy POS', slug: 'pharmacy-ward-medicine', icon: 'fa-shopping-basket' },
+  { label: 'Open Pharmacy POS', slug: 'pharmacy-pos-sale', icon: 'fa-shopping-basket' },
+  { label: 'Pharmacy POS Tutorial', slug: 'pharmacy-pos-sale', icon: 'fa-graduation-cap' },
   { label: 'View Inventory', slug: 'pharmacy-ward-medicine', icon: 'fa-cubes' },
   { label: 'Receive Payment', slug: 'receive-patient-payment', icon: 'fa-money' },
   { label: 'Discharge Patient', slug: 'how-to-discharge-patient', icon: 'fa-sign-out' },
@@ -769,10 +776,70 @@ export const HELP_ARTICLES: HelpArticle[] = [
       'Invalid Excel headers — download the template again and keep the required column titles.',
     ],
     related: [
+      'pharmacy-pos-sale',
       'pharmacy-ward-medicine',
       'patient-ledger-payments',
       'accounts-overview',
     ],
+    hasInteractiveTutorial: true,
+  },
+  {
+    id: 'pharmacy-pos-sale',
+    slug: 'pharmacy-pos-sale',
+    title: 'Pharmacy POS Sale',
+    category: 'Pharmacy',
+    keywords: [
+      'pos',
+      'pharmacy pos',
+      'barcode scan',
+      'counter sale',
+      'hold sale',
+      'register',
+      'pharmacy billing',
+      'scan medicine',
+      'shortcut',
+    ],
+    searchAliases: [
+      'open pos',
+      'pharmacy counter',
+      'scan barcode',
+      'sell medicine',
+      'pos tutorial',
+    ],
+    shortDescription: 'Sell medicines from the counter: search or scan, bill, hold, returns, and close register.',
+    whenToUse: 'When a walk-in or prescription patient buys medicines at the pharmacy counter.',
+    tip: 'Use the graduation-cap / Tutorial button on POS anytime to replay the icon walkthrough. Hover toolbar icons for tooltips.',
+    navigationPath: ['Pharmacy', 'Open POS'],
+    whoCan: 'Pharmacy cashier / staff with sales access',
+    permissions: 'sales.create (register open/close as configured)',
+    roles: ['pharmacy', 'owner'],
+    module: 'pharmacy',
+    route: '/pharmacy/pos',
+    beforeStart: [
+      'Pharmacy module enabled; store assigned to the cashier.',
+      'Register must be opened before sales.',
+      'Medicines should have stock in the selected store; barcodes help scanning.',
+    ],
+    steps: [
+      'Open Pharmacy → Open POS (or Help Center → Start interactive tutorial).',
+      'Confirm the store and open the register if prompted.',
+      'Focus Search — type medicine name/SKU or scan barcode, then Enter to add.',
+      'Adjust qty / discount on cart lines as needed.',
+      'Use Hold to park a bill, History for recent sales, Return for refunds.',
+      'Checkout with Cash / Card / Credit.',
+      'Close register at end of shift from the lock icon.',
+    ],
+    after: [
+      'Sale invoice created; stock reduced for the store.',
+      'Held sales can be restored later from history/hold flows.',
+    ],
+    errors: [
+      'Out of stock — tell the patient or check inventory / another store.',
+      'Register closed — open register before selling.',
+      'Barcode not found — ensure barcode is saved on the medicine and it belongs to this store.',
+    ],
+    related: ['bulk-add-medicines', 'pharmacy-ward-medicine', 'patient-ledger-payments'],
+    hasInteractiveTutorial: true,
   },
   {
     id: 'laboratory-orders',

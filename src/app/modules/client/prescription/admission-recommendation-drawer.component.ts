@@ -84,6 +84,7 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
   wards: HospitalWard[] = [];
   private lookupsLoaded = false;
   private cachedDoctors: Doctor[] = [];
+  private lastAdmissionContextKey = '';
 
   readonly tabs: AdmissionTab[] = [
     { id: 'admission', label: 'Admission', icon: 'fa-bed' },
@@ -152,17 +153,40 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['doctors']?.currentValue?.length) {
       this.cachedDoctors = [...this.doctors];
-      this.applyContextDefaults();
     }
 
-    if (changes['open']?.currentValue || changes['record'] || changes['patient'] || changes['appointment'] || changes['doctor']) {
-      if (this.open) {
-        this.validationErrors = [];
-        this.recommendationSuccess = null;
-        this.wardHintDismissed = false;
-        this.loadLookupsIfNeeded();
-      }
+    const justOpened =
+      Boolean(changes['open']?.currentValue) && changes['open']?.previousValue !== true;
+
+    // Parent templates often pass method results that allocate new stub objects each CD cycle.
+    // Only reset when the drawer opens or the logical context ids change — never on referential churn.
+    const contextKey = this.admissionContextKey();
+    const contextChanged = contextKey !== this.lastAdmissionContextKey;
+    const relevantInputChanged = Boolean(
+      changes['open'] ||
+        changes['record'] ||
+        changes['patient'] ||
+        changes['appointment'] ||
+        changes['doctor']
+    );
+    const shouldReset = this.open && relevantInputChanged && (justOpened || contextChanged);
+
+    if (this.open && (justOpened || contextChanged)) {
+      this.lastAdmissionContextKey = contextKey;
+    }
+
+    if (!this.open && changes['open']) {
+      this.lastAdmissionContextKey = '';
+    }
+
+    if (shouldReset) {
+      this.validationErrors = [];
+      this.recommendationSuccess = null;
+      this.wardHintDismissed = false;
+      this.loadLookupsIfNeeded();
       this.resetForm();
+    } else if (this.open && changes['doctors']?.currentValue?.length) {
+      this.applyContextDefaultsForEmptyFields();
     }
 
     if (this.readOnly) {
@@ -507,8 +531,21 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
         },
         error: () => {
           this.lookupsError = 'Unable to load admission lookups.';
+          if (!this.readOnly) {
+            this.form.enable({ emitEvent: false });
+          }
         },
       });
+  }
+
+  private admissionContextKey(): string {
+    return [
+      this.record?._id || 'new',
+      this.patient?._id || '',
+      this.appointment?._id || '',
+      this.doctor?._id || '',
+      this.prescriptionId || '',
+    ].join('|');
   }
 
   private applyContextDefaults(): void {
@@ -521,6 +558,15 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
       appointment: this.appointment,
       doctor: this.doctor,
     });
+
+    this.applyContextDefaultsForEmptyFields();
+  }
+
+  /** Fill only blank identity fields — never overwrite user edits. */
+  private applyContextDefaultsForEmptyFields(): void {
+    if (!this.open) {
+      return;
+    }
 
     const consultantDoctorId = String(this.form.get('consultantDoctorId')?.value || '').trim();
     if (!consultantDoctorId && this.doctor?._id) {
@@ -546,6 +592,7 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
       appointment: this.appointment,
       doctor: this.doctor,
     });
+    this.applyContextDefaultsForEmptyFields();
     this.pruneEmptyMedicationRows();
   }
 

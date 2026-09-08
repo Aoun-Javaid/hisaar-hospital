@@ -2289,6 +2289,10 @@ export class PrescriptionComponent implements OnInit, OnDestroy {
     return this.selectedAppointment() || this.buildRouteAppointmentStub();
   }
 
+  private admissionPatientStubCache: { key: string; value: Patient } | null = null;
+  private admissionAppointmentStubCache: { key: string; value: Appointment } | null = null;
+  private admissionDoctorStubCache: { key: string; value: Doctor } | null = null;
+
   private buildRouteAppointmentStub(): Appointment | null {
     const appointmentId = String(this.routeAppointmentId || this.selectedAppointmentId || '').trim();
     if (!appointmentId) {
@@ -2299,8 +2303,12 @@ export class PrescriptionComponent implements OnInit, OnDestroy {
     const doctorId = String(
       this.prescriptionForm.getRawValue().doctorId || this.routeDoctorId || this.resolvedDoctorProfileId() || ''
     ).trim();
+    const cacheKey = `${appointmentId}|${patient?._id || ''}|${doctorId}|${this.currentHospitalId || ''}`;
+    if (this.admissionAppointmentStubCache?.key === cacheKey) {
+      return this.admissionAppointmentStubCache.value;
+    }
 
-    return {
+    const value = {
       _id: appointmentId,
       hospitalId: this.currentHospitalId || '',
       appointmentNo: '—',
@@ -2313,6 +2321,8 @@ export class PrescriptionComponent implements OnInit, OnDestroy {
       endTime: '—',
       status: 'confirmed',
     } as Appointment;
+    this.admissionAppointmentStubCache = { key: cacheKey, value };
+    return value;
   }
 
   private buildAdmissionPatientStub(): Patient | null {
@@ -2326,7 +2336,12 @@ export class PrescriptionComponent implements OnInit, OnDestroy {
       return appointmentPatient;
     }
 
-    return {
+    const cacheKey = `${patientId}|${this.currentHospitalId || ''}`;
+    if (this.admissionPatientStubCache?.key === cacheKey) {
+      return this.admissionPatientStubCache.value;
+    }
+
+    const value = {
       _id: patientId,
       hospitalId: this.currentHospitalId || '',
       patientNo: '—',
@@ -2334,6 +2349,8 @@ export class PrescriptionComponent implements OnInit, OnDestroy {
       lastName: '',
       gender: 'male',
     } as Patient;
+    this.admissionPatientStubCache = { key: cacheKey, value };
+    return value;
   }
 
   closeAdmissionRecommendationDrawer(): void {
@@ -5908,10 +5925,17 @@ export class PrescriptionComponent implements OnInit, OnDestroy {
         return resolved;
       }
 
-      return {
+      const doctorName = this.selectedDoctorName() !== '-' ? this.selectedDoctorName() : 'Doctor';
+      const cacheKey = `${doctorId}|${doctorName}`;
+      if (this.admissionDoctorStubCache?.key === cacheKey) {
+        return this.admissionDoctorStubCache.value;
+      }
+      const value = {
         _id: doctorId,
-        user: { name: this.selectedDoctorName() !== '-' ? this.selectedDoctorName() : 'Doctor' },
+        user: { name: doctorName },
       } as Doctor;
+      this.admissionDoctorStubCache = { key: cacheKey, value };
+      return value;
     }
 
     const resolved =

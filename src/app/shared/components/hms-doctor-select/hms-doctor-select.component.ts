@@ -103,8 +103,10 @@ export class HmsDoctorSelectComponent implements ControlValueAccessor {
   }
 
   selectDoctor(doctor: Doctor, event?: Event): void {
+    event?.preventDefault();
     event?.stopPropagation();
-    this.value = doctor._id;
+    if (this.disabled || this.loading) return;
+    this.value = String(doctor._id || '');
     this.onChange(this.value);
     this.onTouched();
     this.doctorChange.emit(doctor);

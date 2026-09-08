@@ -11,7 +11,7 @@
       <div class="pharmacy-hero-actions">
         <a class="btn product-btn product-btn--light product-queue-btn" [routerLink]="['/pharmacy']"><i class="fa fa-arrow-left"></i> Pharmacy Queue</a>
         <a class="btn product-btn product-btn--pos" [routerLink]="['/pharmacy/pos']"><i class="fa fa-shopping-cart"></i> Open POS</a>
-        <a class="btn product-btn product-btn--teal-outline" *ngIf="canCreateProducts" routerLink="/pharmacy/products/bulk" data-tour="bulk-add-medicines"><i class="fa fa-table"></i> Bulk Add Medicines</a>
+        <a class="btn product-btn product-btn--teal-outline" *ngIf="canCreateProducts" routerLink="/pharmacy/products/bulk" [queryParams]="currentStoreId() ? { storeId: currentStoreId() } : null" data-tour="bulk-add-medicines"><i class="fa fa-table"></i> Bulk Add Medicines</a>
         <button type="button" class="btn product-btn product-btn--primary" *ngIf="canCreateProducts" (click)="openProductModal()"><i class="fa fa-plus"></i> Add Medicine</button>
       </div>
     </header>
@@ -22,24 +22,38 @@
         <p>Use <b>Bulk Add Medicines</b> to import Excel/CSV or add rows manually, then save everything in one request.</p>
       </div>
       <div class="product-bulk-tip__actions">
-        <a class="btn product-btn product-btn--teal-outline" routerLink="/pharmacy/products/bulk">Open Bulk Add Medicines</a>
+        <a class="btn product-btn product-btn--teal-outline" routerLink="/pharmacy/products/bulk" [queryParams]="currentStoreId() ? { storeId: currentStoreId() } : null">Open Bulk Add Medicines</a>
         <button type="button" class="btn product-btn product-btn--light" (click)="dismissBulkTip()">Got it</button>
       </div>
     </aside>
 
     <section class="product-toolbar">
-      <label class="product-search"><i class="fa fa-search"></i><input type="search" [(ngModel)]="productSearch" placeholder="Search medicine name, SKU, barcode, type..." /></label>
+      <label class="product-search"><i class="fa fa-search"></i><input type="search" [(ngModel)]="productSearch" (ngModelChange)="onProductSearchChange()" placeholder="Search medicine name, SKU, barcode, type..." /></label>
       <label class="store-filter">
         <span>Store</span>
         <div class="store-filter__control"><i class="fa fa-building-o"></i><select [(ngModel)]="productForm.storeId" (change)="onStoreChange()"><option [value]="currentStoreId()" *ngIf="stores.length === 0">{{ selectedStoreLabel }}</option><option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option></select></div>
+      </label>
+      <label class="page-size-filter">
+        <span>Display</span>
+        <div class="page-size-filter__control">
+          <select
+            [(ngModel)]="pageSizeChoice"
+            name="productPageSize"
+            (ngModelChange)="onPageSizeChange()"
+            [disabled]="productsLoading"
+            aria-label="Rows per page"
+          >
+            <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
       </label>
       <button type="button" class="btn product-btn product-btn--light product-refresh-btn" (click)="loadProducts()" [disabled]="productsLoading"><i class="fa fa-refresh" [class.fa-spin]="productsLoading"></i> Refresh</button>
     </section>
 
     <section class="product-summary-grid" aria-label="Product overview">
-      <article class="product-summary-card is-blue"><span class="product-summary-icon"><i class="fa fa-cube"></i></span><div><span>Total Products</span><strong>{{ products.length }}</strong><small>All medicines in this store</small></div></article>
-      <article class="product-summary-card is-green"><span class="product-summary-icon"><i class="fa fa-check-circle"></i></span><div><span>Active Products</span><strong>{{ products.length }}</strong><small>Available for dispensing</small></div></article>
-      <article class="product-summary-card is-purple"><span class="product-summary-icon"><i class="fa fa-eye"></i></span><div><span>Visible Products</span><strong>{{ filteredProducts.length }}</strong><small>Shown in POS &amp; catalog</small></div></article>
+      <article class="product-summary-card is-blue"><span class="product-summary-icon"><i class="fa fa-cube"></i></span><div><span>Total Products</span><strong>{{ productsTotal }}</strong><small>All medicines in this store</small></div></article>
+      <article class="product-summary-card is-green"><span class="product-summary-icon"><i class="fa fa-check-circle"></i></span><div><span>Active Products</span><strong>{{ productsTotal }}</strong><small>Available for dispensing</small></div></article>
+      <article class="product-summary-card is-purple"><span class="product-summary-icon"><i class="fa fa-eye"></i></span><div><span>This Page</span><strong>{{ products.length }}</strong><small>{{ pageSizeChoice === 'all' ? 'All loaded' : 'Per page: ' + pageSizeChoice }}</small></div></article>
       <article class="product-summary-card is-navy"><span class="product-summary-icon"><i class="fa fa-cog"></i></span><div><span>System Status</span><strong>{{ canViewProducts ? 'Ready' : 'No Access' }}</strong><small>{{ canViewProducts ? 'All systems operational' : 'Permission required' }}</small></div></article>
     </section>
 
@@ -47,7 +61,9 @@
       <header class="product-card__header"><div><h2>Medicines &amp; Products</h2><p>Manage your pharmacy inventory, pricing and stock levels.</p></div></header>
       <div class="product-empty" *ngIf="productsLoading"><i class="fa fa-spinner fa-spin"></i> Loading products...</div>
       <div class="product-empty" *ngIf="!productsLoading && !canViewProducts">This role needs <code>products.read</code> to view product management.</div>
-      <div class="product-empty" *ngIf="!productsLoading && canViewProducts && filteredProducts.length === 0">No products found.</div>
+      <div class="product-empty" *ngIf="!productsLoading && canViewProducts && filteredProducts.length === 0">
+        {{ productSearch.trim() ? 'No products match this search in the selected store.' : 'No products found.' }}
+      </div>
 
       <div class="product-table" *ngIf="!productsLoading && canViewProducts && filteredProducts.length">
         <div class="product-row product-head"><span>Product Name</span><span>SKU</span><span>Type</span><span>Strength</span><span>Batch</span><span>MFD</span><span>Expiry</span><span>Stock</span><span>Cost</span><span>Price</span><span>Discount</span><span>Actions</span></div>
@@ -67,7 +83,24 @@
           <div class="product-mobile-card__actions"><button type="button" class="product-card-btn is-edit" *ngIf="canUpdateProducts" (click)="openEditProduct(product)"><i class="fa fa-pencil"></i> Edit</button><button type="button" class="product-card-btn is-delete" *ngIf="canDeleteProducts" [disabled]="deletingProductId === product._id" (click)="deleteProduct(product)"><i class="fa fa-trash"></i> Delete</button></div>
         </article>
       </div>
-      <footer class="product-card__footer" *ngIf="!productsLoading && canViewProducts && filteredProducts.length">Showing 1–{{ filteredProducts.length }} of {{ filteredProducts.length }} products</footer>
+      <footer class="product-card__footer" *ngIf="!productsLoading && canViewProducts && productsTotal > 0">
+        <span class="product-page-info">{{ pageRangeLabel }}</span>
+        <nav class="product-pagination" *ngIf="pageSizeChoice !== 'all' && productsTotalPages > 1" aria-label="Product pages">
+          <button type="button" class="product-page-btn" (click)="goToPage(productsPage - 1)" [disabled]="productsPage <= 1" aria-label="Previous page">
+            <i class="fa fa-chevron-left"></i> Prev
+          </button>
+          <button
+            type="button"
+            class="product-page-btn"
+            *ngFor="let p of visiblePageNumbers"
+            [class.is-active]="p === productsPage"
+            (click)="goToPage(p)"
+          >{{ p }}</button>
+          <button type="button" class="product-page-btn" (click)="goToPage(productsPage + 1)" [disabled]="productsPage >= productsTotalPages" aria-label="Next page">
+            Next <i class="fa fa-chevron-right"></i>
+          </button>
+        </nav>
+      </footer>
     </section>
   </div>
 

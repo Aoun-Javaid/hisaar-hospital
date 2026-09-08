@@ -216,8 +216,134 @@ export const downloadBulkMedicineTemplate = (sampleStoreName = ''): void => {
           guidance: 'Yes / No (or true / false).',
         },
         {
+          topic: 'Blank vs sample file',
+          guidance:
+            'This blank template has only 1 SAMPLE row (blocked on save). For load testing, use Download 500 Sample Medicines.',
+        },
+        {
           topic: 'Limits',
           guidance: `Max ${BULK_MAX_ROWS} rows per import. Max file size 5 MB. Nothing is saved until Save All Medicines.`,
+        },
+      ],
+    },
+  ]);
+};
+
+const SAMPLE_MEDICINE_SEEDS: Array<{
+  name: string;
+  unit: string;
+  strengthValue: string;
+  strengthUnit: string;
+  categoryName: string;
+  brand: string;
+}> = [
+  { name: 'Paracetamol', unit: 'tablet', strengthValue: '500', strengthUnit: 'mg', categoryName: 'Analgesics', brand: 'Getz' },
+  { name: 'Amoxicillin', unit: 'capsule', strengthValue: '250', strengthUnit: 'mg', categoryName: 'Antibiotics', brand: 'Searle' },
+  { name: 'Amoxicillin', unit: 'capsule', strengthValue: '500', strengthUnit: 'mg', categoryName: 'Antibiotics', brand: 'GSK' },
+  { name: 'Cetirizine', unit: 'tablet', strengthValue: '10', strengthUnit: 'mg', categoryName: 'Antihistamines', brand: 'Abbott' },
+  { name: 'Omeprazole', unit: 'capsule', strengthValue: '20', strengthUnit: 'mg', categoryName: 'Antacids', brand: 'Hilton' },
+  { name: 'Azithromycin', unit: 'tablet', strengthValue: '500', strengthUnit: 'mg', categoryName: 'Antibiotics', brand: 'Sami' },
+  { name: 'Metformin', unit: 'tablet', strengthValue: '500', strengthUnit: 'mg', categoryName: 'Diabetes', brand: 'Highnoon' },
+  { name: 'Metformin', unit: 'tablet', strengthValue: '850', strengthUnit: 'mg', categoryName: 'Diabetes', brand: 'Martin Dow' },
+  { name: 'Amlodipine', unit: 'tablet', strengthValue: '5', strengthUnit: 'mg', categoryName: 'Cardiovascular', brand: 'Pfizer' },
+  { name: 'Amlodipine', unit: 'tablet', strengthValue: '10', strengthUnit: 'mg', categoryName: 'Cardiovascular', brand: 'Novartis' },
+  { name: 'Atorvastatin', unit: 'tablet', strengthValue: '10', strengthUnit: 'mg', categoryName: 'Cardiovascular', brand: 'Generic' },
+  { name: 'Atorvastatin', unit: 'tablet', strengthValue: '20', strengthUnit: 'mg', categoryName: 'Cardiovascular', brand: 'Getz' },
+  { name: 'Losartan', unit: 'tablet', strengthValue: '50', strengthUnit: 'mg', categoryName: 'Cardiovascular', brand: 'Searle' },
+  { name: 'Ibuprofen', unit: 'tablet', strengthValue: '400', strengthUnit: 'mg', categoryName: 'Analgesics', brand: 'Abbott' },
+  { name: 'Diclofenac', unit: 'tablet', strengthValue: '50', strengthUnit: 'mg', categoryName: 'Analgesics', brand: 'Hilton' },
+  { name: 'Ciprofloxacin', unit: 'tablet', strengthValue: '500', strengthUnit: 'mg', categoryName: 'Antibiotics', brand: 'Sami' },
+  { name: 'Pantoprazole', unit: 'tablet', strengthValue: '40', strengthUnit: 'mg', categoryName: 'Antacids', brand: 'Highnoon' },
+  { name: 'Montelukast', unit: 'tablet', strengthValue: '10', strengthUnit: 'mg', categoryName: 'Respiratory', brand: 'Abbott' },
+  { name: 'Salbutamol', unit: 'inhaler', strengthValue: '100', strengthUnit: 'mcg', categoryName: 'Respiratory', brand: 'GSK' },
+  { name: 'Vitamin D3', unit: 'capsule', strengthValue: '50000', strengthUnit: 'IU', categoryName: 'Vitamins', brand: 'Hilton' },
+  { name: 'Ceftriaxone', unit: 'injection', strengthValue: '1', strengthUnit: 'g', categoryName: 'Injectables', brand: 'Pfizer' },
+  { name: 'ORS', unit: 'pcs', strengthValue: '20.5', strengthUnit: 'g', categoryName: 'Vitamins', brand: 'Generic' },
+  { name: 'Multivitamin', unit: 'syrup', strengthValue: '5', strengthUnit: 'ml', categoryName: 'Vitamins', brand: 'Sami' },
+  { name: 'Miconazole', unit: 'cream', strengthValue: '2', strengthUnit: '%', categoryName: 'Dermatology', brand: 'Getz' },
+  { name: 'Normal Saline', unit: 'injection', strengthValue: '0.9', strengthUnit: '%', categoryName: 'Injectables', brand: 'Generic' },
+];
+
+const pad2 = (value: number): string => String(value).padStart(2, '0');
+
+const sampleDate = (seed: number, yearOffset: number): string => {
+  const month = ((seed - 1) % 12) + 1;
+  const day = ((seed * 3) % 27) + 1;
+  return `${2025 + yearOffset}-${pad2(month)}-${pad2(day)}`;
+};
+
+export const buildBulkMedicineSampleRows = (
+  count: number,
+  storeName = 'Medicare Pharmacy Store'
+): Record<string, string | number>[] => {
+  const total = Math.max(1, Math.min(BULK_MAX_ROWS, Math.floor(count) || 1));
+  const rows: Record<string, string | number>[] = [];
+
+  for (let index = 1; index <= total; index += 1) {
+    const seed = SAMPLE_MEDICINE_SEEDS[(index - 1) % SAMPLE_MEDICINE_SEEDS.length];
+    const cycle = Math.floor((index - 1) / SAMPLE_MEDICINE_SEEDS.length) + 1;
+    const cost = Number((5 + ((index * 3) % 95) + (index % 10) * 0.5).toFixed(2));
+    const selling = Number((cost * (1.2 + (index % 5) * 0.05)).toFixed(2));
+    const sku = `SMP500-${String(index).padStart(3, '0')}`;
+
+    rows.push({
+      name: cycle > 1 ? `${seed.name} ${seed.strengthValue}${seed.strengthUnit} #${cycle}` : `${seed.name} ${seed.strengthValue}${seed.strengthUnit}`,
+      unit: seed.unit,
+      sku,
+      strengthValue: seed.strengthValue,
+      strengthUnit: seed.strengthUnit,
+      categoryName: seed.categoryName,
+      storeName: storeName || 'Medicare Pharmacy Store',
+      costPrice: cost,
+      sellingPrice: selling,
+      openingStock: 10 + ((index * 2) % 90),
+      barcode: `890500${String(index).padStart(6, '0')}`,
+      batchNumber: `B500-${String(index).padStart(3, '0')}`,
+      mfdDate: sampleDate(index, 0),
+      expiryDate: sampleDate(index, 2),
+      brand: seed.brand,
+      discountEligible: 'No',
+      maxDiscountType: '',
+      maxDiscountValue: '',
+    });
+  }
+
+  return rows;
+};
+
+/** Ready-to-import sample workbook (valid rows, not the blocked SAMPLE template row). */
+export const downloadBulkMedicineSample = (
+  count = 500,
+  sampleStoreName = 'Medicare Pharmacy Store'
+): void => {
+  const rows = buildBulkMedicineSampleRows(count, sampleStoreName);
+  downloadExcelWorkbook(`hisaar360-bulk-medicines-sample-${rows.length}.xlsx`, [
+    {
+      name: 'Medicines',
+      columns: BULK_TEMPLATE_COLUMNS.map((column) => ({
+        header: column.header,
+        key: column.key,
+      })),
+      rows,
+    },
+    {
+      name: 'Instructions',
+      columns: [
+        { header: 'Topic', key: 'topic' },
+        { header: 'Guidance', key: 'guidance' },
+      ],
+      rows: [
+        {
+          topic: 'Purpose',
+          guidance: `This file has ${rows.length} valid medicines for bulk import testing. Store column uses: ${sampleStoreName || 'Medicare Pharmacy Store'}.`,
+        },
+        {
+          topic: 'Before upload',
+          guidance: 'Confirm the Store name matches an active pharmacy store in Hospital Setup / Pharmacy.',
+        },
+        {
+          topic: 'Limits',
+          guidance: `Max ${BULK_MAX_ROWS} rows per import.`,
         },
       ],
     },

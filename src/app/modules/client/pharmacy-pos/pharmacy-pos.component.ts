@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, firstValueFrom } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { BackendService } from '../../../core/services/backend.service';
 import { resolveAssetUrl } from '../../../core/utils/asset.util';
@@ -35,6 +35,107 @@ import {
 } from '../../../shared/models/hospital.model';
 
 import { prescriptionDispenseQty } from './prescription-dispense-qty';
+
+const POS_CATALOG_LIMIT = 200;
+const POS_SEARCH_LIMIT = 25;
+const POS_TUTORIAL_STORAGE = 'hms-pharmacy-pos-tutorial-seen';
+const POS_TUTORIAL_STEPS: Array<{
+  target: string;
+  title: string;
+  text: string;
+  place?: 'auto' | 'above' | 'below';
+}> = [
+  {
+    target: 'pos-search',
+    title: 'Search & barcode scan',
+    text: 'Type medicine name / SKU or scan a barcode here, then press Enter to add it to the bill.',
+    place: 'below',
+  },
+  {
+    target: 'pos-sync',
+    title: 'Sync offline work',
+    text: 'If you sold while offline, tap this to push pending sales when the connection is back.',
+    place: 'below',
+  },
+  {
+    target: 'pos-products',
+    title: 'Medicine Catalog',
+    text: 'Jump to Product Management to add medicines, barcodes, or stock.',
+    place: 'below',
+  },
+  {
+    target: 'pos-new-sale',
+    title: 'New sale',
+    text: 'Clears the current bill so you can start a fresh counter sale.',
+    place: 'below',
+  },
+  {
+    target: 'pos-hold',
+    title: 'Hold sale',
+    text: 'Park this bill temporarily if the customer steps away — restore it later from history.',
+    place: 'below',
+  },
+  {
+    target: 'pos-preview',
+    title: 'Invoice preview',
+    text: 'Preview the receipt before you take payment.',
+    place: 'below',
+  },
+  {
+    target: 'pos-history',
+    title: 'Sale history',
+    text: 'Open recent sales and held bills from this register.',
+    place: 'below',
+  },
+  {
+    target: 'pos-return',
+    title: 'Return / refund',
+    text: 'Process a return against a completed sale when medicines come back.',
+    place: 'below',
+  },
+  {
+    target: 'pos-reports',
+    title: 'Reports',
+    text: 'Quick access to pharmacy sales and stock reports.',
+    place: 'below',
+  },
+  {
+    target: 'pos-shortcuts',
+    title: 'Keyboard shortcuts',
+    text: 'See and customize F-keys used for search, hold, checkout, and more.',
+    place: 'below',
+  },
+  {
+    target: 'pos-tutorial-btn',
+    title: 'POS tutorial',
+    text: 'Replay this walkthrough anytime from the graduation-cap icon.',
+    place: 'below',
+  },
+  {
+    target: 'pos-fullscreen',
+    title: 'Full screen',
+    text: 'Expand POS to full screen for counter use, or exit full screen when done.',
+    place: 'below',
+  },
+  {
+    target: 'pos-close-register',
+    title: 'Close register',
+    text: 'At shift end, count drawer cash and close the register from here.',
+    place: 'below',
+  },
+  {
+    target: 'pos-catalog',
+    title: 'Medicine list',
+    text: 'Browse store medicines here. Click a card to add it, or use search/scan above.',
+    place: 'above',
+  },
+  {
+    target: 'pos-checkout',
+    title: 'Checkout dock',
+    text: 'Totals, payment methods, and confirm billing live in this bottom dock.',
+    place: 'above',
+  },
+];
 
 interface PharmacyBillLine {
   sourceMedicineName: string;
@@ -131,7 +232,7 @@ interface PharmacyReturnLine {
   templateUrl: './pharmacy-pos.component.html',
   styleUrl: './pharmacy-pos.component.scss',
 })
-export class PharmacyPosComponent implements OnInit {
+export class PharmacyPosComponent implements OnInit, OnDestroy {
   companyProfile: CompanyProfile | null = null;
   stores: Store[] = [];
   customers: Customer[] = [];
@@ -149,9 +250,24 @@ export class PharmacyPosComponent implements OnInit {
   encountersLoading = false;
   prescriptionId = '';
   productSearch = '';
+  /** Live API search hits (null = browse catalog list). */
+  searchResults: ProductCatalogItem[] | null = null;
+  searchLoading = false;
+  scanResolving = false;
+  tutorialActive = false;
+  tutorialStep = 0;
+  tutorialRect: { top: number; left: number; width: number; height: number } | null = null;
+  tutorialCardStyle: Record<string, string> = {};
+  readonly tutorialSteps = POS_TUTORIAL_STEPS;
+  isFullScreen = false;
+  private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private searchRequestSeq = 0;
   paymentMethod: PharmacyPosPaymentMethod = 'cash';
   paidAmount = '0';
   cashReceivedAmount = '0';
+  paymentCardLast4 = '';
+  paymentBankName = '';
+  paymentTransactionId = '';
   customDiscountPercent = '10';
   storesLoading = true;
   productsLoading = false;
@@ -164,6 +280,7 @@ export class PharmacyPosComponent implements OnInit {
   registerClosed = false;
   registerLoading = true;
   closeRegisterOpen = false;
+  openRegisterModalOpen = false;
   closeRegisterSaving = false;
   saleHistoryOpen = false;
   saleHistoryLoading = false;
@@ -293,15 +410,185 @@ export class PharmacyPosComponent implements OnInit {
       if (this.prescriptionId) {
         this.loadPrescription(this.prescriptionId);
       }
+
+      if (params.get('tutorial') === '1') {
+        setTimeout(() => this.startTutorial(), 350);
+      }
     });
 
     this.refreshCurrentUser();
     void this.syncOfflineWork(false);
+
+    if (
+      typeof localStorage !== 'undefined' &&
+      !localStorage.getItem(POS_TUTORIAL_STORAGE) &&
+      this.route.snapshot.queryParamMap.get('tutorial') !== '1'
+    ) {
+      setTimeout(() => this.startTutorial(), 600);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
+    this.clearTutorialLayout();
+  }
+
+  get activeTutorialStep() {
+    return this.tutorialSteps[this.tutorialStep] || null;
+  }
+
+  get tutorialProgressLabel(): string {
+    return `Step ${this.tutorialStep + 1} of ${this.tutorialSteps.length}`;
+  }
+
+  startTutorial(): void {
+    this.tutorialActive = true;
+    this.tutorialStep = 0;
+    this.positionTutorial();
+  }
+
+  skipTutorial(): void {
+    this.finishTutorial(false);
+  }
+
+  nextTutorial(): void {
+    if (this.tutorialStep >= this.tutorialSteps.length - 1) {
+      this.finishTutorial(true);
+      return;
+    }
+    this.tutorialStep += 1;
+    this.positionTutorial();
+  }
+
+  prevTutorial(): void {
+    if (this.tutorialStep <= 0) return;
+    this.tutorialStep -= 1;
+    this.positionTutorial();
+  }
+
+  finishTutorial(markSeen: boolean): void {
+    this.tutorialActive = false;
+    this.clearTutorialLayout();
+    if (markSeen && typeof localStorage !== 'undefined') {
+      localStorage.setItem(POS_TUTORIAL_STORAGE, '1');
+    }
+  }
+
+  private positionTutorial(): void {
+    const step = this.tutorialSteps[this.tutorialStep];
+    if (!step || typeof document === 'undefined') {
+      this.clearTutorialLayout();
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      const el = document.querySelector(
+        `[data-tour="${step.target}"]`,
+      ) as HTMLElement | null;
+      if (!el) {
+        this.tutorialRect = null;
+        this.tutorialCardStyle = {
+          top: '20%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'min(360px, calc(100vw - 24px))',
+        };
+        return;
+      }
+
+      el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      const rect = el.getBoundingClientRect();
+      this.tutorialRect = {
+        top: rect.top - 4,
+        left: rect.left - 4,
+        width: Math.max(rect.width + 8, 40),
+        height: Math.max(rect.height + 8, 40),
+      };
+
+      const placeBelow =
+        step.place === 'below' ||
+        (step.place !== 'above' && rect.top < window.innerHeight / 2);
+      const cardTop = placeBelow
+        ? Math.min(rect.bottom + 12, window.innerHeight - 200)
+        : Math.max(12, rect.top - 180);
+      const cardLeft = Math.min(
+        Math.max(12, rect.left),
+        window.innerWidth - 372,
+      );
+      this.tutorialCardStyle = {
+        top: `${cardTop}px`,
+        left: `${cardLeft}px`,
+        width: 'min(360px, calc(100vw - 24px))',
+        transform: 'none',
+      };
+    });
+  }
+
+  private clearTutorialLayout(): void {
+    this.tutorialRect = null;
+    this.tutorialCardStyle = {};
   }
 
   @HostListener('window:focus')
   handleWindowFocus(): void {
     this.flushPendingPrintSearchFocus();
+  }
+
+  @HostListener('window:resize')
+  handleWindowResize(): void {
+    if (this.tutorialActive) this.positionTutorial();
+  }
+
+  @HostListener('document:fullscreenchange')
+  handleFullscreenChange(): void {
+    this.isFullScreen = !!document.fullscreenElement;
+  }
+
+  toggleFullScreen(): void {
+    if (this.isFullScreen || document.fullscreenElement) {
+      this.exitFullScreen();
+      return;
+    }
+    this.enterFullScreen();
+  }
+
+  private enterFullScreen(): void {
+    const elem = document.documentElement as HTMLElement & {
+      mozRequestFullScreen?: () => Promise<void>;
+      webkitRequestFullscreen?: () => Promise<void>;
+      msRequestFullscreen?: () => Promise<void>;
+    };
+    const request =
+      elem.requestFullscreen ||
+      elem.mozRequestFullScreen ||
+      elem.webkitRequestFullscreen ||
+      elem.msRequestFullscreen;
+    if (request) {
+      void Promise.resolve(request.call(elem)).then(() => {
+        this.isFullScreen = true;
+      });
+    }
+  }
+
+  private exitFullScreen(): void {
+    const doc = document as Document & {
+      mozCancelFullScreen?: () => Promise<void>;
+      webkitExitFullscreen?: () => Promise<void>;
+      msExitFullscreen?: () => Promise<void>;
+    };
+    const exit =
+      doc.exitFullscreen ||
+      doc.mozCancelFullScreen ||
+      doc.webkitExitFullscreen ||
+      doc.msExitFullscreen;
+    if (exit) {
+      void Promise.resolve(exit.call(doc)).then(() => {
+        this.isFullScreen = false;
+      });
+    }
   }
 
   @HostListener('document:visibilitychange')
@@ -432,12 +719,18 @@ export class PharmacyPosComponent implements OnInit {
   }
 
   get expectedClosingAmount(): number {
-    return Number(
-      this.registerSession?.expectedCashAmount ||
-        this.registerSession?.summary?.expectedCashInDrawer ||
-        this.registerSession?.openingAmount ||
-        0,
-    );
+    const summary = this.registerSession?.summary;
+    if (summary?.expectedCashInDrawer != null && summary.expectedCashInDrawer !== '') {
+      const live = Number(summary.expectedCashInDrawer);
+      if (Number.isFinite(live)) {
+        return live;
+      }
+    }
+
+    const opening = Number(this.registerSession?.openingAmount || 0) || 0;
+    const cashSales = Number(summary?.cashSales || 0) || 0;
+    const cashExpenses = Number(summary?.cashExpenses || 0) || 0;
+    return opening + cashSales - cashExpenses;
   }
 
   get changeDueAmount(): number {
@@ -491,11 +784,7 @@ export class PharmacyPosComponent implements OnInit {
   }
 
   get registerExpectedDrawer(): number {
-    return Number(
-      this.registerSession?.summary?.expectedCashInDrawer ||
-        this.registerSession?.expectedCashAmount ||
-        0,
-    );
+    return this.expectedClosingAmount;
   }
 
   get grossProfitEstimate(): number {
@@ -772,8 +1061,9 @@ export class PharmacyPosComponent implements OnInit {
     }
 
     this.productsLoading = true;
+    this.searchResults = null;
     this.backend
-      .getProducts({ limit: 100, isActive: true, storeId })
+      .getProducts({ limit: POS_CATALOG_LIMIT, isActive: true, storeId })
       .pipe(
         finalize(() => {
           this.productsLoading = false;
@@ -869,6 +1159,7 @@ export class PharmacyPosComponent implements OnInit {
           this.registerSession = registerSession;
           this.registerOpened = registerSession?.status === 'open';
           this.registerClosed = registerSession?.status === 'closed';
+          this.openRegisterModalOpen = !this.registerOpened;
           void this.offline.cacheValue(
             this.registerCacheKey(storeId),
             registerSession,
@@ -915,6 +1206,7 @@ export class PharmacyPosComponent implements OnInit {
           this.registerSession = response.data?.registerSession || null;
           this.registerOpened = this.registerSession?.status === 'open';
           this.registerClosed = false;
+          this.openRegisterModalOpen = false;
           this.loadRecentSales();
           this.showPosMessage(
             `Register opened with ${this.formatCurrency(this.registerSession?.openingAmount || this.openingAmount || 0)}.`,
@@ -923,11 +1215,20 @@ export class PharmacyPosComponent implements OnInit {
           this.focusProductSearch(true);
         },
         error: (err) => {
-          this.registerOpened = false;
-          this.registerClosed = false;
           this.toastr.error(err?.error?.message || 'Unable to open register.');
         },
       });
+  }
+
+  promptOpenRegister(): void {
+    if (this.registerOpened) {
+      return;
+    }
+    if (!this.canOpenRegister) {
+      this.toastr.error('Missing permission: register_sessions.open');
+      return;
+    }
+    this.openRegisterModalOpen = true;
   }
 
   openCloseRegister(): void {
@@ -1004,6 +1305,7 @@ export class PharmacyPosComponent implements OnInit {
           this.registerOpened = false;
           this.registerClosed = true;
           this.closeRegisterOpen = false;
+          this.openRegisterModalOpen = false;
           this.clearSale();
           this.loadRecentSales();
           this.showPosMessage('Register closed successfully.', 'success');
@@ -1026,16 +1328,201 @@ export class PharmacyPosComponent implements OnInit {
   onProductSearchChange(): void {
     this.selectedProductIndex = 0;
     this.clampKeyboardNavigationState();
+
+    const raw = this.productSearch.trim();
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
+
+    if (!raw) {
+      this.searchResults = null;
+      this.searchLoading = false;
+      return;
+    }
+
+    this.searchDebounceTimer = setTimeout(() => {
+      void this.runCatalogSearch(raw);
+    }, 220);
   }
 
-  handleProductSearchEnter(event: Event): void {
+  async handleProductSearchEnter(event: Event): Promise<void> {
     event.preventDefault();
-    const product = this.filteredProducts()[0];
-    if (product) {
-      this.addProduct(product);
-      this.productSearch = '';
-      this.selectedProductIndex = 0;
+    if (this.scanResolving) return;
+
+    const raw = this.productSearch.trim();
+    if (!raw) return;
+
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
     }
+
+    this.scanResolving = true;
+    try {
+      const product = await this.resolveScannedOrSearchedProduct(raw);
+      if (!product) {
+        this.toastr.warning('No medicine found for this barcode / SKU / name in this store.');
+        return;
+      }
+      this.mergeProductIntoCatalog(product);
+      this.addProduct(product);
+      this.searchResults = null;
+    } finally {
+      this.scanResolving = false;
+    }
+  }
+
+  filteredProducts(): ProductCatalogItem[] {
+    const raw = this.productSearch.trim();
+    if (!raw) {
+      return this.products.slice(0, 20);
+    }
+
+    if (this.searchResults) {
+      return this.searchResults.slice(0, POS_SEARCH_LIMIT);
+    }
+
+    return this.localProductMatches(raw).slice(0, 20);
+  }
+
+  private async runCatalogSearch(raw: string): Promise<void> {
+    const storeId = this.currentStoreId();
+    if (!storeId || !this.canReadProducts) {
+      this.searchResults = this.localProductMatches(raw).slice(0, POS_SEARCH_LIMIT);
+      return;
+    }
+
+    const requestId = ++this.searchRequestSeq;
+    this.searchLoading = true;
+    try {
+      const result = await firstValueFrom(
+        this.backend.getProducts({
+          search: raw,
+          isActive: true,
+          storeId,
+          limit: POS_SEARCH_LIMIT,
+        }),
+      );
+      if (requestId !== this.searchRequestSeq) return;
+      if (this.productSearch.trim() !== raw) return;
+
+      const items = result.items || [];
+      this.searchResults = this.rankSearchHits(items, raw);
+      this.selectedProductIndex = 0;
+      this.clampKeyboardNavigationState();
+    } catch {
+      if (requestId !== this.searchRequestSeq) return;
+      this.searchResults = this.localProductMatches(raw).slice(0, POS_SEARCH_LIMIT);
+    } finally {
+      if (requestId === this.searchRequestSeq) {
+        this.searchLoading = false;
+      }
+    }
+  }
+
+  private async resolveScannedOrSearchedProduct(
+    raw: string,
+  ): Promise<ProductCatalogItem | null> {
+    const localExact = this.findLocalExactCodeMatch(raw);
+    if (localExact) return localExact;
+
+    const storeId = this.currentStoreId();
+    if (!storeId || !this.canReadProducts) {
+      return this.localProductMatches(raw)[0] || null;
+    }
+
+    try {
+      const byBarcode = await firstValueFrom(
+        this.backend.getProducts({
+          barcode: raw,
+          isActive: true,
+          storeId,
+          limit: 5,
+        }),
+      );
+      const barcodeHit = (byBarcode.items || []).find((item) =>
+        this.isExactCodeMatch(item, raw),
+      ) || byBarcode.items?.[0];
+      if (barcodeHit) return barcodeHit;
+
+      const bySku = await firstValueFrom(
+        this.backend.getProducts({
+          sku: raw.toUpperCase(),
+          isActive: true,
+          storeId,
+          limit: 5,
+        }),
+      );
+      const skuHit = (bySku.items || []).find((item) =>
+        this.isExactCodeMatch(item, raw),
+      ) || bySku.items?.[0];
+      if (skuHit) return skuHit;
+
+      const bySearch = await firstValueFrom(
+        this.backend.getProducts({
+          search: raw,
+          isActive: true,
+          storeId,
+          limit: POS_SEARCH_LIMIT,
+        }),
+      );
+      const ranked = this.rankSearchHits(bySearch.items || [], raw);
+      this.searchResults = ranked;
+      return ranked.find((item) => this.isExactCodeMatch(item, raw)) || ranked[0] || null;
+    } catch {
+      return this.findLocalExactCodeMatch(raw) || this.localProductMatches(raw)[0] || null;
+    }
+  }
+
+  private rankSearchHits(
+    items: ProductCatalogItem[],
+    raw: string,
+  ): ProductCatalogItem[] {
+    return [...items].sort((a, b) => {
+      const aExact = this.isExactCodeMatch(a, raw) ? 0 : 1;
+      const bExact = this.isExactCodeMatch(b, raw) ? 0 : 1;
+      if (aExact !== bExact) return aExact - bExact;
+      return this.productAvailableQty(b) - this.productAvailableQty(a);
+    });
+  }
+
+  private localProductMatches(raw: string): ProductCatalogItem[] {
+    const query = this.normalizeText(raw);
+    if (!query) return this.products.slice(0, 20);
+
+    const exact = this.products.filter((product) => this.isExactCodeMatch(product, raw));
+    const partial = this.products.filter(
+      (product) =>
+        !this.isExactCodeMatch(product, raw) &&
+        this.productSearchText(product).includes(query),
+    );
+    return [...exact, ...partial];
+  }
+
+  private findLocalExactCodeMatch(raw: string): ProductCatalogItem | null {
+    return this.products.find((product) => this.isExactCodeMatch(product, raw)) || null;
+  }
+
+  private isExactCodeMatch(product: ProductCatalogItem, raw: string): boolean {
+    const code = String(raw || '').trim();
+    if (!code) return false;
+    const barcode = String(product.barcode || '').trim();
+    const sku = String(product.sku || '').trim();
+    return (
+      (!!barcode && barcode.toLowerCase() === code.toLowerCase()) ||
+      (!!sku && sku.toLowerCase() === code.toLowerCase())
+    );
+  }
+
+  private mergeProductIntoCatalog(product: ProductCatalogItem): void {
+    if (!product?._id) return;
+    const index = this.products.findIndex((item) => item._id === product._id);
+    if (index >= 0) {
+      this.products[index] = product;
+      return;
+    }
+    this.products = [product, ...this.products];
   }
 
   checkoutWith(method: SalePaymentMethod): void {
@@ -1068,6 +1555,8 @@ export class PharmacyPosComponent implements OnInit {
     this.prescriptionId = '';
     this.saleInvoiceNo = '';
     this.productSearch = '';
+    this.searchResults = null;
+    this.searchLoading = false;
     this.selectedProductIndex = 0;
     this.selectedCartIndex = 0;
     this.selectedCartCellIndex = 0;
@@ -1075,6 +1564,9 @@ export class PharmacyPosComponent implements OnInit {
     this.paidAmount = '0';
     this.cashReceivedAmount = '0';
     this.paymentMethod = 'cash';
+    this.paymentCardLast4 = '';
+    this.paymentBankName = '';
+    this.paymentTransactionId = '';
     this.paidAmountTouched = false;
     this.cashReceivedTouched = false;
   }
@@ -1085,7 +1577,18 @@ export class PharmacyPosComponent implements OnInit {
       this.cashReceivedAmount = '0';
       this.paidAmountTouched = true;
       this.cashReceivedTouched = false;
+      this.paymentCardLast4 = '';
+      this.paymentBankName = '';
+      this.paymentTransactionId = '';
       return;
+    }
+
+    if (this.paymentMethod !== 'card') {
+      this.paymentCardLast4 = '';
+    }
+    if (this.paymentMethod !== 'bank') {
+      this.paymentBankName = '';
+      this.paymentTransactionId = '';
     }
 
     if (Number(this.paidAmount || 0) <= 0) {
@@ -1105,6 +1608,12 @@ export class PharmacyPosComponent implements OnInit {
     if (!this.paidAmountTouched) {
       this.paidAmount = this.payableAmount;
     }
+  }
+
+  onCardLast4Input(value: string): void {
+    this.paymentCardLast4 = String(value || '')
+      .replace(/\D/g, '')
+      .slice(0, 4);
   }
 
   onPaidAmountChange(value: string): void {
@@ -1384,17 +1893,6 @@ export class PharmacyPosComponent implements OnInit {
     return count === 1 ? firstItem : `${firstItem} +${count - 1} more`;
   }
 
-  filteredProducts(): ProductCatalogItem[] {
-    const query = this.normalizeText(this.productSearch);
-    if (!query) {
-      return this.products.slice(0, 20);
-    }
-
-    return this.products
-      .filter((product) => this.productSearchText(product).includes(query))
-      .slice(0, 20);
-  }
-
   addProduct(product: ProductCatalogItem): void {
     const existingIndex = this.billLines.findIndex(
       (line) => line.product._id === product._id,
@@ -1402,6 +1900,8 @@ export class PharmacyPosComponent implements OnInit {
     const existing = existingIndex >= 0 ? this.billLines[existingIndex] : null;
     const availableQty = this.productAvailableQty(product);
     this.productSearch = '';
+    this.searchResults = null;
+    this.searchLoading = false;
     this.selectedProductIndex = 0;
 
     if (availableQty <= 0) {
@@ -1684,6 +2184,44 @@ export class PharmacyPosComponent implements OnInit {
         ? 0
         : this.normalizeMoneyInput(this.paidAmount, this.subtotal);
 
+    const isPaidCounterSale =
+      this.settlementMode !== 'ENCOUNTER' &&
+      this.paymentMethod !== 'credit' &&
+      paidAmount > 0;
+
+    let paymentReferenceNo: string | undefined;
+    let bankName: string | undefined;
+
+    if (isPaidCounterSale && this.paymentMethod === 'card') {
+      const last4 = String(this.paymentCardLast4 || '').replace(/\D/g, '');
+      if (!/^\d{4}$/.test(last4)) {
+        this.toastr.error('Enter the last 4 digits of the card.');
+        return;
+      }
+      paymentReferenceNo = last4;
+    }
+
+    if (isPaidCounterSale && this.paymentMethod === 'bank') {
+      bankName = String(this.paymentBankName || '').trim();
+      paymentReferenceNo = String(this.paymentTransactionId || '').trim();
+      if (bankName.length < 2) {
+        this.toastr.error('Enter the bank name.');
+        return;
+      }
+      if (paymentReferenceNo.length < 2) {
+        this.toastr.error('Enter the bank transaction ID.');
+        return;
+      }
+    }
+
+    if (isPaidCounterSale && this.paymentMethod === 'check') {
+      paymentReferenceNo = String(this.paymentTransactionId || '').trim();
+      if (paymentReferenceNo.length < 2) {
+        this.toastr.error('Enter the check / reference number.');
+        return;
+      }
+    }
+
     const payload: CreateSalePayload = {
       storeId,
       customerId: this.selectedCustomerId || undefined,
@@ -1696,6 +2234,8 @@ export class PharmacyPosComponent implements OnInit {
         this.settlementMode === 'ENCOUNTER' || this.paymentMethod === 'credit'
           ? undefined
           : this.paymentMethod,
+      paymentReferenceNo,
+      bankName,
       note: this.prescription
         ? `Pharmacy bill for prescription ${this.prescription._id}`
         : 'Pharmacy POS bill',
@@ -2389,6 +2929,7 @@ export class PharmacyPosComponent implements OnInit {
       );
     this.registerOpened = this.registerSession?.status === 'open';
     this.registerClosed = this.registerSession?.status === 'closed';
+    this.openRegisterModalOpen = !this.registerOpened;
     if (this.registerSession?.status === 'open') {
       this.openingAmount = Number(this.registerSession.openingAmount || 0);
     }
@@ -2515,6 +3056,8 @@ export class PharmacyPosComponent implements OnInit {
     this.billLines = [];
     this.unavailableMedicines = [];
     this.productSearch = '';
+    this.searchResults = null;
+    this.searchLoading = false;
     this.selectedProductIndex = 0;
     this.paidAmount = '0';
     this.cashReceivedAmount = '0';
@@ -3583,7 +4126,7 @@ export class PharmacyPosComponent implements OnInit {
       return;
     }
 
-    if (!this.registerOpened && !this.registerClosed) {
+    if (this.openRegisterModalOpen && !this.registerOpened) {
       this.focusOverlayControl('[data-kb-opening-amount]', true);
       return;
     }
@@ -3934,7 +4477,7 @@ export class PharmacyPosComponent implements OnInit {
       this.saveShortcutBindings();
       return true;
     }
-    if (!this.registerOpened && !this.registerClosed) {
+    if (this.openRegisterModalOpen && !this.registerOpened) {
       this.openRegister();
       return true;
     }
@@ -3950,7 +4493,7 @@ export class PharmacyPosComponent implements OnInit {
       this.receiptPreviewOpen ||
       this.closeRegisterOpen ||
       this.shortcutInfoOpen ||
-      (!this.registerOpened && !this.registerClosed)
+      (this.openRegisterModalOpen && !this.registerOpened)
     );
   }
 

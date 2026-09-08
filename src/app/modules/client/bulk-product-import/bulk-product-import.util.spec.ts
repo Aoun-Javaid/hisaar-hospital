@@ -1,11 +1,19 @@
 import {
   buildBulkCreatePayload,
+  buildBulkMedicineSampleRows,
   createEmptyBulkRow,
   summarizeBulkRows,
   validateBulkRows,
 } from './bulk-product-import.util';
 
 describe('bulk-product-import.util', () => {
+  it('builds 500 unique sample medicine rows', () => {
+    const rows = buildBulkMedicineSampleRows(500, 'Medicare Pharmacy Store');
+    expect(rows.length).toBe(500);
+    expect(new Set(rows.map((row) => row['sku'])).size).toBe(500);
+    expect(rows[0]['storeName']).toBe('Medicare Pharmacy Store');
+    expect(String(rows[0]['name'])).not.toContain('SAMPLE');
+  });
   it('marks missing required fields as errors with field labels', () => {
     const rows = validateBulkRows([createEmptyBulkRow()]);
     expect(rows[0].status).toBe('error');

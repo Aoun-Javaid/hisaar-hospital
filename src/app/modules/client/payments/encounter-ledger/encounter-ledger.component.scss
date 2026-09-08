@@ -84,10 +84,16 @@
   }
 
   .encounter-card-bottom {
-    align-items: center;
+    align-items: flex-end;
     display: flex;
     justify-content: space-between;
+    gap: 8px;
     margin-top: 8px;
+  }
+
+  .encounter-card-amounts {
+    display: grid;
+    gap: 2px;
   }
 
   .desktop-detail {

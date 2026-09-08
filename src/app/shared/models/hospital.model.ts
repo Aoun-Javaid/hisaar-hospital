@@ -906,6 +906,7 @@ export interface Payment {
   amount: string;
   paymentDate: string;
   referenceNo: string;
+  bankName?: string | null;
   note?: string | null;
   createdBy?: string | null;
   createdAt?: string;
@@ -1032,6 +1033,7 @@ export interface CreateSalePayload {
   paidAmount?: string | number;
   paymentMethod?: SalePaymentMethod;
   paymentReferenceNo?: string;
+  bankName?: string;
   note?: string;
   settlementMode?: 'COUNTER' | 'ENCOUNTER';
   patientId?: string;

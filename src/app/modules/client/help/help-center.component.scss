@@ -728,13 +728,28 @@
 }
 
 .help-route-chip {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
   background: #f8fafc;
   border: 1px solid var(--help-border);
-  border-radius: 999px;
   color: var(--help-muted);
-  display: inline-block;
   font-size: 11px;
-  padding: 4px 10px;
+}
+
+.help-route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.help-route-actions .hms-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
 }
 
 .help-steps-timeline {

@@ -1,7 +1,7 @@
 <div id="main-content">
     <section class="mooli-pos-shell">
         <div class="storepos-command-strip">
-            <div class="storepos-search-box">
+            <div class="storepos-search-box" data-tour="pos-search">
                 <span>Search:</span>
                 <label>
                     <i class="fa fa-search"></i>
@@ -16,47 +16,85 @@
             <div class="storepos-toolbar-icons">
                 <span class="storepos-connection-pill" [class.offline]="offline.statusTone() === 'offline'"
                     [class.syncing]="offline.statusTone() === 'syncing'"
-                    [class.failed]="offline.statusTone() === 'failed'">
+                    [class.failed]="offline.statusTone() === 'failed'"
+                    data-tooltip="Online / offline connection status for this POS">
                     <i class="fa fa-circle"></i>
                     {{ offline.statusLabel() }}
                 </span>
-                <button type="button" class="storepos-icon-btn" title="Sync offline work"
+                <button type="button" class="storepos-icon-btn" aria-label="Sync offline work"
+                    data-tour="pos-sync"
+                    data-tooltip="Sync pending offline sales to the server when you are back online"
                     [disabled]="!offline.online() || offline.syncing() || offline.pendingCount() === 0"
                     (click)="syncOfflineWork()">
                     <i class="fa fa-refresh"></i>
                 </button>
-                <a [routerLink]="['/pharmacy']" class="storepos-icon-btn" title="Back to pharmacy">
+                <a [routerLink]="['/pharmacy']" class="storepos-icon-btn" aria-label="Back to pharmacy"
+                    data-tour="pos-back"
+                    data-tooltip="Go back to Pharmacy queue / dashboard">
                     <i class="fa fa-arrow-left"></i>
                 </a>
-                <a [routerLink]="['/pharmacy/products']" class="storepos-icon-btn" title="Product management">
+                <a [routerLink]="['/pharmacy/products']" class="storepos-icon-btn" aria-label="Product management"
+                    data-tour="pos-products"
+                    data-tooltip="Open Medicine Catalog to add or edit products">
                     <i class="fa fa-cubes"></i>
                 </a>
-                <button type="button" class="storepos-icon-btn" title="New sale" (click)="clearSale()">
-                    <i class="fa fa-refresh"></i>
+                <button type="button" class="storepos-icon-btn" aria-label="New sale"
+                    data-tour="pos-new-sale"
+                    data-tooltip="Clear the current bill and start a new sale"
+                    (click)="clearSale()">
+                    <i class="fa fa-file-o"></i>
                 </button>
-                <button type="button" class="storepos-icon-btn" title="Hold sale"
+                <button type="button" class="storepos-icon-btn" aria-label="Hold sale"
+                    data-tour="pos-hold"
+                    data-tooltip="Park this bill temporarily and continue later"
                     [disabled]="billLines.length === 0 || saleSaving" (click)="saveHeldSale()">
                     <i class="fa fa-pause"></i>
                 </button>
-                <button type="button" class="storepos-icon-btn" title="Invoice preview"
+                <button type="button" class="storepos-icon-btn" aria-label="Invoice preview"
+                    data-tour="pos-preview"
+                    data-tooltip="Preview the receipt / invoice before checkout"
                     [disabled]="billLines.length === 0" (click)="openCurrentBillPreview()">
                     <i class="fa fa-file-text-o"></i>
                 </button>
-                <button type="button" class="storepos-icon-btn" title="Sale history" (click)="openSaleHistory()">
+                <button type="button" class="storepos-icon-btn" aria-label="Sale history"
+                    data-tour="pos-history"
+                    data-tooltip="View recent sales and restore held bills"
+                    (click)="openSaleHistory()">
                     <i class="fa fa-clock-o"></i>
                 </button>
-                <button type="button" class="storepos-icon-btn" title="Return sale"
+                <button type="button" class="storepos-icon-btn" aria-label="Return sale"
+                    data-tour="pos-return"
+                    data-tooltip="Process a medicine return / refund against a past sale"
                     [disabled]="saleSaving || !registerOpened" (click)="openSaleReturnPicker()">
                     <i class="fa fa-undo"></i>
                 </button>
-                <button type="button" class="storepos-icon-btn" title="Pharmacy reports" (click)="openReports()">
+                <button type="button" class="storepos-icon-btn" aria-label="Pharmacy reports"
+                    data-tour="pos-reports"
+                    data-tooltip="Open pharmacy sales and stock reports"
+                    (click)="openReports()">
                     <i class="fa fa-bar-chart"></i>
                 </button>
-                <button type="button" class="storepos-icon-btn" title="Shortcut controls"
+                <button type="button" class="storepos-icon-btn" aria-label="Shortcut controls"
+                    data-tour="pos-shortcuts"
+                    data-tooltip="View and edit POS keyboard shortcuts"
                     (click)="openShortcutInfo()">
-                    <i class="fa fa-info-circle"></i>
+                    <i class="fa fa-keyboard-o"></i>
                 </button>
-                <button type="button" class="storepos-icon-btn storepos-warn" title="Close register"
+                <button type="button" class="storepos-icon-btn" aria-label="Start POS tutorial"
+                    data-tour="pos-tutorial-btn"
+                    data-tooltip="Replay the interactive POS walkthrough anytime"
+                    (click)="startTutorial()">
+                    <i class="fa fa-graduation-cap"></i>
+                </button>
+                <button type="button" class="storepos-icon-btn" aria-label="Toggle full screen"
+                    data-tour="pos-fullscreen"
+                    [attr.data-tooltip]="isFullScreen ? 'Exit full screen' : 'Enter full screen for counter use'"
+                    (click)="toggleFullScreen()">
+                    <i class="fa" [ngClass]="isFullScreen ? 'fa-compress' : 'fa-arrows-alt'"></i>
+                </button>
+                <button type="button" class="storepos-icon-btn storepos-warn" aria-label="Close register"
+                    data-tour="pos-close-register"
+                    data-tooltip="Close the cash register at end of shift"
                     [disabled]="!registerOpened || !canCloseRegister" (click)="openCloseRegister()">
                     <i class="fa fa-lock"></i>
                 </button>
@@ -159,6 +197,9 @@
 
         <div class="storepos-message warning" *ngIf="!canReadProducts">
             Missing POS permission: <strong>products.read</strong>
+        </div>
+        <div class="storepos-message warning" *ngIf="!registerLoading && !registerOpened">
+            Register is {{ registerClosed ? 'closed' : 'not open' }}. Use <strong>Open Register</strong> below to continue sales.
         </div>
         <div class="storepos-message warning" *ngIf="!canCreateSale">
             Missing POS permission: <strong>sales.create</strong>
@@ -278,13 +319,15 @@
                 </div>
             </section>
 
-            <aside class="storepos-catalog-panel">
+            <aside class="storepos-catalog-panel" data-tour="pos-catalog">
                 <div class="catalog-title">
                     <div>
                         <h2>Medicine Catalog</h2>
                         <span>{{ filteredProducts().length }} visible</span>
                     </div>
-                    <small *ngIf="productsLoading">Loading...</small>
+                    <small *ngIf="productsLoading || searchLoading || scanResolving">
+                        {{ scanResolving ? 'Resolving scan…' : searchLoading ? 'Searching…' : 'Loading...' }}
+                    </small>
                 </div>
 
                 <div class="storepos-product-list">
@@ -310,13 +353,13 @@
                     </button>
                 </div>
 
-                <div class="catalog-empty" *ngIf="!productsLoading && filteredProducts().length === 0">
-                    No medicine found in this store.
+                <div class="catalog-empty" *ngIf="!productsLoading && !searchLoading && !scanResolving && filteredProducts().length === 0">
+                    {{ productSearch.trim() ? 'No medicine matches this barcode / SKU / name in this store.' : 'No medicine found in this store.' }}
                 </div>
             </aside>
         </div>
 
-        <div class="storepos-dock">
+        <div class="storepos-dock" data-tour="pos-checkout">
             <div class="dock-summary">
                 <span>Subtotal <strong>{{ formatCurrency(subtotal + totalDiscount) }}</strong></span>
                 <span>Discount <strong>{{ formatCurrency(totalDiscount) }}</strong></span>
@@ -352,6 +395,29 @@
                         [class.keyboard-active]="keyboardZone === 'actions' && selectedDockIndex === 2"
                         (focus)="setKeyboardZone('actions', 2)" />
                 </label>
+                <label *ngIf="paymentMethod === 'card'">
+                    Card Last 4
+                    <input type="text" inputmode="numeric" maxlength="4" pattern="[0-9]*"
+                        [ngModel]="paymentCardLast4" (ngModelChange)="onCardLast4Input($event)"
+                        placeholder="1234" autocomplete="off" data-kb-dock-index="2"
+                        [class.keyboard-active]="keyboardZone === 'actions' && selectedDockIndex === 2"
+                        (focus)="setKeyboardZone('actions', 2)" />
+                </label>
+                <label *ngIf="paymentMethod === 'bank'">
+                    Bank Name
+                    <input type="text" [(ngModel)]="paymentBankName" maxlength="100"
+                        placeholder="e.g. HBL" autocomplete="off" data-kb-dock-index="2"
+                        [class.keyboard-active]="keyboardZone === 'actions' && selectedDockIndex === 2"
+                        (focus)="setKeyboardZone('actions', 2)" />
+                </label>
+                <label *ngIf="paymentMethod === 'bank' || paymentMethod === 'check'">
+                    {{ paymentMethod === 'bank' ? 'Transaction ID' : 'Check / Ref No' }}
+                    <input type="text" [(ngModel)]="paymentTransactionId" maxlength="100"
+                        [placeholder]="paymentMethod === 'bank' ? 'Txn / reference ID' : 'Check number'"
+                        autocomplete="off" data-kb-dock-index="5"
+                        [class.keyboard-active]="keyboardZone === 'actions' && selectedDockIndex === 5"
+                        (focus)="setKeyboardZone('actions', 5)" />
+                </label>
                 <div class="change-due" *ngIf="paymentMethod === 'cash'">
                     Change <strong>{{ formatCurrency(changeDueAmount) }}</strong>
                 </div>
@@ -364,17 +430,30 @@
             </div>
 
             <div class="dock-actions">
-                <button type="button" class="pay-btn" data-kb-dock-index="3"
-                    [class.keyboard-active]="keyboardZone === 'actions' && selectedDockIndex === 3"
-                    (focus)="setKeyboardZone('actions', 3)" [disabled]="!canCheckout" (click)="confirmBilling()">
-                    <i class="fa fa-spinner fa-spin" *ngIf="saleSaving"></i>
-                    Confirm Sale
-                </button>
-                <button type="button" class="pay-btn" data-kb-dock-index="4"
-                    [class.keyboard-active]="keyboardZone === 'actions' && selectedDockIndex === 4"
-                    (focus)="setKeyboardZone('actions', 4)" [disabled]="!canCheckout" (click)="checkoutCredit()">
-                    Credit
-                </button>
+                <ng-container *ngIf="registerOpened; else openRegisterDock">
+                    <button type="button" class="pay-btn" data-kb-dock-index="3"
+                        [class.keyboard-active]="keyboardZone === 'actions' && selectedDockIndex === 3"
+                        (focus)="setKeyboardZone('actions', 3)" [disabled]="!canCheckout" (click)="confirmBilling()">
+                        <i class="fa fa-spinner fa-spin" *ngIf="saleSaving"></i>
+                        Confirm Sale
+                    </button>
+                    <button type="button" class="pay-btn" data-kb-dock-index="4"
+                        [class.keyboard-active]="keyboardZone === 'actions' && selectedDockIndex === 4"
+                        (focus)="setKeyboardZone('actions', 4)" [disabled]="!canCheckout" (click)="checkoutCredit()">
+                        Credit
+                    </button>
+                </ng-container>
+                <ng-template #openRegisterDock>
+                    <button type="button" class="pay-btn" data-kb-dock-index="3"
+                        [class.keyboard-active]="keyboardZone === 'actions' && selectedDockIndex === 3"
+                        (focus)="setKeyboardZone('actions', 3)"
+                        [disabled]="registerLoading || registerOpening || !canOpenRegister"
+                        (click)="promptOpenRegister()">
+                        <i class="fa fa-spinner fa-spin" *ngIf="registerOpening"></i>
+                        <i class="fa fa-unlock-alt" *ngIf="!registerOpening"></i>
+                        Open Register
+                    </button>
+                </ng-template>
             </div>
         </div>
     </section>
@@ -773,7 +852,7 @@
     </div>
 </div>
 
-<div class="modern-modal-backdrop" *ngIf="!registerLoading && !storesLoading && !registerOpened && !registerClosed">
+<div class="modern-modal-backdrop" *ngIf="openRegisterModalOpen && !registerOpened && !registerLoading && !storesLoading">
     <div class="modern-register-modal">
         <div class="modern-register-head">
             <div class="modern-register-badge">
@@ -781,8 +860,11 @@
             </div>
             <div>
                 <strong>Open Register</strong>
-                <span>Opening balance is required before POS billing.</span>
+                <span *ngIf="!registerClosed">Opening balance is required before POS billing.</span>
+                <span *ngIf="registerClosed">Previous shift is closed. Open a new register to continue sales.</span>
             </div>
+            <button type="button" class="modal-close" (click)="openRegisterModalOpen = false"
+                aria-label="Close">×</button>
         </div>
 
         <div class="modern-register-body">
@@ -879,4 +961,33 @@
             </button>
         </div>
     </div>
+</div>
+
+<div class="pos-tour" *ngIf="tutorialActive">
+  <div class="pos-tour__dim" (click)="skipTutorial()"></div>
+  <div
+    class="pos-tour__spot"
+    *ngIf="tutorialRect as spot"
+    [style.top.px]="spot.top"
+    [style.left.px]="spot.left"
+    [style.width.px]="spot.width"
+    [style.height.px]="spot.height"
+  ></div>
+  <div class="pos-tour__card" [ngStyle]="tutorialCardStyle" *ngIf="activeTutorialStep as tip">
+    <div class="pos-tour__meta">
+      <span>{{ tutorialProgressLabel }}</span>
+      <button type="button" class="pos-tour__close" (click)="skipTutorial()" aria-label="Close tutorial">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+    <h3>{{ tip.title }}</h3>
+    <p>{{ tip.text }}</p>
+    <div class="pos-tour__actions">
+      <button type="button" (click)="skipTutorial()">Skip</button>
+      <button type="button" (click)="prevTutorial()" [disabled]="tutorialStep === 0">Back</button>
+      <button type="button" class="is-primary" (click)="nextTutorial()">
+        {{ tutorialStep >= tutorialSteps.length - 1 ? 'Finish' : 'Next' }}
+      </button>
+    </div>
+  </div>
 </div>

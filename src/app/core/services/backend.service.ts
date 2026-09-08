@@ -961,7 +961,10 @@ export class BackendService {
     inventoryCreated: number;
     stockMovementsCreated: number;
   }>> {
-    return this.post(CONFIG.productsBulk, payload);
+    return this.post(CONFIG.productsBulk, payload, {
+      ...this.idempotencyHeaders(),
+      'X-Skip-Loader': '1',
+    });
   }
 
   updateProduct(id: string, payload: Record<string, unknown>): Observable<ApiResponse<ProductCatalogItem>> {

@@ -48,7 +48,7 @@ describe('help-search.util', () => {
   });
 
   it('finds pharmacy, payment, discharge, and history guides', () => {
-    expect(topSlug('pharmacy sale')).toBe('pharmacy-ward-medicine');
+    expect(topSlug('pharmacy sale')).toBe('pharmacy-pos-sale');
     expect(topSlug('medicine issue')).toBe('pharmacy-ward-medicine');
     expect(topSlug('payment')).toBe('receive-patient-payment');
     expect(topSlug('previous admission')).toBe('admission-history-guide');

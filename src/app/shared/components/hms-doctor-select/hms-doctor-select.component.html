@@ -45,7 +45,7 @@
         class="hms-doctor-select__option"
         *ngFor="let doctor of filteredDoctors()"
         [attr.data-testid]="'doctor-option-' + doctor._id"
-        (click)="selectDoctor(doctor, $event)"
+        (mousedown)="selectDoctor(doctor, $event)"
       >
         <span class="hms-doctor-select__avatar">
           <img *ngIf="photoUrl(doctor)" [src]="photoUrl(doctor)" alt="" />

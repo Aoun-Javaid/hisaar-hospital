@@ -10,14 +10,16 @@ import {
   inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
+import { firstValueFrom } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { BackendService } from '../../../core/services/backend.service';
 import { Category, Store } from '../../../shared/models/hospital.model';
 import {
   BULK_MAX_ROWS,
   BULK_PRODUCT_UNITS,
+  BULK_SAVE_CHUNK_SIZE,
   BULK_STRENGTH_UNITS,
   BulkBackendRowError,
   BulkFieldIssue,
@@ -27,6 +29,7 @@ import {
 import {
   buildBulkCreatePayload,
   createEmptyBulkRow,
+  downloadBulkMedicineSample,
   downloadBulkMedicineTemplate,
   parseBulkMedicineFile,
   summarizeBulkRows,
@@ -112,6 +115,7 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
   private readonly backend = inject(BackendService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly cdr = inject(ChangeDetectorRef);
 
   readonly productUnits = BULK_PRODUCT_UNITS;
@@ -134,9 +138,13 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
   loadingLookups = false;
   parsing = false;
   saving = false;
+  saveProgress = { done: 0, total: 0, chunk: 0, chunks: 0 };
 
   defaultStoreId = '';
   defaultStoreName = '';
+
+  tipsOpen = false;
+  dragOver = false;
 
   tutorialActive = false;
   tutorialStep = 0;
@@ -171,6 +179,14 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
     return true;
   }
 
+  get editorBlockingIssues() {
+    return (this.editingRow?.issues || []).filter((issue) => issue.severity === 'error');
+  }
+
+  get editorWarningIssues() {
+    return (this.editingRow?.issues || []).filter((issue) => issue.severity === 'warning');
+  }
+
   get activeTutorialSteps() {
     return TUTORIAL_STEPS.filter((step) => !step.requiresRows || this.rows.length > 0);
   }
@@ -181,14 +197,34 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
       void this.router.navigate(['/pharmacy/products']);
       return;
     }
+    // Desktop: tips always visible via CSS. Mobile accordion starts collapsed.
+    if (typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches) {
+      this.tipsOpen = true;
+    }
     this.loadLookups();
-    if (typeof localStorage !== 'undefined' && !localStorage.getItem(TUTORIAL_STORAGE)) {
+
+    const tutorialRequested = this.route.snapshot.queryParamMap.get('tutorial') === '1';
+    if (tutorialRequested) {
+      setTimeout(() => this.startTutorial(), 250);
+    } else if (typeof localStorage !== 'undefined' && !localStorage.getItem(TUTORIAL_STORAGE)) {
       this.startTutorial();
     }
   }
 
   ngOnDestroy(): void {
     this.clearTutorialLayout();
+  }
+
+  get saveProgressPercent(): number {
+    if (!this.saveProgress.total) return 0;
+    return Math.min(100, Math.round((this.saveProgress.done / this.saveProgress.total) * 100));
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (!this.saving) return;
+    event.preventDefault();
+    event.returnValue = true;
   }
 
   @HostListener('window:resize')
@@ -201,19 +237,26 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
     if (this.editorOpen) this.closeEditor();
   }
 
+  get selectedStoreLabel(): string {
+    return this.defaultStoreName || (this.defaultStoreId ? 'Selected store' : 'Select pharmacy store');
+  }
+
   loadLookups(): void {
     this.loadingLookups = true;
     const user = this.readStoredUser();
+    const queryStoreId = String(this.route.snapshot.queryParamMap.get('storeId') || '').trim();
     this.backend.getStores({ limit: 100 }).subscribe({
       next: (result) => {
         this.stores = result.items || [];
+        const fromQuery = queryStoreId
+          ? this.stores.find((store) => store._id === queryStoreId)
+          : undefined;
         const assigned = user?.storeId
           ? this.stores.find((store) => store._id === user.storeId)
           : undefined;
-        const fallback = assigned || this.stores[0];
+        const fallback = fromQuery || assigned || this.stores[0];
         if (fallback) {
-          this.defaultStoreId = fallback._id;
-          this.defaultStoreName = fallback.name || '';
+          this.setTargetStore(fallback._id, false);
         }
         this.resolveRowStores();
         this.cdr.markForCheck();
@@ -235,6 +278,21 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Top-of-page store picker — all bulk rows import into this pharmacy. */
+  onTargetStoreChange(): void {
+    this.setTargetStore(this.defaultStoreId, true);
+  }
+
+  private setTargetStore(storeId: string, applyToRows: boolean): void {
+    const store = this.stores.find((item) => item._id === storeId);
+    this.defaultStoreId = store?._id || storeId || '';
+    this.defaultStoreName = store?.name || '';
+    if (applyToRows && this.rows.length) {
+      this.applyCurrentStoreToAll(false);
+      this.toastr.success(`Import store set to "${this.defaultStoreName}".`);
+    }
+  }
+
   private readStoredUser(): { storeId?: string } | null {
     try {
       return JSON.parse(localStorage.getItem('user') || 'null') as { storeId?: string } | null;
@@ -243,40 +301,54 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Map Store column names to real store IDs; never keep a mismatched default storeId. */
-  private resolveRowStores(): void {
-    if (!this.rows.length || !this.stores.length) return;
+  /**
+   * Bulk import always uses the store selected at the top of the page.
+   * Excel Store column is ignored so users don't fix 500 rows one-by-one.
+   */
+  private resolveRowStores(): number {
+    if (!this.rows.length || !this.defaultStoreId) return 0;
+
+    let remapped = 0;
     this.rows = this.rows.map((row) => {
-      const name = row.storeName.trim().toLowerCase();
-      if (name) {
-        const byName = this.stores.find(
-          (store) => String(store.name || '').trim().toLowerCase() === name
-        );
-        if (byName) {
-          return { ...row, storeId: byName._id, storeName: byName.name || row.storeName };
-        }
-        // Unknown name — drop any default storeId so validation fails clearly
-        return { ...row, storeId: '' };
+      if (row.storeId === this.defaultStoreId && row.storeName === this.defaultStoreName) {
+        return row;
       }
-      if (row.storeId) {
-        const byId = this.stores.find((store) => store._id === row.storeId);
-        if (byId) {
-          return { ...row, storeName: byId.name || row.storeName };
-        }
-      }
-      if (this.defaultStoreId) {
-        return {
-          ...row,
-          storeId: this.defaultStoreId,
-          storeName: this.defaultStoreName,
-        };
-      }
-      return row;
+      remapped += 1;
+      return {
+        ...row,
+        storeId: this.defaultStoreId,
+        storeName: this.defaultStoreName,
+      };
     });
+    return remapped;
+  }
+
+  /** One-click: set every preview row to the current pharmacy store. */
+  applyCurrentStoreToAll(showToast = true): void {
+    if (!this.defaultStoreId) {
+      this.toastr.error('Select a pharmacy store at the top first.');
+      return;
+    }
+    if (!this.rows.length) return;
+
+    this.rows = this.rows.map((row) => ({
+      ...row,
+      storeId: this.defaultStoreId,
+      storeName: this.defaultStoreName,
+    }));
+    this.revalidate();
+    if (showToast) {
+      this.toastr.success(`Store set to "${this.defaultStoreName}" on all ${this.rows.length} medicines.`);
+    }
   }
 
   downloadTemplate(): void {
     downloadBulkMedicineTemplate(this.defaultStoreName);
+  }
+
+  downloadSample500(): void {
+    downloadBulkMedicineSample(500, this.defaultStoreName || 'Medicare Pharmacy Store');
+    this.toastr.info('Downloaded 500-medicine sample. Upload it, review Valid count, then Save All.');
   }
 
   async onFileSelected(event: Event): Promise<void> {
@@ -284,6 +356,36 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
     const file = input.files?.[0];
     input.value = '';
     if (!file) return;
+    await this.ingestFile(file);
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.parsing || this.saving || !this.defaultStoreId) return;
+    this.dragOver = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.dragOver = false;
+  }
+
+  async onDrop(event: DragEvent): Promise<void> {
+    event.preventDefault();
+    event.stopPropagation();
+    this.dragOver = false;
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    await this.ingestFile(file);
+  }
+
+  private async ingestFile(file: File): Promise<void> {
+    if (!this.defaultStoreId) {
+      this.toastr.error('Select a pharmacy store at the top first.');
+      return;
+    }
 
     this.parsing = true;
     this.cdr.markForCheck();
@@ -293,11 +395,14 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
         storeName: this.defaultStoreName,
       });
       this.rows = rows;
-      this.resolveRowStores();
+      const remapped = this.resolveRowStores();
       this.revalidate();
       this.step = 2;
       this.previewMode = 'sheet';
       this.toastr.success(`${rows.length} medicines loaded for review.`);
+      if (remapped > 0 && this.defaultStoreName) {
+        this.toastr.info(`All rows will import into "${this.defaultStoreName}" (store selected above).`);
+      }
       if (this.tutorialActive) this.positionTutorial();
     } catch (error) {
       this.toastr.error(error instanceof Error ? error.message : 'Unable to parse file.');
@@ -305,6 +410,22 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
       this.parsing = false;
       this.cdr.markForCheck();
     }
+  }
+
+  categoryTone(name: string | null | undefined): string {
+    const text = String(name || '').trim().toLowerCase();
+    if (!text) return 'bulk-pill--tone-0';
+    let hash = 0;
+    for (let i = 0; i < text.length; i += 1) {
+      hash = (hash + text.charCodeAt(i) * (i + 1)) % 6;
+    }
+    return `bulk-pill--tone-${hash}`;
+  }
+
+  shortStoreName(name: string | null | undefined): string {
+    const text = String(name || '').trim();
+    if (!text) return '—';
+    return text.replace(/\bPharmacy\s+Pharmacy\b/i, 'Pharmacy');
   }
 
   setPreviewMode(mode: PreviewMode): void {
@@ -406,6 +527,7 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
 
   revalidate(): void {
     this.resolveRowStores();
+    this.resolveRowCategories();
     const storeNames = new Set(
       this.stores.map((store) => String(store.name || '').trim().toLowerCase()).filter(Boolean)
     );
@@ -418,6 +540,30 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
     if (this.rows.length && this.summary.errors === 0) this.step = 3;
     else if (this.rows.length) this.step = 2;
     this.cdr.markForCheck();
+  }
+
+  /** Link category names in the sheet to existing category IDs when possible. */
+  private resolveRowCategories(): void {
+    if (!this.rows.length || !this.categories.length) return;
+    this.rows = this.rows.map((row) => {
+      if (row.categoryId) {
+        const byId = this.categories.find((category) => category._id === row.categoryId);
+        if (byId) {
+          return { ...row, categoryName: byId.name || row.categoryName };
+        }
+      }
+
+      const name = row.categoryName.trim().toLowerCase();
+      if (!name) return row;
+
+      const byName = this.categories.find(
+        (category) => String(category.name || '').trim().toLowerCase() === name
+      );
+      if (byName) {
+        return { ...row, categoryId: byName._id, categoryName: byName.name || row.categoryName };
+      }
+      return row;
+    });
   }
 
   goConfirm(): void {
@@ -435,7 +581,7 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  saveAll(): void {
+  async saveAll(): Promise<void> {
     if (!this.canSave) return;
     this.revalidate();
     if (this.summary.errors > 0) {
@@ -443,74 +589,115 @@ export class BulkProductImportComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const payload = buildBulkCreatePayload(this.rows);
+    const allRows = [...this.rows];
+    const total = allRows.length;
+    const chunkSize = BULK_SAVE_CHUNK_SIZE;
+    const chunks = Math.ceil(total / chunkSize);
+    let savedCount = 0;
+    let lastStoreId = this.defaultStoreId;
+    const remainingRows = [...allRows];
+
     this.saving = true;
+    this.saveProgress = { done: 0, total, chunk: 0, chunks };
     this.cdr.markForCheck();
 
-    this.backend
-      .bulkCreateProducts(payload)
-      .pipe(
-        finalize(() => {
-          this.saving = false;
-          this.cdr.markForCheck();
-        })
-      )
-      .subscribe({
-        next: (response) => {
-          const count = response.data?.createdCount ?? payload.items.length;
-          const storeId =
+    try {
+      for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex += 1) {
+        const slice = remainingRows.slice(0, chunkSize);
+        this.saveProgress = {
+          done: savedCount,
+          total,
+          chunk: chunkIndex + 1,
+          chunks,
+        };
+        this.cdr.markForCheck();
+
+        const payload = buildBulkCreatePayload(slice);
+        try {
+          const response = await firstValueFrom(this.backend.bulkCreateProducts(payload));
+          const created = response.data?.createdCount ?? slice.length;
+          savedCount += created;
+          lastStoreId =
             response.data?.products?.[0]?.storeId ||
             payload.items.find((item) => item.storeId)?.storeId ||
-            this.defaultStoreId;
-          const storeName =
-            this.stores.find((store) => store._id === storeId)?.name ||
-            this.defaultStoreName ||
-            'selected store';
-          this.toastr.success(
-            response.message || `${count} medicines added to ${storeName}.`
-          );
-          if (this.tutorialActive) this.finishTutorial(true);
-          void this.router.navigate(['/pharmacy/products'], {
-            queryParams: storeId ? { storeId } : undefined,
-          });
-        },
-        error: (err: HttpErrorResponse) => {
-          const details = err?.error?.details;
-          const rowErrors = (details?.errors || []) as BulkBackendRowError[];
-          if (rowErrors.length) {
-            this.applyBackendRowErrors(rowErrors);
-            const first = rowErrors[0];
-            const detailMsg = first?.message
-              ? `Row ${first.row}: ${first.message}`
-              : err?.error?.message || 'Bulk import failed validation.';
-            this.toastr.error(detailMsg);
-            this.rowFilter = 'errors';
-            this.step = 2;
-            return;
-          }
+            lastStoreId;
+          remainingRows.splice(0, slice.length);
+          this.rows = [...remainingRows];
+          this.saveProgress = {
+            done: savedCount,
+            total,
+            chunk: chunkIndex + 1,
+            chunks,
+          };
+          this.cdr.markForCheck();
+        } catch (err) {
+          const httpErr = err as HttpErrorResponse;
+          this.rows = [...remainingRows];
+          this.revalidate();
+          this.handleSaveChunkError(httpErr, savedCount, total);
+          return;
+        }
+      }
 
-          // Zod request validation: details = [{ path: 'items.0.maxDiscountValue', message }]
-          if (Array.isArray(details) && details.length) {
-            const zodRowErrors = this.mapZodDetailsToRowErrors(details);
-            if (zodRowErrors.length) {
-              this.applyBackendRowErrors(zodRowErrors);
-              const first = details[0]?.message || 'Request validation failed';
-              this.toastr.error(`${first} (${details.length} issue${details.length > 1 ? 's' : ''})`);
-              this.rowFilter = 'errors';
-              this.step = 2;
-              this.cdr.markForCheck();
-              return;
-            }
-            this.toastr.error(details[0]?.message || err?.error?.message || 'Request validation failed');
-            return;
-          }
-
-          this.toastr.error(
-            (err?.error && (err.error.message || err.error.error)) ||
-              'Unable to save medicines. Nothing was written.'
-          );
-        },
+      const storeName =
+        this.stores.find((store) => store._id === lastStoreId)?.name ||
+        this.defaultStoreName ||
+        'selected store';
+      this.toastr.success(`${savedCount} medicines added to ${storeName}.`);
+      if (this.tutorialActive) this.finishTutorial(true);
+      void this.router.navigate(['/pharmacy/products'], {
+        queryParams: lastStoreId ? { storeId: lastStoreId } : undefined,
       });
+    } finally {
+      this.saving = false;
+      this.saveProgress = { done: 0, total: 0, chunk: 0, chunks: 0 };
+      this.cdr.markForCheck();
+    }
+  }
+
+  private handleSaveChunkError(err: HttpErrorResponse, savedCount: number, total: number): void {
+    const prefix =
+      savedCount > 0
+        ? `Saved ${savedCount} of ${total}. Remaining medicines are still in the preview — fix and click Save All again. `
+        : '';
+
+    const details = err?.error?.details;
+    const rowErrors = (details?.errors || []) as BulkBackendRowError[];
+    if (rowErrors.length) {
+      this.applyBackendRowErrors(rowErrors);
+      const first = rowErrors[0];
+      const detailMsg = first?.message
+        ? `Row ${first.row}: ${first.message}`
+        : err?.error?.message || 'Bulk import failed validation.';
+      this.toastr.error(prefix + detailMsg);
+      this.rowFilter = 'errors';
+      this.step = 2;
+      return;
+    }
+
+    if (Array.isArray(details) && details.length) {
+      const zodRowErrors = this.mapZodDetailsToRowErrors(details);
+      if (zodRowErrors.length) {
+        this.applyBackendRowErrors(zodRowErrors);
+        const first = details[0]?.message || 'Request validation failed';
+        this.toastr.error(
+          `${prefix}${first} (${details.length} issue${details.length > 1 ? 's' : ''})`
+        );
+        this.rowFilter = 'errors';
+        this.step = 2;
+        this.cdr.markForCheck();
+        return;
+      }
+      this.toastr.error(prefix + (details[0]?.message || err?.error?.message || 'Request validation failed'));
+      return;
+    }
+
+    this.toastr.error(
+      prefix +
+        ((err?.error && (err.error.message || err.error.error)) ||
+          'Unable to save medicines. Already-saved medicines stay in the catalog.')
+    );
+    this.step = 2;
   }
 
   private mapZodDetailsToRowErrors(

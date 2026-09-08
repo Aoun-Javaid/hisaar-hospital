@@ -83,11 +83,11 @@
         </div>
       </article>
       <article class="pay-kpi-card">
-        <div class="pay-kpi-card__icon tone-orange"><i class="fa fa-briefcase"></i></div>
+        <div class="pay-kpi-card__icon tone-blue"><i class="fa fa-file-invoice-dollar"></i></div>
         <div class="pay-kpi-card__body">
-          <span>Outstanding Balance</span>
-          <strong>{{ kpiOutstanding | number:'1.0-0' }}</strong>
-          <small>Across loaded encounters</small>
+          <span>Billed (this page)</span>
+          <strong>{{ kpiBilledOnPage | number:'1.0-0' }}</strong>
+          <small>Total charges / income</small>
         </div>
       </article>
       <article class="pay-kpi-card">
@@ -99,11 +99,11 @@
         </div>
       </article>
       <article class="pay-kpi-card">
-        <div class="pay-kpi-card__icon tone-blue"><i class="fa fa-bed"></i></div>
+        <div class="pay-kpi-card__icon tone-orange"><i class="fa fa-briefcase"></i></div>
         <div class="pay-kpi-card__body">
-          <span>Active Admissions</span>
-          <strong>{{ kpiActiveAdmissions | number }}</strong>
-          <small>On this page</small>
+          <span>Outstanding Balance</span>
+          <strong>{{ kpiOutstanding | number:'1.0-0' }}</strong>
+          <small>Patient dues on this page</small>
         </div>
       </article>
     </div>
@@ -126,6 +126,8 @@
                     <th>Patient</th>
                     <th>Type</th>
                     <th>Status</th>
+                    <th class="text-right">Billed</th>
+                    <th class="text-right">Paid</th>
                     <th class="text-right">Balance</th>
                     <th class="text-right">Actions</th>
                   </tr>
@@ -144,6 +146,12 @@
                     </td>
                     <td><span class="pay-type-pill">{{ encounter.type }}</span></td>
                     <td><span class="badge" [ngClass]="statusBadgeClass(encounter.status)">{{ encounter.status }}</span></td>
+                    <td class="text-right">
+                      {{ encounter.summary?.totalCharges || 0 | number:'1.0-0' }}
+                    </td>
+                    <td class="text-right pay-amount-paid">
+                      {{ encounter.summary?.totalPaid || 0 | number:'1.0-0' }}
+                    </td>
                     <td class="text-right" [class.pay-amount-due]="(encounter.summary?.balance || 0) > 0"
                       [class.pay-amount-ok]="(encounter.summary?.balance || 0) <= 0">
                       {{ encounter.summary?.balance || 0 | number:'1.0-0' }}
@@ -153,7 +161,7 @@
                     </td>
                   </tr>
                   <tr *ngIf="filteredEncounters.length === 0">
-                    <td colspan="6" class="pay-empty">No encounters found</td>
+                    <td colspan="8" class="pay-empty">No encounters found</td>
                   </tr>
                 </tbody>
               </table>
@@ -173,9 +181,16 @@
                 <div class="pay-mobile-card__meta">{{ patientName(encounter) }} · {{ patientAgeGender(encounter) }}</div>
                 <div class="encounter-card-bottom">
                   <span class="pay-type-pill">{{ encounter.type }}</span>
-                  <strong [class.pay-amount-due]="(encounter.summary?.balance || 0) > 0">
-                    {{ encounter.summary?.balance || 0 | number:'1.0-0' }}
-                  </strong>
+                  <div class="encounter-card-amounts text-right">
+                    <div class="text-muted small">
+                      Billed {{ encounter.summary?.totalCharges || 0 | number:'1.0-0' }}
+                      · Paid {{ encounter.summary?.totalPaid || 0 | number:'1.0-0' }}
+                    </div>
+                    <strong [class.pay-amount-due]="(encounter.summary?.balance || 0) > 0"
+                      [class.pay-amount-ok]="(encounter.summary?.balance || 0) <= 0">
+                      Balance {{ encounter.summary?.balance || 0 | number:'1.0-0' }}
+                    </strong>
+                  </div>
                 </div>
               </button>
               <div class="pay-empty" *ngIf="filteredEncounters.length === 0">No encounters found</div>
