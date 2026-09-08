@@ -1,51 +1,104 @@
-<div id="main-content" class="pharmacy-page">
+<div id="main-content" class="pharmacy-page ph-list">
   <div class="pharmacy-shell pharmacy-admin-page">
     <header class="pharmacy-hero">
       <div class="pharmacy-hero-main">
-        <h1>Pharmacy Register Sessions</h1>
+        <h1><i class="fa fa-desktop"></i> Pharmacy Register Sessions</h1>
         <p>Open and closed pharmacy cashier sessions with business-date summaries and closeout controls.</p>
       </div>
+      <div class="pharmacy-hero-actions">
+        <a class="ph-btn ghost" routerLink="/pharmacy/pos">Open POS</a>
+        <a class="ph-btn ghost" routerLink="/pharmacy/reports">Reports</a>
+      </div>
     </header>
+
+    <section class="ph-highlights" aria-label="Register session highlights">
+      <article class="ph-stat">
+        <div class="ph-stat-icon blue"><i class="fa fa-desktop"></i></div>
+        <div>
+          <span>Sessions</span>
+          <strong>{{ sessions.length }}</strong>
+          <small>Visible</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon green"><i class="fa fa-unlock"></i></div>
+        <div>
+          <span>Open</span>
+          <strong>{{ openCount }}</strong>
+          <small>Active drawers</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon amber"><i class="fa fa-lock"></i></div>
+        <div>
+          <span>Closed</span>
+          <strong>{{ closedCount }}</strong>
+          <small>Completed</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon purple"><i class="fa fa-money"></i></div>
+        <div>
+          <span>Expected Cash</span>
+          <strong>{{ currency(expectedCashTotal) }}</strong>
+          <small>Visible set</small>
+        </div>
+      </article>
+    </section>
 
     <div class="pharmacy-filter-card">
       <div class="pharmacy-filter-head">
         <div>
-          <h2>Session Filters</h2>
+          <h2><i class="fa fa-filter"></i> Session Filters</h2>
           <p>Review cashier sessions by store, operational state, and date range.</p>
         </div>
       </div>
 
-      <div class="pharmacy-filter-grid">
-        <label>
-          <span>Store</span>
-          <select class="form-select" [(ngModel)]="storeId">
-            <option value="">All stores</option>
-            <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
-          </select>
-        </label>
+      <div class="pharmacy-filter-body">
+        <div class="pharmacy-filter-grid">
+          <label class="pharmacy-field">
+            <span>Store</span>
+            <select class="form-select" [(ngModel)]="storeId">
+              <option value="">All stores</option>
+              <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
+            </select>
+          </label>
 
-        <label>
-          <span>Status</span>
-          <select class="form-select" [(ngModel)]="status">
-            <option value="">All</option>
-            <option value="open">Open</option>
-            <option value="closed">Closed</option>
-          </select>
-        </label>
+          <label class="pharmacy-field">
+            <span>Status</span>
+            <select class="form-select" [(ngModel)]="status">
+              <option value="">All</option>
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+            </select>
+          </label>
 
-        <label>
-          <span>From Date</span>
-          <input class="form-control" type="date" [(ngModel)]="fromDate" />
-        </label>
+          <label class="pharmacy-field">
+            <span>From Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="fromDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
 
-        <label>
-          <span>To Date</span>
-          <input class="form-control" type="date" [(ngModel)]="toDate" />
-        </label>
+          <label class="pharmacy-field">
+            <span>To Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="toDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
+        </div>
 
         <div class="pharmacy-filter-actions">
-          <button class="btn btn-outline-primary" type="button" (click)="loadSessions()">Apply</button>
-          <button class="btn btn-outline-secondary" type="button" (click)="reset()">Reset</button>
+          <button class="ph-btn primary" type="button" (click)="loadSessions()">
+            <i class="fa fa-filter"></i>
+            <span>Apply Filters</span>
+          </button>
+          <button class="ph-btn ghost" type="button" (click)="reset()">
+            <i class="fa fa-refresh"></i>
+            <span>Reset</span>
+          </button>
         </div>
       </div>
     </div>
@@ -61,7 +114,8 @@
       <div class="card-body">
         <div *ngIf="loading" class="pharmacy-empty-state">Loading register sessions...</div>
         <div *ngIf="!loading && !sessions.length" class="pharmacy-empty-state">No register sessions found.</div>
-        <div class="table-responsive" *ngIf="!loading && sessions.length">
+
+        <div class="table-responsive ph-desktop-table" *ngIf="!loading && sessions.length">
           <table class="table align-middle">
             <thead>
               <tr>
@@ -80,19 +134,46 @@
                 <td>{{ date(session.businessDate) }}</td>
                 <td>{{ session.store?.name || session.storeId }}</td>
                 <td>{{ session.cashier?.name || session.cashierId }}</td>
-                <td>{{ session.status }}</td>
+                <td><span [ngClass]="statusClass(session.status)">{{ session.status }}</span></td>
                 <td>{{ currency(session.openingAmount) }}</td>
                 <td>{{ currency(session.expectedCashAmount || session.summary?.expectedCashInDrawer) }}</td>
                 <td>{{ dateTime(session.closedAt) }}</td>
                 <td class="text-end">
-                  <div class="btn-group btn-group-sm">
-                    <a class="btn btn-outline-primary" [routerLink]="['/pharmacy/register-sessions', session._id]">View</a>
-                    <button class="btn btn-outline-danger" type="button" *ngIf="canClose(session)" (click)="close(session)">Close</button>
+                  <div class="ph-row-actions">
+                    <a class="ph-icon-btn" [routerLink]="['/pharmacy/register-sessions', session._id]" title="View">
+                      <i class="fa fa-eye"></i>
+                    </a>
+                    <button class="ph-btn ghost" type="button" *ngIf="canClose(session)" (click)="close(session)">Close</button>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="ph-mobile-list" *ngIf="!loading && sessions.length">
+          <article class="ph-mobile-card" *ngFor="let session of sessions">
+            <div class="ph-mobile-top">
+              <div>
+                <strong>{{ date(session.businessDate) }}</strong>
+                <small>{{ session.store?.name || session.storeId }} · {{ session.cashier?.name || session.cashierId }}</small>
+              </div>
+              <span [ngClass]="statusClass(session.status)">{{ session.status }}</span>
+            </div>
+            <div class="ph-mobile-meta">
+              <span>Opening {{ currency(session.openingAmount) }}</span>
+              <span>Expected {{ currency(session.expectedCashAmount || session.summary?.expectedCashInDrawer) }}</span>
+            </div>
+            <div class="ph-mobile-row">
+              <small class="text-muted">Closed {{ dateTime(session.closedAt) }}</small>
+              <div class="ph-row-actions">
+                <a class="ph-icon-btn" [routerLink]="['/pharmacy/register-sessions', session._id]" title="View">
+                  <i class="fa fa-eye"></i>
+                </a>
+                <button class="ph-btn ghost" type="button" *ngIf="canClose(session)" (click)="close(session)">Close</button>
+              </div>
+            </div>
+          </article>
         </div>
       </div>
     </div>
@@ -101,13 +182,20 @@
 
 <div class="pharmacy-modal-backdrop" *ngIf="closeModalOpen" (click)="dismissCloseModal()">
   <div class="pharmacy-modal" (click)="$event.stopPropagation()">
-    <h3>Close Register Session</h3>
-    <p>Enter the actual cash amount in the drawer before closing this session.</p>
+    <div class="pharmacy-modal-head">
+      <div>
+        <h3>Close Register Session</h3>
+        <p>Enter the actual cash amount in the drawer before closing this session.</p>
+      </div>
+      <button type="button" class="pharmacy-modal-close" (click)="dismissCloseModal()" aria-label="Close" [disabled]="closing">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
     <label class="field-label" for="closing-amount">Closing Amount</label>
     <input id="closing-amount" class="form-control" type="number" min="0" step="0.01" [(ngModel)]="closingAmount" />
     <div class="pharmacy-modal-actions">
-      <button class="btn btn-outline-secondary" type="button" (click)="dismissCloseModal()" [disabled]="closing">Cancel</button>
-      <button class="btn btn-primary" type="button" (click)="submitClose()" [disabled]="closing">
+      <button class="ph-btn ghost" type="button" (click)="dismissCloseModal()" [disabled]="closing">Cancel</button>
+      <button class="ph-btn primary" type="button" (click)="submitClose()" [disabled]="closing">
         {{ closing ? 'Closing...' : 'Close Register' }}
       </button>
     </div>

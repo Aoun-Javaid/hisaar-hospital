@@ -9826,11 +9826,24 @@ hr {
   padding: 14px 16px 16px;
 }
 
+.pharmacy-admin-page .pharmacy-filter-body .pharmacy-filter-grid {
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  padding: 0;
+}
+
 .pharmacy-admin-page .pharmacy-filter-grid .pharmacy-filter-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.pharmacy-admin-page .pharmacy-filter-body .pharmacy-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
 }
 
 .pharmacy-admin-page .pharmacy-stats-grid {

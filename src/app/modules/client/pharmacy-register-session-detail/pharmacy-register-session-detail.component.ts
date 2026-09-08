@@ -66,4 +66,8 @@ export class PharmacyRegisterSessionDetailComponent implements OnInit {
     const cashier = detail.registerSession.cashier;
     return cashier?.name || cashier?.email || 'Unknown cashier';
   }
+
+  statusClass(status?: string): string {
+    return `pharmacy-status-pill status-${String(status || 'draft').replace(/_/g, '-')}`;
+  }
 }

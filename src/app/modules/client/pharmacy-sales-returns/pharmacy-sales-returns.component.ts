@@ -42,6 +42,18 @@ export class PharmacySalesReturnsComponent implements OnInit {
     this.loadReturns();
   }
 
+  get refundTotal(): number {
+    return this.returns.reduce((sum, item) => sum + Number(item.refundAmount || 0), 0);
+  }
+
+  get itemTotal(): number {
+    return this.returns.reduce((sum, item) => sum + (item.items?.length || 0), 0);
+  }
+
+  get completedCount(): number {
+    return this.returns.filter((item) => String(item.status || '').toLowerCase() === 'completed').length;
+  }
+
   loadStores(): void {
     if (!this.backend.hasPermission('stores.read')) {
       return;
@@ -151,6 +163,10 @@ export class PharmacySalesReturnsComponent implements OnInit {
 
   saleLabel(item: SalesReturn): string {
     return item.invoiceNo || '-';
+  }
+
+  statusClass(status?: string): string {
+    return `pharmacy-status-pill status-${String(status || 'draft').replace(/_/g, '-')}`;
   }
 
   currency(value: number | string | null | undefined): string {

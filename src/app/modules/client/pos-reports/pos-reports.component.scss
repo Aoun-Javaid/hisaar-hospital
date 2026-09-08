@@ -93,75 +93,44 @@
 .report-filter-grid {
   align-items: end;
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(3, minmax(170px, 1fr)) minmax(160px, auto) auto;
-  padding: 14px;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  padding: 0;
 }
 
-.report-filter-grid label {
-  display: grid;
-  gap: 5px;
-  margin: 0;
-  min-width: 0;
+.report-filter-card .pharmacy-filter-body {
+  padding: 16px 20px 20px;
 }
 
-.report-filter-grid label span {
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.low-stock-filter {
+.low-stock-filter .low-stock-check {
   align-items: center;
   border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  display: inline-flex !important;
+  border-radius: 8px;
+  display: inline-flex;
   gap: 8px;
-  min-height: 38px;
-  padding: 7px 10px;
+  min-height: 42px;
+  padding: 0 12px;
+  width: 100%;
 }
 
-.low-stock-filter span {
-  color: #334155 !important;
-  text-transform: none !important;
+.low-stock-filter .low-stock-check label {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+  text-transform: none;
 }
 
-.filter-actions {
+.ph-list .pharmacy-hero-main h1,
+.ph-list .pharmacy-filter-head h2 {
+  align-items: center;
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
 }
 
-.summary-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: 14px;
-}
-
-.summary-card {
-  min-width: 0;
-  padding: 13px 14px;
-}
-
-.summary-card > span {
-  color: #64748b;
-  display: block;
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.summary-card > strong {
-  color: #111827;
-  display: block;
-  font-size: 19px;
-  font-weight: 900;
-  margin-top: 5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.ph-list .pharmacy-hero-main h1 .fa,
+.ph-list .pharmacy-filter-head h2 .fa {
+  color: #1d4ed8;
 }
 
 .nested-summary {
@@ -229,28 +198,13 @@
 }
 
 @media (max-width: 1199px) {
-  .report-tabs,
-  .summary-grid {
+  .report-tabs {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .report-filter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 767px) {
-  .report-tabs,
-  .summary-grid,
-  .report-filter-grid {
+  .report-tabs {
     grid-template-columns: 1fr;
-  }
-
-  .filter-actions {
-    justify-content: stretch;
-  }
-
-  .filter-actions .btn {
-    flex: 1;
   }
 }

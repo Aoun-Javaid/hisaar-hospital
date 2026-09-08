@@ -1,4 +1,4 @@
-<div id="main-content" class="pharmacy-page">
+<div id="main-content" class="pharmacy-page ph-list">
   <div class="pharmacy-shell pharmacy-admin-page">
     <header class="pharmacy-hero">
       <div class="pharmacy-hero-main">
@@ -19,11 +19,11 @@
         </span>
       </div>
       <div class="pharmacy-hero-actions">
-        <a class="btn btn-default" routerLink="/pharmacy/purchases">Purchases</a>
-        <a class="btn btn-default" routerLink="/pharmacy/purchase-returns">Returns</a>
-        <a class="btn btn-primary" routerLink="/pharmacy/purchases/create" *ngIf="canCreate">New Purchase</a>
+        <a class="ph-btn ghost" routerLink="/pharmacy/purchases">Purchases</a>
+        <a class="ph-btn ghost" routerLink="/pharmacy/purchase-returns">Returns</a>
+        <a class="ph-btn primary" routerLink="/pharmacy/purchases/create" *ngIf="canCreate">New Purchase</a>
         <button
-          class="btn btn-success"
+          class="ph-btn primary"
           type="button"
           *ngIf="view === 'detail' && purchase && canReceive && text(purchase['status']) !== 'received' && text(purchase['status']) !== 'cancelled'"
           (click)="receive(text(purchase['_id']))"
@@ -31,7 +31,7 @@
           Receive stock
         </button>
         <button
-          class="btn btn-outline-danger"
+          class="ph-btn ghost"
           type="button"
           *ngIf="view === 'detail' && purchase && canCancel && text(purchase['status']) !== 'cancelled'"
           (click)="cancel(text(purchase['_id']))"
@@ -44,27 +44,71 @@
     <div class="pharmacy-filter-card" *ngIf="view === 'list'">
       <div class="pharmacy-filter-head">
         <div>
-          <h2>Purchase Filters</h2>
+          <h2><i class="fa fa-filter"></i> Purchase Filters</h2>
           <p>Review supplier invoices by receiving status.</p>
         </div>
       </div>
-      <div class="pharmacy-filter-grid">
-        <label>
-          <span>Status</span>
-          <select class="form-select" [(ngModel)]="status">
-            <option value="">All</option>
-            <option value="draft">Draft</option>
-            <option value="ordered">Ordered</option>
-            <option value="partially_received">Partially received</option>
-            <option value="received">Received</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </label>
+      <div class="pharmacy-filter-body">
+        <div class="pharmacy-filter-grid">
+          <label class="pharmacy-field">
+            <span>Status</span>
+            <select class="form-select" [(ngModel)]="status">
+              <option value="">All</option>
+              <option value="draft">Draft</option>
+              <option value="ordered">Ordered</option>
+              <option value="partially_received">Partially received</option>
+              <option value="received">Received</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </label>
+        </div>
         <div class="pharmacy-filter-actions">
-          <button class="btn btn-outline-primary" type="button" (click)="loadPurchases()">Apply</button>
+          <button class="ph-btn primary" type="button" (click)="loadPurchases()">
+            <i class="fa fa-filter"></i>
+            <span>Apply Filters</span>
+          </button>
+          <button class="ph-btn ghost" type="button" (click)="status=''; loadPurchases()">
+            <i class="fa fa-refresh"></i>
+            <span>Reset</span>
+          </button>
         </div>
       </div>
     </div>
+
+    <section class="ph-highlights" *ngIf="view === 'list'" aria-label="Purchase highlights">
+      <article class="ph-stat">
+        <div class="ph-stat-icon blue"><i class="fa fa-shopping-bag"></i></div>
+        <div>
+          <span>Total Purchase</span>
+          <strong>{{ currency(purchaseTotal) }}</strong>
+          <small>{{ purchases.length }} docs</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon green"><i class="fa fa-check-circle"></i></div>
+        <div>
+          <span>Paid</span>
+          <strong>{{ currency(purchasePaid) }}</strong>
+          <small>Settled</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon amber"><i class="fa fa-clock-o"></i></div>
+        <div>
+          <span>Pending</span>
+          <strong>{{ currency(purchasePending) }}</strong>
+          <small>Open AP</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon purple"><i class="fa fa-file-text-o"></i></div>
+        <div>
+          <span>Documents</span>
+          <strong>{{ purchases.length }}</strong>
+          <small>Visible</small>
+        </div>
+      </article>
+    </section>
 
     <div class="pharmacy-table-card" *ngIf="view === 'list'">
       <div class="pharmacy-table-head">
@@ -76,7 +120,7 @@
       <div class="card-body">
         <div *ngIf="loading" class="pharmacy-empty-state">Loading purchases...</div>
         <div *ngIf="!loading && !purchases.length" class="pharmacy-empty-state">No purchases found.</div>
-        <div class="table-responsive" *ngIf="!loading && purchases.length">
+        <div class="table-responsive ph-desktop-table" *ngIf="!loading && purchases.length">
           <table class="table align-middle">
             <thead>
               <tr>
@@ -104,11 +148,36 @@
                 <td>{{ currency(item['total']) }}</td>
                 <td>{{ currency(item['paidAmount']) }}</td>
                 <td class="text-end">
-                  <a class="btn btn-sm btn-default" [routerLink]="['/pharmacy/purchases', item['_id']]">Open</a>
+                  <a class="ph-icon-btn" [routerLink]="['/pharmacy/purchases', item['_id']]" title="Open">
+                    <i class="fa fa-eye"></i>
+                  </a>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="ph-mobile-list" *ngIf="!loading && purchases.length">
+          <article class="ph-mobile-card" *ngFor="let item of purchases">
+            <div class="ph-mobile-top">
+              <div>
+                <strong>{{ text(item['invoiceNo']) }}</strong>
+                <small>{{ date(item['purchaseDate']) }} · {{ supplierName(item) }}</small>
+              </div>
+              <span class="pharmacy-status-pill" [ngClass]="statusClass(text(item['status']))">
+                {{ text(item['status']) }}
+              </span>
+            </div>
+            <div class="ph-mobile-row">
+              <div>
+                <div class="ph-mobile-amount">{{ currency(item['total']) }}</div>
+                <small class="text-muted">Paid {{ currency(item['paidAmount']) }}</small>
+              </div>
+              <a class="ph-icon-btn" [routerLink]="['/pharmacy/purchases', item['_id']]" title="Open">
+                <i class="fa fa-eye"></i>
+              </a>
+            </div>
+          </article>
         </div>
       </div>
     </div>
@@ -323,6 +392,41 @@
       </div>
     </ng-container>
 
+    <section class="ph-highlights" *ngIf="view === 'returns'" aria-label="Purchase return highlights">
+      <article class="ph-stat">
+        <div class="ph-stat-icon blue"><i class="fa fa-undo"></i></div>
+        <div>
+          <span>Returns</span>
+          <strong>{{ returns.length }}</strong>
+          <small>Documents</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon green"><i class="fa fa-money"></i></div>
+        <div>
+          <span>Return Total</span>
+          <strong>{{ currency(returnTotal) }}</strong>
+          <small>Visible set</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon amber"><i class="fa fa-clock-o"></i></div>
+        <div>
+          <span>Pending</span>
+          <strong>{{ returnPendingCount }}</strong>
+          <small>Open docs</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon purple"><i class="fa fa-check-circle"></i></div>
+        <div>
+          <span>Completed</span>
+          <strong>{{ returnCompletedCount }}</strong>
+          <small>Posted</small>
+        </div>
+      </article>
+    </section>
+
     <div class="pharmacy-table-card" *ngIf="view === 'returns'">
       <div class="pharmacy-table-head">
         <div>
@@ -333,7 +437,7 @@
       <div class="card-body">
         <div *ngIf="loading" class="pharmacy-empty-state">Loading returns...</div>
         <div *ngIf="!loading && !returns.length" class="pharmacy-empty-state">No purchase returns found.</div>
-        <div class="table-responsive" *ngIf="!loading && returns.length">
+        <div class="table-responsive ph-desktop-table" *ngIf="!loading && returns.length">
           <table class="table align-middle">
             <thead>
               <tr>
@@ -356,6 +460,23 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="ph-mobile-list" *ngIf="!loading && returns.length">
+          <article class="ph-mobile-card" *ngFor="let item of returns">
+            <div class="ph-mobile-top">
+              <div>
+                <strong>{{ text(item['returnNo']) }}</strong>
+                <small>{{ date(item['returnDate']) }}</small>
+              </div>
+              <span class="pharmacy-status-pill" [ngClass]="statusClass(text(item['status']))">
+                {{ text(item['status']) }}
+              </span>
+            </div>
+            <div class="ph-mobile-meta">
+              <span>Total {{ currency(item['total']) }}</span>
+            </div>
+          </article>
         </div>
       </div>
     </div>

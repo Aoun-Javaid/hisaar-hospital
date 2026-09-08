@@ -1,59 +1,111 @@
-<div id="main-content" class="pharmacy-page">
+<div id="main-content" class="pharmacy-page ph-list">
   <div class="pharmacy-shell pharmacy-admin-page">
     <header class="pharmacy-hero">
       <div class="pharmacy-hero-main">
-        <h1>Pharmacy Sales</h1>
+        <h1><i class="fa fa-shopping-cart"></i> Pharmacy Sales</h1>
         <p>Completed and in-progress pharmacy POS invoices with drilldown and control actions.</p>
       </div>
       <div class="pharmacy-hero-actions">
-        <a class="btn btn-default" routerLink="/pharmacy/returns/sales">Sales Returns</a>
-        <a class="btn btn-primary" [routerLink]="['/pharmacy/pos']" [queryParams]="storeId ? { storeId: storeId } : null">Open POS</a>
+        <a class="ph-btn ghost" routerLink="/pharmacy/returns/sales">Sales Returns</a>
+        <a class="ph-btn primary" [routerLink]="['/pharmacy/pos']" [queryParams]="storeId ? { storeId: storeId } : null">
+          <i class="fa fa-shopping-cart"></i>
+          <span>Open POS</span>
+        </a>
       </div>
     </header>
+
+    <section class="ph-highlights" aria-label="Sales highlights">
+      <article class="ph-stat">
+        <div class="ph-stat-icon blue"><i class="fa fa-money"></i></div>
+        <div>
+          <span>Total Sales</span>
+          <strong>{{ currency(totalSales) }}</strong>
+          <small>{{ sales.length }} invoices</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon green"><i class="fa fa-check-circle"></i></div>
+        <div>
+          <span>Total Paid</span>
+          <strong>{{ currency(totalPaid) }}</strong>
+          <small>Collected</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon purple"><i class="fa fa-cubes"></i></div>
+        <div>
+          <span>Items Sold</span>
+          <strong>{{ totalItems }}</strong>
+          <small>Line qty</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon amber"><i class="fa fa-file-text-o"></i></div>
+        <div>
+          <span>Unpaid</span>
+          <strong>{{ unpaidCount }}</strong>
+          <small>Credit / open AR</small>
+        </div>
+      </article>
+    </section>
 
     <div class="pharmacy-filter-card">
       <div class="pharmacy-filter-head">
         <div>
-          <h2>Sales Filters</h2>
+          <h2><i class="fa fa-filter"></i> Sales Filters</h2>
           <p>Filter invoices by store, date window, and operational status.</p>
         </div>
       </div>
 
-      <div class="pharmacy-filter-grid">
-        <label>
-          <span>Store</span>
-          <select class="form-select" [(ngModel)]="storeId">
-            <option value="">All stores</option>
-            <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
-          </select>
-        </label>
+      <div class="pharmacy-filter-body">
+        <div class="pharmacy-filter-grid">
+          <label class="pharmacy-field">
+            <span>Store</span>
+            <select class="form-select" [(ngModel)]="storeId">
+              <option value="">All stores</option>
+              <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
+            </select>
+          </label>
 
-        <label>
-          <span>Status</span>
-          <select class="form-select" [(ngModel)]="status">
-            <option value="">All</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="returned">Returned</option>
-            <option value="draft">Draft</option>
-            <option value="quotation">Quotation</option>
-            <option value="suspended">Suspended</option>
-          </select>
-        </label>
+          <label class="pharmacy-field">
+            <span>Status</span>
+            <select class="form-select" [(ngModel)]="status">
+              <option value="">All</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="returned">Returned</option>
+              <option value="draft">Draft</option>
+              <option value="quotation">Quotation</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </label>
 
-        <label>
-          <span>From Date</span>
-          <input class="form-control" type="date" [(ngModel)]="fromDate" />
-        </label>
+          <label class="pharmacy-field">
+            <span>From Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="fromDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
 
-        <label>
-          <span>To Date</span>
-          <input class="form-control" type="date" [(ngModel)]="toDate" />
-        </label>
+          <label class="pharmacy-field">
+            <span>To Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="toDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
+        </div>
 
         <div class="pharmacy-filter-actions">
-          <button class="btn btn-outline-primary" type="button" (click)="loadSales()">Apply</button>
-          <button class="btn btn-outline-secondary" type="button" (click)="reset()">Reset</button>
+          <button class="ph-btn primary" type="button" (click)="loadSales()">
+            <i class="fa fa-filter"></i>
+            <span>Apply Filters</span>
+          </button>
+          <button class="ph-btn ghost" type="button" (click)="reset()">
+            <i class="fa fa-refresh"></i>
+            <span>Reset</span>
+          </button>
         </div>
       </div>
     </div>
@@ -69,7 +121,8 @@
       <div class="card-body">
         <div *ngIf="loading" class="pharmacy-empty-state">Loading sales...</div>
         <div *ngIf="!loading && !sales.length" class="pharmacy-empty-state">No sales found for the current filters.</div>
-        <div class="table-responsive" *ngIf="!loading && sales.length">
+
+        <div class="table-responsive ph-desktop-table" *ngIf="!loading && sales.length">
           <table class="table align-middle">
             <thead>
               <tr>
@@ -78,8 +131,8 @@
                 <th>Items</th>
                 <th>Total</th>
                 <th>Paid</th>
-                <th>Payment Status</th>
-                <th>Sale Status</th>
+                <th>Payment</th>
+                <th>Status</th>
                 <th class="text-end">Actions</th>
               </tr>
             </thead>
@@ -90,19 +143,57 @@
                 <td>{{ sale.items.length }}</td>
                 <td>{{ currency(sale.total) }}</td>
                 <td>{{ currency(sale.paidAmount) }}</td>
-                <td>{{ sale.paymentStatus }}</td>
-                <td>{{ sale.status }}</td>
+                <td>
+                  <span class="pharmacy-status-pill" [ngClass]="paymentStatusClass(sale.paymentStatus)">
+                    {{ sale.paymentStatus || '-' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="pharmacy-status-pill" [ngClass]="statusClass(sale.status)">
+                    {{ sale.status }}
+                  </span>
+                </td>
                 <td class="text-end">
-                  <div class="btn-group btn-group-sm">
-                    <a class="btn btn-outline-primary" [routerLink]="['/pharmacy/sales', sale._id]">View</a>
-                    <button class="btn btn-outline-danger" type="button" *ngIf="canCancel(sale)" (click)="cancel(sale)">
-                      Cancel
+                  <div class="ph-row-actions">
+                    <a class="ph-icon-btn" [routerLink]="['/pharmacy/sales', sale._id]" title="View">
+                      <i class="fa fa-eye"></i>
+                    </a>
+                    <button class="ph-icon-btn danger" type="button" *ngIf="canCancel(sale)" title="Cancel" (click)="cancel(sale)">
+                      <i class="fa fa-times"></i>
                     </button>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="ph-mobile-list" *ngIf="!loading && sales.length">
+          <article class="ph-mobile-card" *ngFor="let sale of sales">
+            <div class="ph-mobile-top">
+              <div>
+                <strong>{{ sale.invoiceNo }}</strong>
+                <small>{{ dateTime(sale.saleDate) }} · {{ sale.items.length }} items</small>
+              </div>
+              <span class="pharmacy-status-pill" [ngClass]="paymentStatusClass(sale.paymentStatus)">
+                {{ sale.paymentStatus || sale.status }}
+              </span>
+            </div>
+            <div class="ph-mobile-row">
+              <div>
+                <div class="ph-mobile-amount">{{ currency(sale.total) }}</div>
+                <small class="text-muted">Paid {{ currency(sale.paidAmount) }}</small>
+              </div>
+              <div class="ph-row-actions">
+                <a class="ph-icon-btn" [routerLink]="['/pharmacy/sales', sale._id]" title="View">
+                  <i class="fa fa-eye"></i>
+                </a>
+                <button class="ph-icon-btn danger" type="button" *ngIf="canCancel(sale)" title="Cancel" (click)="cancel(sale)">
+                  <i class="fa fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </article>
         </div>
       </div>
     </div>

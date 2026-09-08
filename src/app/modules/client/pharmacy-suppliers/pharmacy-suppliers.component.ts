@@ -48,6 +48,22 @@ export class PharmacySuppliersComponent implements OnInit {
     return this.backend.hasPermission('suppliers.delete');
   }
 
+  get totalCount(): number {
+    return this.suppliers.length;
+  }
+
+  get activeCount(): number {
+    return this.suppliers.filter((supplier) => supplier.isActive).length;
+  }
+
+  get inactiveCount(): number {
+    return this.suppliers.filter((supplier) => !supplier.isActive).length;
+  }
+
+  get totalOpeningBalance(): number {
+    return this.suppliers.reduce((sum, supplier) => sum + Number(supplier.openingBalance || 0), 0);
+  }
+
   loadSuppliers(): void {
     this.loading = true;
     this.backend.getSuppliers({

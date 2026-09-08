@@ -1,29 +1,28 @@
-.accounts-header-card,
-.accounts-filter-card,
-.accounts-table-card {
-  background: #fff;
-  border: 1px solid #e5ecec;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
+@use '../pharmacy-shared.scss';
 
-.accounts-filter-card {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
+.ph-list .pharmacy-hero-main h1,
+.ph-list .pharmacy-filter-head h2 {
   align-items: center;
+  display: flex;
+  gap: 8px;
 }
 
-.accounts-header-card h1 {
-  color: #019c9d;
-  margin-bottom: 0.25rem;
+.ph-list .pharmacy-hero-main h1 .fa,
+.ph-list .pharmacy-filter-head h2 .fa {
+  color: #1d4ed8;
 }
 
-.accounts-filter-card input,
-.accounts-filter-card select {
-  border: 1px solid #dbe4e4;
-  border-radius: 8px;
-  padding: 0.45rem 0.6rem;
+.pharmacy-status-pill.status-pending-settlement {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.pharmacy-status-pill.status-settled {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.pharmacy-status-pill.status-unpaid {
+  background: #fef2f2;
+  color: #b91c1c;
 }

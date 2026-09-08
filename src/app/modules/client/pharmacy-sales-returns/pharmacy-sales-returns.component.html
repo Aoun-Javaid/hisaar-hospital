@@ -1,45 +1,97 @@
-<div id="main-content" class="pharmacy-page">
+<div id="main-content" class="pharmacy-page ph-list">
   <div class="pharmacy-shell pharmacy-admin-page">
     <header class="pharmacy-hero">
       <div class="pharmacy-hero-main">
-        <h1>Pharmacy Sales Returns</h1>
+        <h1><i class="fa fa-undo"></i> Pharmacy Sales Returns</h1>
         <p>Process returned pharmacy items against completed POS invoices.</p>
       </div>
       <div class="pharmacy-hero-actions">
-        <button class="btn btn-primary" type="button" (click)="openCreate()">Create Sales Return</button>
+        <button class="ph-btn primary" type="button" (click)="openCreate()">
+          <i class="fa fa-plus"></i>
+          <span>Create Sales Return</span>
+        </button>
       </div>
     </header>
+
+    <section class="ph-highlights" aria-label="Sales return highlights">
+      <article class="ph-stat">
+        <div class="ph-stat-icon blue"><i class="fa fa-undo"></i></div>
+        <div>
+          <span>Returns</span>
+          <strong>{{ returns.length }}</strong>
+          <small>Visible</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon green"><i class="fa fa-money"></i></div>
+        <div>
+          <span>Refund Total</span>
+          <strong>{{ currency(refundTotal) }}</strong>
+          <small>All visible</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon purple"><i class="fa fa-cubes"></i></div>
+        <div>
+          <span>Items</span>
+          <strong>{{ itemTotal }}</strong>
+          <small>Line count</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon amber"><i class="fa fa-check-circle"></i></div>
+        <div>
+          <span>Completed</span>
+          <strong>{{ completedCount }}</strong>
+          <small>Posted returns</small>
+        </div>
+      </article>
+    </section>
 
     <div class="pharmacy-filter-card">
       <div class="pharmacy-filter-head">
         <div>
-          <h2>Return Filters</h2>
+          <h2><i class="fa fa-filter"></i> Return Filters</h2>
           <p>Review pharmacy returns by store and transaction date window.</p>
         </div>
       </div>
 
-      <div class="pharmacy-filter-grid">
-        <label>
-          <span>Store</span>
-          <select class="form-select" [(ngModel)]="storeId">
-            <option value="">All stores</option>
-            <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
-          </select>
-        </label>
+      <div class="pharmacy-filter-body">
+        <div class="pharmacy-filter-grid">
+          <label class="pharmacy-field">
+            <span>Store</span>
+            <select class="form-select" [(ngModel)]="storeId">
+              <option value="">All stores</option>
+              <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
+            </select>
+          </label>
 
-        <label>
-          <span>From Date</span>
-          <input class="form-control" type="date" [(ngModel)]="fromDate" />
-        </label>
+          <label class="pharmacy-field">
+            <span>From Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="fromDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
 
-        <label>
-          <span>To Date</span>
-          <input class="form-control" type="date" [(ngModel)]="toDate" />
-        </label>
+          <label class="pharmacy-field">
+            <span>To Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="toDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
+        </div>
 
         <div class="pharmacy-filter-actions">
-          <button class="btn btn-outline-primary" type="button" (click)="loadReturns()">Apply</button>
-          <button class="btn btn-outline-secondary" type="button" (click)="reset()">Reset</button>
+          <button class="ph-btn primary" type="button" (click)="loadReturns()">
+            <i class="fa fa-filter"></i>
+            <span>Apply Filters</span>
+          </button>
+          <button class="ph-btn ghost" type="button" (click)="reset()">
+            <i class="fa fa-refresh"></i>
+            <span>Reset</span>
+          </button>
         </div>
       </div>
     </div>
@@ -55,7 +107,8 @@
       <div class="card-body">
         <div *ngIf="loading" class="pharmacy-empty-state">Loading sales returns...</div>
         <div *ngIf="!loading && !returns.length" class="pharmacy-empty-state">No sales returns found.</div>
-        <div class="table-responsive" *ngIf="!loading && returns.length">
+
+        <div class="table-responsive ph-desktop-table" *ngIf="!loading && returns.length">
           <table class="table align-middle">
             <thead>
               <tr>
@@ -77,10 +130,30 @@
                 <td>{{ date(item.returnDate) }}</td>
                 <td>{{ item.items.length }}</td>
                 <td>{{ currency(item.refundAmount) }}</td>
-                <td>{{ item.status }}</td>
+                <td><span [ngClass]="statusClass(item.status)">{{ item.status }}</span></td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="ph-mobile-list" *ngIf="!loading && returns.length">
+          <article class="ph-mobile-card" *ngFor="let item of returns">
+            <div class="ph-mobile-top">
+              <div>
+                <strong>{{ item.returnNo }}</strong>
+                <small>{{ date(item.returnDate) }} · {{ item.items.length }} items</small>
+              </div>
+              <span [ngClass]="statusClass(item.status)">{{ item.status }}</span>
+            </div>
+            <div class="ph-mobile-meta">
+              <span>
+                Sale
+                <a *ngIf="item.saleId" [routerLink]="['/pharmacy/sales', item.saleId]">{{ saleLabel(item) }}</a>
+                <ng-container *ngIf="!item.saleId">{{ saleLabel(item) }}</ng-container>
+              </span>
+              <span>Refund {{ currency(item.refundAmount) }}</span>
+            </div>
+          </article>
         </div>
       </div>
     </div>
@@ -91,7 +164,9 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Create Sales Return</h5>
-            <button type="button" class="btn-close" (click)="closeModal()"></button>
+            <button type="button" class="pharmacy-modal-close" (click)="closeModal()" aria-label="Close">
+              <i class="fa fa-times"></i>
+            </button>
           </div>
           <div class="modal-body">
             <div class="row g-3 mb-3">
@@ -134,8 +209,8 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-light" type="button" (click)="closeModal()">Cancel</button>
-            <button class="btn btn-primary" type="button" (click)="save()" [disabled]="saving">
+            <button class="ph-btn ghost" type="button" (click)="closeModal()">Cancel</button>
+            <button class="ph-btn primary" type="button" (click)="save()" [disabled]="saving">
               {{ saving ? 'Saving...' : 'Create Return' }}
             </button>
           </div>

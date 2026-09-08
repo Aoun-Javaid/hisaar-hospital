@@ -25,6 +25,18 @@ export class PharmacyWardSettlementsComponent implements OnInit {
     this.load();
   }
 
+  get pendingCount(): number {
+    return this.items.filter((row) => row['settlementStatus'] === 'PENDING_SETTLEMENT').length;
+  }
+
+  get settledCount(): number {
+    return this.items.filter((row) => row['settlementStatus'] === 'SETTLED').length;
+  }
+
+  get amountTotal(): number {
+    return this.items.reduce((sum, row) => sum + Number(row['pharmacyAmount'] || 0), 0);
+  }
+
   load(): void {
     this.loading = true;
     const params: Record<string, unknown> = { limit: 100 };
@@ -70,5 +82,9 @@ export class PharmacyWardSettlementsComponent implements OnInit {
   asDate(value: unknown): string | number | Date | null {
     if (value == null) return null;
     return value as string | number | Date;
+  }
+
+  statusClass(status: unknown): string {
+    return `pharmacy-status-pill status-${String(status || 'draft').toLowerCase().replace(/_/g, '-')}`;
   }
 }

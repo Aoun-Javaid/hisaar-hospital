@@ -1,43 +1,90 @@
-<div id="main-content" class="pharmacy-page">
+<div id="main-content" class="pharmacy-page ph-list">
   <div class="pharmacy-shell pharmacy-admin-page">
     <header class="pharmacy-hero">
       <div class="pharmacy-hero-main">
-        <h1>Pharmacy Customers</h1>
+        <h1><i class="fa fa-users"></i> Pharmacy Customers</h1>
         <p>Manage walk-in and repeat customers linked to pharmacy POS billing.</p>
       </div>
       <div class="pharmacy-hero-actions">
-        <button class="btn btn-primary" type="button" (click)="openCreate()" [disabled]="!canCreate">
-          Add Customer
+        <button class="ph-btn primary" type="button" (click)="openCreate()" [disabled]="!canCreate">
+          <i class="fa fa-plus"></i>
+          <span>Add Customer</span>
         </button>
       </div>
     </header>
 
+    <section class="ph-highlights" aria-label="Customer highlights">
+      <article class="ph-stat">
+        <div class="ph-stat-icon blue"><i class="fa fa-users"></i></div>
+        <div>
+          <span>Total Customers</span>
+          <strong>{{ totalCount }}</strong>
+          <small>All profiles</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon green"><i class="fa fa-check-circle"></i></div>
+        <div>
+          <span>Active</span>
+          <strong>{{ activeCount }}</strong>
+          <small>Ready for POS</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon red"><i class="fa fa-ban"></i></div>
+        <div>
+          <span>Inactive</span>
+          <strong>{{ inactiveCount }}</strong>
+          <small>Disabled</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon purple"><i class="fa fa-credit-card"></i></div>
+        <div>
+          <span>Credit Customers</span>
+          <strong>{{ creditCount }}</strong>
+          <small>With credit limit</small>
+        </div>
+      </article>
+    </section>
+
     <div class="pharmacy-filter-card">
       <div class="pharmacy-filter-head">
         <div>
-          <h2>Customer Filters</h2>
+          <h2><i class="fa fa-filter"></i> Customer Filters</h2>
           <p>Search active and inactive customer profiles used at the pharmacy counter.</p>
         </div>
       </div>
 
-      <div class="pharmacy-filter-grid">
-        <label>
-          <span>Search</span>
-          <input class="form-control" [(ngModel)]="search" placeholder="Name, phone, email" />
-        </label>
+      <div class="pharmacy-filter-body">
+        <div class="pharmacy-filter-grid">
+          <label class="pharmacy-field pharmacy-field-search">
+            <span>Search</span>
+            <div class="pharmacy-input-wrap">
+              <i class="fa fa-search pharmacy-leading-icon" aria-hidden="true"></i>
+              <input class="form-control" type="search" [(ngModel)]="search" placeholder="Name, phone, email" />
+            </div>
+          </label>
 
-        <label>
-          <span>Status</span>
-          <select class="form-select" [(ngModel)]="statusFilter">
-            <option value="">All</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
-        </label>
+          <label class="pharmacy-field">
+            <span>Status</span>
+            <select class="form-select" [(ngModel)]="statusFilter">
+              <option value="">All</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </label>
+        </div>
 
         <div class="pharmacy-filter-actions">
-          <button class="btn btn-outline-primary" type="button" (click)="loadCustomers()">Apply</button>
-          <button class="btn btn-outline-secondary" type="button" (click)="resetFilters()">Reset</button>
+          <button class="ph-btn primary" type="button" (click)="loadCustomers()">
+            <i class="fa fa-filter"></i>
+            <span>Apply Filters</span>
+          </button>
+          <button class="ph-btn ghost" type="button" (click)="resetFilters()">
+            <i class="fa fa-refresh"></i>
+            <span>Reset</span>
+          </button>
         </div>
       </div>
     </div>
@@ -53,11 +100,12 @@
       <div class="card-body">
         <div *ngIf="loading" class="pharmacy-empty-state">Loading customers...</div>
         <div *ngIf="!loading && !customers.length" class="pharmacy-empty-state">No customers found for the current filters.</div>
-        <div class="table-responsive" *ngIf="!loading && customers.length">
+
+        <div class="table-responsive ph-desktop-table" *ngIf="!loading && customers.length">
           <table class="table align-middle">
             <thead>
               <tr>
-                <th>Name</th>
+                <th>Customer</th>
                 <th>Contact</th>
                 <th>City</th>
                 <th>Opening Balance</th>
@@ -70,7 +118,7 @@
               <tr *ngFor="let customer of customers">
                 <td>
                   <div class="fw-semibold">{{ customer.name }}</div>
-                  <small class="text-muted">{{ customer.address || 'No address' }}</small>
+                  <small class="text-muted">{{ shortId(customer._id) }}</small>
                 </td>
                 <td>
                   <div>{{ customer.phone || 'No phone' }}</div>
@@ -80,19 +128,58 @@
                 <td>{{ currency(customer.openingBalance) }}</td>
                 <td>{{ currency(customer.creditLimit) }}</td>
                 <td>
-                  <span class="badge" [class.bg-success]="customer.isActive" [class.bg-secondary]="!customer.isActive">
+                  <span
+                    class="pharmacy-status-pill"
+                    [class.status-active]="customer.isActive"
+                    [class.status-inactive]="!customer.isActive">
                     {{ customer.isActive ? 'Active' : 'Inactive' }}
                   </span>
                 </td>
                 <td class="text-end">
-                  <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary" type="button" (click)="openEdit(customer)" [disabled]="!canUpdate">Edit</button>
-                    <button class="btn btn-outline-danger" type="button" (click)="remove(customer)" [disabled]="!canDelete">Delete</button>
+                  <div class="ph-row-actions">
+                    <button class="ph-icon-btn" type="button" title="Edit" (click)="openEdit(customer)" [disabled]="!canUpdate">
+                      <i class="fa fa-pencil"></i>
+                    </button>
+                    <button class="ph-icon-btn danger" type="button" title="Delete" (click)="remove(customer)" [disabled]="!canDelete">
+                      <i class="fa fa-trash"></i>
+                    </button>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="ph-mobile-list" *ngIf="!loading && customers.length">
+          <article class="ph-mobile-card" *ngFor="let customer of customers">
+            <div class="ph-mobile-top">
+              <div>
+                <strong>{{ customer.name }}</strong>
+                <small>{{ customer.phone || 'No phone' }} · {{ customer.city || 'No city' }}</small>
+              </div>
+              <span
+                class="pharmacy-status-pill"
+                [class.status-active]="customer.isActive"
+                [class.status-inactive]="!customer.isActive">
+                {{ customer.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+            <div class="ph-mobile-meta">
+              <span>Balance {{ currency(customer.openingBalance) }}</span>
+              <span>Credit {{ currency(customer.creditLimit) }}</span>
+            </div>
+            <div class="ph-mobile-row">
+              <small class="text-muted">{{ shortId(customer._id) }}</small>
+              <div class="ph-row-actions">
+                <button class="ph-icon-btn" type="button" title="Edit" (click)="openEdit(customer)" [disabled]="!canUpdate">
+                  <i class="fa fa-pencil"></i>
+                </button>
+                <button class="ph-icon-btn danger" type="button" title="Delete" (click)="remove(customer)" [disabled]="!canDelete">
+                  <i class="fa fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </article>
         </div>
       </div>
     </div>
@@ -103,7 +190,9 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">{{ editingCustomer ? 'Edit Customer' : 'Add Customer' }}</h5>
-            <button type="button" class="btn-close" (click)="closeModal()"></button>
+            <button type="button" class="pharmacy-modal-close" (click)="closeModal()" aria-label="Close">
+              <i class="fa fa-times"></i>
+            </button>
           </div>
           <div class="modal-body">
             <div class="row g-3">
@@ -148,8 +237,8 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-light" type="button" (click)="closeModal()">Cancel</button>
-            <button class="btn btn-primary" type="button" (click)="save()" [disabled]="saving">
+            <button class="ph-btn ghost" type="button" (click)="closeModal()">Cancel</button>
+            <button class="ph-btn primary" type="button" (click)="save()" [disabled]="saving">
               {{ saving ? 'Saving...' : (editingCustomer ? 'Update Customer' : 'Create Customer') }}
             </button>
           </div>

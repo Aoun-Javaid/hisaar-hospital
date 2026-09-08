@@ -1,1 +1,21 @@
 @use '../pharmacy-shared.scss';
+
+.ph-list .pharmacy-hero-main h1 {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.ph-list .pharmacy-hero-main h1 .fa {
+  color: #1d4ed8;
+}
+
+.pharmacy-status-pill.status-open {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.pharmacy-status-pill.status-closed {
+  background: #f1f5f9;
+  color: #475569;
+}

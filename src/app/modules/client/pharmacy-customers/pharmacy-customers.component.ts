@@ -48,6 +48,27 @@ export class PharmacyCustomersComponent implements OnInit {
     return this.backend.hasPermission('customers.delete');
   }
 
+  get totalCount(): number {
+    return this.customers.length;
+  }
+
+  get activeCount(): number {
+    return this.customers.filter((customer) => customer.isActive).length;
+  }
+
+  get inactiveCount(): number {
+    return this.customers.filter((customer) => !customer.isActive).length;
+  }
+
+  get creditCount(): number {
+    return this.customers.filter((customer) => Number(customer.creditLimit || 0) > 0).length;
+  }
+
+  shortId(id: string | null | undefined): string {
+    const value = String(id || '');
+    return value ? `#${value.slice(-6).toUpperCase()}` : '-';
+  }
+
   loadCustomers(): void {
     this.loading = true;
     this.backend.getCustomers({

@@ -1,1 +1,13 @@
 @use '../pharmacy-shared.scss';
+
+.ph-list .pharmacy-hero-main h1,
+.ph-list .pharmacy-filter-head h2 {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.ph-list .pharmacy-hero-main h1 .fa,
+.ph-list .pharmacy-filter-head h2 .fa {
+  color: #1d4ed8;
+}

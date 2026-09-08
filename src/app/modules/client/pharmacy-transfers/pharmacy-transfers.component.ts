@@ -55,6 +55,18 @@ export class PharmacyTransfersComponent implements OnInit {
     return this.backend.hasPermission('transfers.create');
   }
 
+  get pendingCount(): number {
+    return this.transfers.filter((transfer) => transfer.status === 'pending').length;
+  }
+
+  get receivedCount(): number {
+    return this.transfers.filter((transfer) => transfer.status === 'received').length;
+  }
+
+  get inTransitCount(): number {
+    return this.transfers.filter((transfer) => ['approved', 'dispatched'].includes(transfer.status)).length;
+  }
+
   loadStores(): void {
     if (!this.backend.hasPermission('stores.read')) {
       return;

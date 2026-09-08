@@ -55,6 +55,33 @@ export class PharmacyExpensesComponent implements OnInit {
     return this.backend.hasPermission('expenses.delete');
   }
 
+  get totalAmount(): number {
+    return this.expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  }
+
+  get cashAmount(): number {
+    return this.expenses
+      .filter((expense) => String(expense.paymentMethod || '').toLowerCase() === 'cash')
+      .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  }
+
+  get topCategory(): string {
+    const totals = new Map<string, number>();
+    for (const expense of this.expenses) {
+      const key = expense.category || 'Other';
+      totals.set(key, (totals.get(key) || 0) + Number(expense.amount || 0));
+    }
+    let best = '';
+    let bestAmount = -1;
+    totals.forEach((amount, key) => {
+      if (amount > bestAmount) {
+        best = key;
+        bestAmount = amount;
+      }
+    });
+    return best;
+  }
+
   loadStores(): void {
     if (!this.backend.hasPermission('stores.read')) {
       return;

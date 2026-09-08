@@ -1,54 +1,167 @@
-<div id="main-content" class="modern-dashboard pharmacy-page">
-  <div class="container-fluid">
-    <div class="accounts-header-card">
-      <div>
-        <h1>Ward Settlements</h1>
+<div id="main-content" class="pharmacy-page ph-list">
+  <div class="pharmacy-shell pharmacy-admin-page">
+    <header class="pharmacy-hero">
+      <div class="pharmacy-hero-main">
+        <h1><i class="fa fa-handshake-o"></i> Ward Settlements</h1>
         <p>Verify pharmacy amounts collected by Ward Reception at discharge.</p>
       </div>
-    </div>
+    </header>
 
-    <div class="accounts-filter-card">
-      <select [(ngModel)]="settlementStatus" (change)="load()">
-        <option value="">All</option>
-        <option value="PENDING_SETTLEMENT">Pending</option>
-        <option value="SETTLED">Settled</option>
-        <option value="UNPAID">Unpaid</option>
-      </select>
-      <input [(ngModel)]="wardLabel" placeholder="Ward" />
-      <input type="date" [(ngModel)]="fromDate" />
-      <input type="date" [(ngModel)]="toDate" />
-      <button class="btn btn-primary" (click)="load()">Apply</button>
-    </div>
+    <section class="ph-highlights" aria-label="Settlement highlights">
+      <article class="ph-stat">
+        <div class="ph-stat-icon blue"><i class="fa fa-list"></i></div>
+        <div>
+          <span>Records</span>
+          <strong>{{ items.length }}</strong>
+          <small>Visible</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon amber"><i class="fa fa-clock-o"></i></div>
+        <div>
+          <span>Pending</span>
+          <strong>{{ pendingCount }}</strong>
+          <small>Need verify</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon green"><i class="fa fa-check-circle"></i></div>
+        <div>
+          <span>Settled</span>
+          <strong>{{ settledCount }}</strong>
+          <small>Verified</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon purple"><i class="fa fa-money"></i></div>
+        <div>
+          <span>Pharmacy Amount</span>
+          <strong>{{ money(amountTotal) }}</strong>
+          <small>Visible set</small>
+        </div>
+      </article>
+    </section>
 
-    <div class="accounts-table-card" *ngIf="!loading; else loadingTpl">
-      <div class="table-responsive">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Date</th><th>Patient</th><th>Admission</th><th>Ward</th><th>Sale No</th>
-              <th>Amount</th><th>Patient Paid</th><th>Collected By</th><th>Status</th><th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let row of items">
-              <td>{{ asDate(row['collectedAt'] || row['createdAt']) | date:'short' }}</td>
-              <td>{{ patientName(row) }}</td>
-              <td>{{ row['admissionNo'] || '—' }}</td>
-              <td>{{ row['wardLabel'] || '—' }}</td>
-              <td>{{ row['saleInvoiceNo'] || '—' }}</td>
-              <td>{{ money(row['pharmacyAmount']) }}</td>
-              <td>{{ row['patientPaymentStatus'] }}</td>
-              <td>{{ row['collectedByDepartment'] || '—' }}</td>
-              <td>{{ row['settlementStatus'] }}</td>
-              <td>
-                <button *ngIf="row['settlementStatus'] === 'PENDING_SETTLEMENT'" class="btn btn-sm btn-primary" (click)="verify(row)">Verify / Settle</button>
-              </td>
-            </tr>
-            <tr *ngIf="items.length === 0"><td colspan="10" class="text-muted">No settlement records found.</td></tr>
-          </tbody>
-        </table>
+    <div class="pharmacy-filter-card">
+      <div class="pharmacy-filter-head">
+        <div>
+          <h2><i class="fa fa-filter"></i> Settlement Filters</h2>
+          <p>Filter ward settlement records by status, ward, and date range.</p>
+        </div>
+      </div>
+      <div class="pharmacy-filter-body">
+        <div class="pharmacy-filter-grid">
+          <label class="pharmacy-field">
+            <span>Status</span>
+            <select class="form-select" [(ngModel)]="settlementStatus">
+              <option value="">All</option>
+              <option value="PENDING_SETTLEMENT">Pending</option>
+              <option value="SETTLED">Settled</option>
+              <option value="UNPAID">Unpaid</option>
+            </select>
+          </label>
+          <label class="pharmacy-field">
+            <span>Ward</span>
+            <input class="form-control" [(ngModel)]="wardLabel" placeholder="Ward" />
+          </label>
+          <label class="pharmacy-field">
+            <span>From Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="fromDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
+          <label class="pharmacy-field">
+            <span>To Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="toDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
+        </div>
+        <div class="pharmacy-filter-actions">
+          <button class="ph-btn primary" type="button" (click)="load()">
+            <i class="fa fa-filter"></i>
+            <span>Apply Filters</span>
+          </button>
+        </div>
       </div>
     </div>
-    <ng-template #loadingTpl><p class="text-muted p-3">Loading settlements...</p></ng-template>
+
+    <div class="pharmacy-table-card">
+      <div class="pharmacy-table-head">
+        <div>
+          <h2>Settlement Register</h2>
+          <p>{{ items.length }} settlement records in the current result set.</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div *ngIf="loading" class="pharmacy-empty-state">Loading settlements...</div>
+        <div *ngIf="!loading && !items.length" class="pharmacy-empty-state">No settlement records found.</div>
+
+        <div class="table-responsive ph-desktop-table" *ngIf="!loading && items.length">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Patient</th>
+                <th>Admission</th>
+                <th>Ward</th>
+                <th>Sale No</th>
+                <th>Amount</th>
+                <th>Patient Paid</th>
+                <th>Collected By</th>
+                <th>Status</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of items">
+                <td>{{ asDate(row['collectedAt'] || row['createdAt']) | date:'short' }}</td>
+                <td>{{ patientName(row) }}</td>
+                <td>{{ row['admissionNo'] || '—' }}</td>
+                <td>{{ row['wardLabel'] || '—' }}</td>
+                <td>{{ row['saleInvoiceNo'] || '—' }}</td>
+                <td>{{ money(row['pharmacyAmount']) }}</td>
+                <td>{{ row['patientPaymentStatus'] }}</td>
+                <td>{{ row['collectedByDepartment'] || '—' }}</td>
+                <td><span [ngClass]="statusClass(row['settlementStatus'])">{{ row['settlementStatus'] }}</span></td>
+                <td class="text-end">
+                  <button
+                    *ngIf="row['settlementStatus'] === 'PENDING_SETTLEMENT'"
+                    class="ph-btn primary"
+                    type="button"
+                    (click)="verify(row)"
+                  >
+                    Verify / Settle
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ph-mobile-list" *ngIf="!loading && items.length">
+          <article class="ph-mobile-card" *ngFor="let row of items">
+            <div class="ph-mobile-top">
+              <div>
+                <strong>{{ patientName(row) }}</strong>
+                <small>{{ asDate(row['collectedAt'] || row['createdAt']) | date:'short' }} · {{ row['wardLabel'] || '—' }}</small>
+              </div>
+              <span [ngClass]="statusClass(row['settlementStatus'])">{{ row['settlementStatus'] }}</span>
+            </div>
+            <div class="ph-mobile-meta">
+              <span>Sale {{ row['saleInvoiceNo'] || '—' }}</span>
+              <span>Amount {{ money(row['pharmacyAmount']) }}</span>
+              <span>{{ row['patientPaymentStatus'] }}</span>
+            </div>
+            <div class="ph-mobile-row" *ngIf="row['settlementStatus'] === 'PENDING_SETTLEMENT'">
+              <span></span>
+              <button class="ph-btn primary" type="button" (click)="verify(row)">Verify / Settle</button>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

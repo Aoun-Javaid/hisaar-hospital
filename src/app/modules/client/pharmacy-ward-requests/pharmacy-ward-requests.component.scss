@@ -1,15 +1,31 @@
 @use '../pharmacy-shared.scss';
 
-.roster-filters {
+.ph-list .pharmacy-hero-main h1,
+.ph-list .pharmacy-filter-head h2,
+.ph-list .pharmacy-table-head h2 {
+  align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 8px;
 }
 
-.roster-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+.ph-list .pharmacy-hero-main h1 .fa,
+.ph-list .pharmacy-filter-head h2 .fa {
+  color: #1d4ed8;
+}
+
+.pharmacy-status-pill.status-requested,
+.pharmacy-status-pill.status-pending,
+.pharmacy-status-pill.status-partially-issued {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.pharmacy-status-pill.status-issued {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.pharmacy-status-pill.status-cancelled {
+  background: #fef2f2;
+  color: #b91c1c;
 }

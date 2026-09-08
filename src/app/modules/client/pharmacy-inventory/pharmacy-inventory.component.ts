@@ -53,7 +53,11 @@ export class PharmacyInventoryComponent implements OnInit {
   }
 
   get lowStockCount(): number {
-    return this.filteredProducts.filter((product) => this.qty(product) <= this.reorder(product)).length;
+    return this.filteredProducts.filter((product) => this.isLowStock(product)).length;
+  }
+
+  isLowStock(product: ProductCatalogItem): boolean {
+    return this.qty(product) <= this.reorder(product);
   }
 
   loadStores(): void {

@@ -1,4 +1,4 @@
-<div id="main-content" class="pharmacy-page">
+<div id="main-content" class="pharmacy-page ph-list">
   <div class="pharmacy-shell pharmacy-admin-page">
     <div class="pharmacy-loading" *ngIf="loading">
       <i class="fa fa-spinner fa-spin"></i> Loading register session...
@@ -13,29 +13,48 @@
       <header class="pharmacy-hero">
         <div class="pharmacy-hero-main">
           <a class="pharmacy-back-link" routerLink="/pharmacy/register-sessions">&larr; Back to Register Sessions</a>
-          <h1>Register Session Detail</h1>
+          <h1><i class="fa fa-desktop"></i> Register Session Detail</h1>
           <p>{{ current.registerSession.store?.name || current.registerSession.storeId }} &middot; {{ date(current.registerSession.businessDate) }}</p>
+        </div>
+        <div class="pharmacy-hero-actions">
+          <span [ngClass]="statusClass(current.registerSession.status)">{{ current.registerSession.status }}</span>
         </div>
       </header>
 
-      <div class="pharmacy-stats-grid">
-        <div class="pharmacy-stat-card">
-          <span>Opening Cash</span>
-          <strong>{{ currency(current.registerSession.openingAmount) }}</strong>
-        </div>
-        <div class="pharmacy-stat-card">
-          <span>Sales Total</span>
-          <strong>{{ currency(current.summary.totalSales) }}</strong>
-        </div>
-        <div class="pharmacy-stat-card">
-          <span>Expenses</span>
-          <strong>{{ currency(current.summary.totalExpenses) }}</strong>
-        </div>
-        <div class="pharmacy-stat-card">
-          <span>Expected Drawer</span>
-          <strong>{{ currency(current.summary.expectedCashInDrawer) }}</strong>
-        </div>
-      </div>
+      <section class="ph-highlights" aria-label="Session highlights">
+        <article class="ph-stat">
+          <div class="ph-stat-icon blue"><i class="fa fa-money"></i></div>
+          <div>
+            <span>Opening Cash</span>
+            <strong>{{ currency(current.registerSession.openingAmount) }}</strong>
+            <small>Drawer start</small>
+          </div>
+        </article>
+        <article class="ph-stat">
+          <div class="ph-stat-icon green"><i class="fa fa-shopping-cart"></i></div>
+          <div>
+            <span>Sales Total</span>
+            <strong>{{ currency(current.summary.totalSales) }}</strong>
+            <small>{{ current.sales.length }} invoices</small>
+          </div>
+        </article>
+        <article class="ph-stat">
+          <div class="ph-stat-icon amber"><i class="fa fa-credit-card"></i></div>
+          <div>
+            <span>Expenses</span>
+            <strong>{{ currency(current.summary.totalExpenses) }}</strong>
+            <small>{{ current.expenses.length }} entries</small>
+          </div>
+        </article>
+        <article class="ph-stat">
+          <div class="ph-stat-icon purple"><i class="fa fa-calculator"></i></div>
+          <div>
+            <span>Expected Drawer</span>
+            <strong>{{ currency(current.summary.expectedCashInDrawer) }}</strong>
+            <small>Close target</small>
+          </div>
+        </article>
+      </section>
 
       <div class="pharmacy-summary-card">
         <div class="pharmacy-table-head">
@@ -47,7 +66,7 @@
 
         <div class="card-body">
           <div class="row g-4">
-            <div class="col-md-4"><strong>Status</strong><div>{{ current.registerSession.status }}</div></div>
+            <div class="col-md-4"><strong>Status</strong><div><span [ngClass]="statusClass(current.registerSession.status)">{{ current.registerSession.status }}</span></div></div>
             <div class="col-md-4"><strong>Opened At</strong><div>{{ dateTime(current.registerSession.openedAt) }}</div></div>
             <div class="col-md-4"><strong>Closed At</strong><div>{{ dateTime(current.registerSession.closedAt) }}</div></div>
             <div class="col-md-4"><strong>Cashier</strong><div>{{ cashierName(current) }}</div></div>
@@ -66,7 +85,8 @@
         </div>
 
         <div class="card-body">
-          <div class="table-responsive">
+          <div *ngIf="!current.sales.length" class="pharmacy-empty-state">No sales in this session.</div>
+          <div class="table-responsive ph-desktop-table" *ngIf="current.sales.length">
             <table class="table align-middle">
               <thead>
                 <tr>
@@ -79,14 +99,29 @@
               </thead>
               <tbody>
                 <tr *ngFor="let sale of current.sales">
-                  <td>{{ sale.invoiceNo }}</td>
+                  <td class="fw-semibold">{{ sale.invoiceNo }}</td>
                   <td>{{ dateTime(sale.saleDate) }}</td>
-                  <td>{{ sale.status }}</td>
+                  <td><span [ngClass]="statusClass(sale.status)">{{ sale.status }}</span></td>
                   <td>{{ currency(sale.total) }}</td>
                   <td>{{ currency(sale.paidAmount) }}</td>
                 </tr>
               </tbody>
             </table>
+          </div>
+          <div class="ph-mobile-list" *ngIf="current.sales.length">
+            <article class="ph-mobile-card" *ngFor="let sale of current.sales">
+              <div class="ph-mobile-top">
+                <div>
+                  <strong>{{ sale.invoiceNo }}</strong>
+                  <small>{{ dateTime(sale.saleDate) }}</small>
+                </div>
+                <span [ngClass]="statusClass(sale.status)">{{ sale.status }}</span>
+              </div>
+              <div class="ph-mobile-meta">
+                <span>Total {{ currency(sale.total) }}</span>
+                <span>Paid {{ currency(sale.paidAmount) }}</span>
+              </div>
+            </article>
           </div>
         </div>
       </div>
@@ -100,7 +135,8 @@
         </div>
 
         <div class="card-body">
-          <div class="table-responsive">
+          <div *ngIf="!current.expenses.length" class="pharmacy-empty-state">No expenses in this session.</div>
+          <div class="table-responsive ph-desktop-table" *ngIf="current.expenses.length">
             <table class="table align-middle">
               <thead>
                 <tr>
@@ -121,6 +157,20 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+          <div class="ph-mobile-list" *ngIf="current.expenses.length">
+            <article class="ph-mobile-card" *ngFor="let expense of current.expenses">
+              <div class="ph-mobile-top">
+                <div>
+                  <strong>{{ expense.title }}</strong>
+                  <small>{{ date(expense.expenseDate) }} · {{ expense.category }}</small>
+                </div>
+                <strong>{{ currency(expense.amount) }}</strong>
+              </div>
+              <div class="ph-mobile-meta">
+                <span>{{ expense.paymentMethod || '-' }}</span>
+              </div>
+            </article>
           </div>
         </div>
       </div>

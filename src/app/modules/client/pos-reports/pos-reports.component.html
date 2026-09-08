@@ -1,14 +1,14 @@
-<div id="main-content" class="pharmacy-page">
+<div id="main-content" class="pharmacy-page ph-list">
   <div class="pharmacy-shell pharmacy-admin-page pos-reports-page">
     <header class="pharmacy-hero">
       <div class="pharmacy-hero-main">
-        <h1>Pharmacy Reports</h1>
+        <h1><i class="fa fa-bar-chart"></i> Pharmacy Reports</h1>
         <p>Backend-calculated pharmacy POS sales, stock, payment, and profit reports.</p>
       </div>
       <div class="pharmacy-hero-actions">
-        <button type="button" class="btn btn-primary" (click)="loadReport()" [disabled]="loading">
+        <button type="button" class="ph-btn primary" (click)="loadReport()" [disabled]="loading">
           <i class="fa" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-refresh'"></i>
-          Refresh
+          <span>Refresh</span>
         </button>
       </div>
     </header>
@@ -29,43 +29,56 @@
     <div class="pharmacy-filter-card report-filter-card">
       <div class="pharmacy-filter-head report-filter-head">
         <div>
-          <h2>{{ activeReportDefinition.title }} Report</h2>
+          <h2><i class="fa fa-filter"></i> {{ activeReportDefinition.title }} Report</h2>
           <p>{{ activeReportDefinition.description }}</p>
         </div>
         <span class="pharmacy-status-pill permission-pill">{{ localFallbackMode ? 'Local fallback' : 'reports.read' }}</span>
       </div>
 
-      <div class="pharmacy-filter-grid report-filter-grid">
-        <label>
-          <span>From Date</span>
-          <input type="date" class="form-control" [(ngModel)]="fromDate" />
-        </label>
+      <div class="pharmacy-filter-body">
+        <div class="pharmacy-filter-grid report-filter-grid">
+          <label class="pharmacy-field">
+            <span>From Date</span>
+            <div class="pharmacy-input-wrap">
+              <input type="date" class="form-control" [(ngModel)]="fromDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
 
-        <label>
-          <span>To Date</span>
-          <input type="date" class="form-control" [(ngModel)]="toDate" />
-        </label>
+          <label class="pharmacy-field">
+            <span>To Date</span>
+            <div class="pharmacy-input-wrap">
+              <input type="date" class="form-control" [(ngModel)]="toDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
 
-        <label>
-          <span>Store</span>
-          <select class="form-control" [(ngModel)]="storeId" [disabled]="!canChooseStore || storesLoading">
-            <option value="">{{ canChooseStore ? 'All stores' : 'Assigned store' }}</option>
-            <option *ngIf="storeId && !stores.length" [value]="storeId">Assigned store</option>
-            <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
-          </select>
-        </label>
+          <label class="pharmacy-field">
+            <span>Store</span>
+            <select class="form-select" [(ngModel)]="storeId" [disabled]="!canChooseStore || storesLoading">
+              <option value="">{{ canChooseStore ? 'All stores' : 'Assigned store' }}</option>
+              <option *ngIf="storeId && !stores.length" [value]="storeId">Assigned store</option>
+              <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
+            </select>
+          </label>
 
-        <label class="low-stock-filter" *ngIf="supportsLowStockFilter">
-          <input type="checkbox" [(ngModel)]="lowStockOnly" />
-          <span>Low Stock Only</span>
-        </label>
+          <label class="pharmacy-field low-stock-filter" *ngIf="supportsLowStockFilter">
+            <span>Options</span>
+            <div class="low-stock-check">
+              <input type="checkbox" [(ngModel)]="lowStockOnly" id="low-stock-only" />
+              <label for="low-stock-only">Low Stock Only</label>
+            </div>
+          </label>
+        </div>
 
-        <div class="filter-actions">
-          <button type="button" class="btn btn-dark" (click)="applyFilters()" [disabled]="loading">
-            Apply
+        <div class="pharmacy-filter-actions filter-actions">
+          <button type="button" class="ph-btn primary" (click)="applyFilters()" [disabled]="loading">
+            <i class="fa fa-filter"></i>
+            <span>Apply Filters</span>
           </button>
-          <button type="button" class="btn btn-default" (click)="resetFilters()" [disabled]="loading">
-            Reset
+          <button type="button" class="ph-btn ghost" (click)="resetFilters()" [disabled]="loading">
+            <i class="fa fa-refresh"></i>
+            <span>Reset</span>
           </button>
         </div>
       </div>
@@ -85,30 +98,31 @@
     </div>
 
     <ng-container *ngIf="!loading">
-      <div class="summary-grid" *ngIf="summaryEntries.length">
-        <div class="summary-card" *ngFor="let entry of summaryEntries; trackBy: trackByKey">
-          <span>{{ labelFor(entry.key) }}</span>
-
-          <ng-container *ngIf="!isPlainObject(entry.value); else nestedSummary">
-            <strong>{{ formatValue(entry.key, entry.value) }}</strong>
-          </ng-container>
-
-          <ng-template #nestedSummary>
-            <div class="nested-summary">
-              <div *ngFor="let pair of objectEntries(entry.value); trackBy: trackByKey">
-                <span>{{ labelFor(pair.key) }}</span>
-                <strong>{{ formatValue(pair.key, pair.value) }}</strong>
+      <section class="ph-highlights" *ngIf="summaryEntries.length" aria-label="Report summary">
+        <article class="ph-stat" *ngFor="let entry of summaryEntries; trackBy: trackByKey">
+          <div class="ph-stat-icon blue"><i class="fa fa-line-chart"></i></div>
+          <div>
+            <span>{{ labelFor(entry.key) }}</span>
+            <ng-container *ngIf="!isPlainObject(entry.value); else nestedSummary">
+              <strong>{{ formatValue(entry.key, entry.value) }}</strong>
+            </ng-container>
+            <ng-template #nestedSummary>
+              <div class="nested-summary">
+                <div *ngFor="let pair of objectEntries(entry.value); trackBy: trackByKey">
+                  <span>{{ labelFor(pair.key) }}</span>
+                  <strong>{{ formatValue(pair.key, pair.value) }}</strong>
+                </div>
               </div>
-            </div>
-          </ng-template>
-        </div>
-      </div>
+            </ng-template>
+          </div>
+        </article>
+      </section>
 
       <div class="pharmacy-table-card report-table-card">
         <div class="pharmacy-table-head report-table-head">
           <div>
-            <h3>Report Rows</h3>
-            <span>{{ items.length }} row{{ items.length === 1 ? '' : 's' }}</span>
+            <h2>Report Rows</h2>
+            <p>{{ items.length }} row{{ items.length === 1 ? '' : 's' }}</p>
           </div>
         </div>
 
@@ -116,7 +130,7 @@
           No report rows found for the selected filters.
         </div>
 
-        <div class="table-responsive" *ngIf="items.length">
+        <div class="table-responsive ph-desktop-table" *ngIf="items.length">
           <table class="table table-hover align-middle">
             <thead>
               <tr>
@@ -133,6 +147,22 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="ph-mobile-list" *ngIf="items.length">
+          <article class="ph-mobile-card" *ngFor="let row of items; trackBy: trackByIndex">
+            <div class="ph-mobile-top">
+              <div>
+                <strong>{{ formatValue(tableColumns[0], cellValue(row, tableColumns[0])) }}</strong>
+                <small *ngIf="tableColumns[1]">{{ labelFor(tableColumns[1]) }}: {{ formatValue(tableColumns[1], cellValue(row, tableColumns[1])) }}</small>
+              </div>
+            </div>
+            <div class="ph-mobile-meta">
+              <span *ngFor="let column of tableColumns.slice(2); trackBy: trackByColumn">
+                {{ labelFor(column) }}: {{ formatValue(column, cellValue(row, column)) }}
+              </span>
+            </div>
+          </article>
         </div>
       </div>
     </ng-container>

@@ -80,6 +80,36 @@ export class PharmacyPurchasesComponent implements OnInit {
     return this.backend.hasPermission('warehouses.manage');
   }
 
+  get purchaseTotal(): number {
+    return this.purchases.reduce((sum, item) => sum + Number(item['total'] || 0), 0);
+  }
+
+  get purchasePaid(): number {
+    return this.purchases.reduce((sum, item) => sum + Number(item['paidAmount'] || 0), 0);
+  }
+
+  get purchasePending(): number {
+    return Math.max(this.purchaseTotal - this.purchasePaid, 0);
+  }
+
+  get returnTotal(): number {
+    return this.returns.reduce((sum, item) => sum + Number(item['total'] || 0), 0);
+  }
+
+  get returnPendingCount(): number {
+    return this.returns.filter((item) => {
+      const status = String(item['status'] || '').toLowerCase();
+      return status === 'draft' || status === 'pending';
+    }).length;
+  }
+
+  get returnCompletedCount(): number {
+    return this.returns.filter((item) => {
+      const status = String(item['status'] || '').toLowerCase();
+      return status === 'completed' || status === 'posted' || status === 'received';
+    }).length;
+  }
+
   loadWarehouses(): void {
     this.backend.getWarehouses({ limit: 100, isActive: true }).subscribe({
       next: (result) => (this.warehouses = result.items || []),

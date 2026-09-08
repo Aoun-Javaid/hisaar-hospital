@@ -1,21 +1,56 @@
-<div id="main-content" class="pharmacy-page">
+<div id="main-content" class="pharmacy-page ph-list">
   <div class="pharmacy-shell pharmacy-admin-page">
     <header class="pharmacy-hero">
       <div class="pharmacy-hero-main">
         <a class="pharmacy-back-link" routerLink="/pharmacy">&larr; Pharmacy Queue</a>
-        <h1>Stock Transfers</h1>
+        <h1><i class="fa fa-random"></i> Stock Transfers</h1>
         <p>Move pharmacy stock between stores and warehouses with approval workflow controls.</p>
       </div>
       <div class="pharmacy-hero-actions">
-        <a class="btn btn-default" routerLink="/pharmacy/inventory">Inventory</a>
-        <a class="btn btn-default" routerLink="/pharmacy/stock-movements">Stock Movements</a>
+        <a class="ph-btn ghost" routerLink="/pharmacy/inventory">Inventory</a>
+        <a class="ph-btn ghost" routerLink="/pharmacy/stock-movements">Stock Movements</a>
       </div>
     </header>
+
+    <section class="ph-highlights" aria-label="Transfer highlights">
+      <article class="ph-stat">
+        <div class="ph-stat-icon blue"><i class="fa fa-random"></i></div>
+        <div>
+          <span>Total Transfers</span>
+          <strong>{{ transfers.length }}</strong>
+          <small>Visible</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon amber"><i class="fa fa-clock-o"></i></div>
+        <div>
+          <span>Pending</span>
+          <strong>{{ pendingCount }}</strong>
+          <small>Awaiting action</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon green"><i class="fa fa-check-circle"></i></div>
+        <div>
+          <span>Received</span>
+          <strong>{{ receivedCount }}</strong>
+          <small>Completed</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon purple"><i class="fa fa-truck"></i></div>
+        <div>
+          <span>In Transit</span>
+          <strong>{{ inTransitCount }}</strong>
+          <small>Approved / dispatched</small>
+        </div>
+      </article>
+    </section>
 
     <div class="pharmacy-filter-card" *ngIf="canCreate">
       <div class="pharmacy-filter-head">
         <div>
-          <h2>Create Transfer</h2>
+          <h2><i class="fa fa-plus-circle"></i> Create Transfer</h2>
           <p>Move received warehouse stock into a pharmacy store, or transfer between stores.</p>
         </div>
       </div>
@@ -74,8 +109,9 @@
           <input class="form-control" type="text" [(ngModel)]="note" placeholder="Optional" />
         </label>
         <div class="pharmacy-filter-actions">
-          <button class="btn btn-primary" type="button" [disabled]="creating" (click)="createTransfer()">
-            {{ creating ? 'Creating...' : 'Create Transfer' }}
+          <button class="ph-btn primary" type="button" [disabled]="creating" (click)="createTransfer()">
+            <i class="fa fa-plus"></i>
+            <span>{{ creating ? 'Creating...' : 'Create Transfer' }}</span>
           </button>
         </div>
       </div>
@@ -84,51 +120,65 @@
     <div class="pharmacy-filter-card">
       <div class="pharmacy-filter-head">
         <div>
-          <h2>Transfer Filters</h2>
+          <h2><i class="fa fa-filter"></i> Transfer Filters</h2>
           <p>Filter transfers by store origin, status, transfer number, and date range.</p>
         </div>
       </div>
 
-      <div class="pharmacy-filter-grid">
-        <label>
-          <span>From Store</span>
-          <select class="form-select" [(ngModel)]="storeId">
-            <option value="">All stores</option>
-            <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
-          </select>
-        </label>
+      <div class="pharmacy-filter-body">
+        <div class="pharmacy-filter-grid">
+          <label class="pharmacy-field">
+            <span>From Store</span>
+            <select class="form-select" [(ngModel)]="storeId">
+              <option value="">All stores</option>
+              <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
+            </select>
+          </label>
 
-        <label>
-          <span>Status</span>
-          <select class="form-select" [(ngModel)]="status">
-            <option value="">All</option>
-            <option value="draft">Draft</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="dispatched">Dispatched</option>
-            <option value="received">Received</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </label>
+          <label class="pharmacy-field">
+            <span>Status</span>
+            <select class="form-select" [(ngModel)]="status">
+              <option value="">All</option>
+              <option value="draft">Draft</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="dispatched">Dispatched</option>
+              <option value="received">Received</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </label>
 
-        <label>
-          <span>Transfer No</span>
-          <input class="form-control" type="text" [(ngModel)]="transferNo" placeholder="TRF-..." />
-        </label>
+          <label class="pharmacy-field">
+            <span>Transfer No</span>
+            <input class="form-control" type="text" [(ngModel)]="transferNo" placeholder="TRF-..." />
+          </label>
 
-        <label>
-          <span>From Date</span>
-          <input class="form-control" type="date" [(ngModel)]="fromDate" />
-        </label>
+          <label class="pharmacy-field">
+            <span>From Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="fromDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
 
-        <label>
-          <span>To Date</span>
-          <input class="form-control" type="date" [(ngModel)]="toDate" />
-        </label>
+          <label class="pharmacy-field">
+            <span>To Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="toDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
+        </div>
 
         <div class="pharmacy-filter-actions">
-          <button class="btn btn-outline-primary" type="button" (click)="loadTransfers()">Apply</button>
-          <button class="btn btn-outline-secondary" type="button" (click)="reset()">Reset</button>
+          <button class="ph-btn primary" type="button" (click)="loadTransfers()">
+            <i class="fa fa-filter"></i>
+            <span>Apply Filters</span>
+          </button>
+          <button class="ph-btn ghost" type="button" (click)="reset()">
+            <i class="fa fa-refresh"></i>
+            <span>Reset</span>
+          </button>
         </div>
       </div>
     </div>
@@ -145,7 +195,7 @@
         <div *ngIf="loading" class="pharmacy-empty-state">Loading stock transfers...</div>
         <div *ngIf="!loading && !transfers.length" class="pharmacy-empty-state">No stock transfers matched the current filters.</div>
 
-        <div class="table-responsive" *ngIf="!loading && transfers.length">
+        <div class="table-responsive ph-desktop-table" *ngIf="!loading && transfers.length">
           <table class="table align-middle">
             <thead>
               <tr>
@@ -170,9 +220,9 @@
                 <td><span [ngClass]="statusClass(transfer.status)">{{ transfer.status }}</span></td>
                 <td>{{ dateTime(transfer.createdAt) }}</td>
                 <td class="text-end">
-                  <div class="btn-group btn-group-sm">
+                  <div class="ph-row-actions">
                     <button
-                      class="btn btn-outline-primary"
+                      class="ph-btn ghost"
                       type="button"
                       *ngIf="canApprove(transfer)"
                       [disabled]="actingId === transfer._id"
@@ -181,7 +231,7 @@
                       Approve
                     </button>
                     <button
-                      class="btn btn-outline-primary"
+                      class="ph-btn ghost"
                       type="button"
                       *ngIf="canDispatch(transfer)"
                       [disabled]="actingId === transfer._id"
@@ -190,7 +240,7 @@
                       Dispatch
                     </button>
                     <button
-                      class="btn btn-outline-success"
+                      class="ph-btn primary"
                       type="button"
                       *ngIf="canReceive(transfer)"
                       [disabled]="actingId === transfer._id"
@@ -199,19 +249,47 @@
                       Receive
                     </button>
                     <button
-                      class="btn btn-outline-danger"
+                      class="ph-icon-btn danger"
                       type="button"
                       *ngIf="canCancel(transfer)"
+                      title="Cancel"
                       [disabled]="actingId === transfer._id"
                       (click)="cancel(transfer)"
                     >
-                      Cancel
+                      <i class="fa fa-times"></i>
                     </button>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="ph-mobile-list" *ngIf="!loading && transfers.length">
+          <article class="ph-mobile-card" *ngFor="let transfer of transfers">
+            <div class="ph-mobile-top">
+              <div>
+                <strong>{{ transfer.transferNo }}</strong>
+                <small>{{ dateTime(transfer.createdAt) }} · {{ itemCount(transfer) }} items</small>
+              </div>
+              <span [ngClass]="statusClass(transfer.status)">{{ transfer.status }}</span>
+            </div>
+            <div class="ph-mobile-meta">
+              <span>From {{ locationName(transfer.fromLocationId, transfer.fromLocationType) }}</span>
+              <span>To {{ locationName(transfer.toLocationId, transfer.toLocationType) }}</span>
+            </div>
+            <div class="ph-mobile-row">
+              <small class="text-muted" *ngIf="transfer.note">{{ transfer.note }}</small>
+              <div class="ph-row-actions">
+                <button class="ph-btn ghost" type="button" *ngIf="canApprove(transfer)" [disabled]="actingId === transfer._id" (click)="approve(transfer)">Approve</button>
+                <button class="ph-btn ghost" type="button" *ngIf="canDispatch(transfer)" [disabled]="actingId === transfer._id" (click)="dispatch(transfer)">Dispatch</button>
+                <button class="ph-btn primary" type="button" *ngIf="canReceive(transfer)" [disabled]="actingId === transfer._id" (click)="receive(transfer)">Receive</button>
+                <button class="ph-icon-btn danger" type="button" *ngIf="canCancel(transfer)" [disabled]="actingId === transfer._id" (click)="cancel(transfer)">
+                  <i class="fa fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </article>
         </div>
       </div>
     </div>

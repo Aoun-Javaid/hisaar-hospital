@@ -1,1 +1,10 @@
 @use '../pharmacy-shared.scss';
+
+.pharmacy-filter-head h2 .fa {
+  color: #1d4ed8;
+  margin-right: 6px;
+}
+
+.ph-list .ph-highlights {
+  margin-top: 0;
+}

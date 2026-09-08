@@ -41,6 +41,21 @@ export class PharmacyRegisterSessionsComponent implements OnInit {
     this.loadSessions();
   }
 
+  get openCount(): number {
+    return this.sessions.filter((session) => session.status === 'open').length;
+  }
+
+  get closedCount(): number {
+    return this.sessions.filter((session) => session.status === 'closed').length;
+  }
+
+  get expectedCashTotal(): number {
+    return this.sessions.reduce(
+      (sum, session) => sum + Number(session.expectedCashAmount || session.summary?.expectedCashInDrawer || 0),
+      0,
+    );
+  }
+
   loadStores(): void {
     if (!this.backend.hasPermission('stores.read')) {
       return;
@@ -143,5 +158,9 @@ export class PharmacyRegisterSessionsComponent implements OnInit {
 
   dateTime(value: string | null | undefined): string {
     return formatDateTime(value);
+  }
+
+  statusClass(status?: string): string {
+    return `pharmacy-status-pill status-${String(status || 'draft').replace(/_/g, '-')}`;
   }
 }

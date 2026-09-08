@@ -29,6 +29,21 @@ export class PharmacyWardRequestsComponent implements OnInit {
     this.load();
   }
 
+  get openCount(): number {
+    return this.items.filter((row) => {
+      const status = String(row['status'] || '');
+      return status !== 'ISSUED' && status !== 'CANCELLED';
+    }).length;
+  }
+
+  get issuedCount(): number {
+    return this.items.filter((row) => row['status'] === 'ISSUED').length;
+  }
+
+  get lineItemCount(): number {
+    return this.items.reduce((sum, row) => sum + this.rowItems(row).length, 0);
+  }
+
   load(): void {
     this.loading = true;
     const params: Record<string, unknown> = { limit: 100 };
@@ -128,5 +143,9 @@ export class PharmacyWardRequestsComponent implements OnInit {
   asDate(value: unknown): string | number | Date | null {
     if (value == null) return null;
     return value as string | number | Date;
+  }
+
+  statusClass(status: unknown): string {
+    return `pharmacy-status-pill status-${String(status || 'draft').toLowerCase().replace(/_/g, '-')}`;
   }
 }

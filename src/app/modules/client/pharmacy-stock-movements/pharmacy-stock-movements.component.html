@@ -1,59 +1,108 @@
-<div id="main-content" class="pharmacy-page">
+<div id="main-content" class="pharmacy-page ph-list">
   <div class="pharmacy-shell pharmacy-admin-page">
     <header class="pharmacy-hero">
       <div class="pharmacy-hero-main">
-        <h1>Pharmacy Stock Movements</h1>
+        <h1><i class="fa fa-exchange"></i> Pharmacy Stock Movements</h1>
         <p>Audit every stock adjustment affecting pharmacy inventory across stores and warehouses.</p>
       </div>
     </header>
 
+    <section class="ph-highlights" aria-label="Movement highlights">
+      <article class="ph-stat">
+        <div class="ph-stat-icon blue"><i class="fa fa-exchange"></i></div>
+        <div>
+          <span>Movements</span>
+          <strong>{{ movements.length }}</strong>
+          <small>Visible rows</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon green"><i class="fa fa-arrow-up"></i></div>
+        <div>
+          <span>Stock In</span>
+          <strong>{{ stockInCount }}</strong>
+          <small>Inbound types</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon amber"><i class="fa fa-arrow-down"></i></div>
+        <div>
+          <span>Stock Out</span>
+          <strong>{{ stockOutCount }}</strong>
+          <small>Outbound types</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon purple"><i class="fa fa-map-marker"></i></div>
+        <div>
+          <span>Locations</span>
+          <strong>{{ locationCount }}</strong>
+          <small>Unique locations</small>
+        </div>
+      </article>
+    </section>
+
     <div class="pharmacy-filter-card">
       <div class="pharmacy-filter-head">
         <div>
-          <h2>Movement Filters</h2>
+          <h2><i class="fa fa-filter"></i> Movement Filters</h2>
           <p>Find stock changes by reference source, location type, and posting date.</p>
         </div>
       </div>
 
-      <div class="pharmacy-filter-grid">
-        <label>
-          <span>Reference Type</span>
-          <select class="form-select" [(ngModel)]="referenceType">
-            <option value="">All</option>
-            <option value="purchase">Purchase</option>
-            <option value="sale">Sale</option>
-            <option value="sales_return">Sales return</option>
-            <option value="purchase_return">Purchase return</option>
-            <option value="stock_transfer">Transfer</option>
-            <option value="adjustment">Adjustment</option>
-            <option value="opening_stock">Opening stock</option>
-            <option value="ward_requisition">Ward issue</option>
-          </select>
-        </label>
+      <div class="pharmacy-filter-body">
+        <div class="pharmacy-filter-grid">
+          <label class="pharmacy-field">
+            <span>Reference Type</span>
+            <select class="form-select" [(ngModel)]="referenceType">
+              <option value="">All</option>
+              <option value="purchase">Purchase</option>
+              <option value="sale">Sale</option>
+              <option value="sales_return">Sales return</option>
+              <option value="purchase_return">Purchase return</option>
+              <option value="stock_transfer">Transfer</option>
+              <option value="adjustment">Adjustment</option>
+              <option value="opening_stock">Opening stock</option>
+              <option value="ward_requisition">Ward issue</option>
+            </select>
+          </label>
 
-        <label>
-          <span>Location Type</span>
-          <select class="form-select" [(ngModel)]="locationType">
-            <option value="">All</option>
-            <option value="store">Store</option>
-            <option value="warehouse">Warehouse</option>
-            <option value="ward">Ward</option>
-          </select>
-        </label>
+          <label class="pharmacy-field">
+            <span>Location Type</span>
+            <select class="form-select" [(ngModel)]="locationType">
+              <option value="">All</option>
+              <option value="store">Store</option>
+              <option value="warehouse">Warehouse</option>
+              <option value="ward">Ward</option>
+            </select>
+          </label>
 
-        <label>
-          <span>From Date</span>
-          <input class="form-control" type="date" [(ngModel)]="fromDate" />
-        </label>
+          <label class="pharmacy-field">
+            <span>From Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="fromDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
 
-        <label>
-          <span>To Date</span>
-          <input class="form-control" type="date" [(ngModel)]="toDate" />
-        </label>
+          <label class="pharmacy-field">
+            <span>To Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="toDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
+        </div>
 
         <div class="pharmacy-filter-actions">
-          <button class="btn btn-outline-primary" type="button" (click)="loadMovements()">Apply</button>
-          <button class="btn btn-outline-secondary" type="button" (click)="reset()">Reset</button>
+          <button class="ph-btn primary" type="button" (click)="loadMovements()">
+            <i class="fa fa-filter"></i>
+            <span>Apply Filters</span>
+          </button>
+          <button class="ph-btn ghost" type="button" (click)="reset()">
+            <i class="fa fa-refresh"></i>
+            <span>Reset</span>
+          </button>
         </div>
       </div>
     </div>
@@ -69,7 +118,7 @@
       <div class="card-body">
         <div *ngIf="loading" class="pharmacy-empty-state">Loading stock movements...</div>
         <div *ngIf="!loading && !movements.length" class="pharmacy-empty-state">No stock movement records found.</div>
-        <div class="table-responsive" *ngIf="!loading && movements.length">
+        <div class="table-responsive ph-desktop-table" *ngIf="!loading && movements.length">
           <table class="table align-middle">
             <thead>
               <tr>
@@ -94,7 +143,9 @@
                   <div class="fw-semibold">{{ referenceTypeLabel(movement.referenceType) }}</div>
                   <small class="text-muted" *ngIf="referenceDocLabel(movement)">{{ referenceDocLabel(movement) }}</small>
                 </td>
-                <td>{{ movementTypeLabel(movement.movementType) }}</td>
+                <td>
+                  <span class="pharmacy-status-pill status-open">{{ movementTypeLabel(movement.movementType) }}</span>
+                </td>
                 <td>{{ locationLabel(movement) }}</td>
                 <td>{{ qty(movement) }}</td>
                 <td>{{ balance(movement) }}</td>
@@ -102,6 +153,27 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="ph-mobile-list" *ngIf="!loading && movements.length">
+          <article class="ph-mobile-card" *ngFor="let movement of movements">
+            <div class="ph-mobile-top">
+              <div>
+                <strong>{{ productName(movement) }}</strong>
+                <small>{{ dateTime(movement.createdAt) }}</small>
+              </div>
+              <span class="pharmacy-status-pill status-open">{{ movementTypeLabel(movement.movementType) }}</span>
+            </div>
+            <div class="ph-mobile-meta">
+              <span>{{ referenceTypeLabel(movement.referenceType) }}</span>
+              <span *ngIf="referenceDocLabel(movement)">{{ referenceDocLabel(movement) }}</span>
+              <span>{{ locationLabel(movement) }}</span>
+            </div>
+            <div class="ph-mobile-row">
+              <span>Qty {{ qty(movement) }}</span>
+              <strong class="ph-mobile-amount">Bal {{ balance(movement) }}</strong>
+            </div>
+          </article>
         </div>
       </div>
     </div>

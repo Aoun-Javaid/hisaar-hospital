@@ -32,6 +32,31 @@ export class PharmacyStockMovementsComponent implements OnInit {
     this.loadMovements();
   }
 
+  get stockInCount(): number {
+    return this.movements.filter((movement) => this.isInbound(movement)).length;
+  }
+
+  get stockOutCount(): number {
+    return this.movements.filter((movement) => !this.isInbound(movement)).length;
+  }
+
+  get locationCount(): number {
+    return new Set(
+      this.movements.map((movement) => `${movement.locationType || ''}:${movement.locationId || movement.location?.name || ''}`)
+    ).size;
+  }
+
+  private isInbound(movement: StockMovement): boolean {
+    const type = String(movement.movementType || '').toUpperCase();
+    if (type.includes('IN') || type.includes('RECEIVE') || type.includes('RETURN') || type.includes('OPENING')) {
+      return true;
+    }
+    if (type.includes('OUT') || type.includes('SALE') || type.includes('DISPATCH')) {
+      return false;
+    }
+    return Number(movement.quantityChange ?? movement.qty ?? movement.quantity ?? 0) >= 0;
+  }
+
   loadMovements(): void {
     this.loading = true;
     this.backend.getStockMovements({

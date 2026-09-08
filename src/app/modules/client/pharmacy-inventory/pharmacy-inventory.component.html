@@ -1,68 +1,101 @@
-<div id="main-content" class="pharmacy-page">
+<div id="main-content" class="pharmacy-page ph-list">
   <div class="pharmacy-shell pharmacy-admin-page">
     <header class="pharmacy-hero">
       <div class="pharmacy-hero-main">
-        <h1>Pharmacy Inventory</h1>
+        <h1><i class="fa fa-cubes"></i> Pharmacy Inventory</h1>
         <p>Live stock snapshot for pharmacy medicines, store availability, and valuation.</p>
       </div>
       <div class="pharmacy-hero-actions">
-        <button class="btn btn-default" type="button" (click)="loadInventory()">Refresh</button>
-        <a class="btn btn-primary" routerLink="/pharmacy/products">Manage Products</a>
+        <button class="ph-btn ghost" type="button" (click)="loadInventory()">
+          <i class="fa fa-refresh"></i>
+          <span>Refresh</span>
+        </button>
+        <a class="ph-btn primary" routerLink="/pharmacy/products">
+          <i class="fa fa-medkit"></i>
+          <span>Manage Products</span>
+        </a>
       </div>
     </header>
 
-    <div class="pharmacy-stats-grid">
-      <div class="pharmacy-stat-card">
-        <span>Stock Units</span>
-        <strong>{{ totalUnits }}</strong>
-      </div>
-      <div class="pharmacy-stat-card">
-        <span>Retail Value</span>
-        <strong>{{ currency(totalRetailValue) }}</strong>
-      </div>
-      <div class="pharmacy-stat-card">
-        <span>Cost Value</span>
-        <strong>{{ currency(totalCostValue) }}</strong>
-      </div>
-      <div class="pharmacy-stat-card">
-        <span>Low Stock Lines</span>
-        <strong>{{ lowStockCount }}</strong>
-      </div>
-    </div>
+    <section class="ph-highlights" aria-label="Inventory highlights">
+      <article class="ph-stat">
+        <div class="ph-stat-icon blue"><i class="fa fa-cubes"></i></div>
+        <div>
+          <span>Stock Units</span>
+          <strong>{{ totalUnits }}</strong>
+          <small>{{ filteredProducts.length }} lines</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon green"><i class="fa fa-tag"></i></div>
+        <div>
+          <span>Retail Value</span>
+          <strong>{{ currency(totalRetailValue) }}</strong>
+          <small>Selling value</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon purple"><i class="fa fa-money"></i></div>
+        <div>
+          <span>Cost Value</span>
+          <strong>{{ currency(totalCostValue) }}</strong>
+          <small>Inventory cost</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon amber"><i class="fa fa-exclamation-triangle"></i></div>
+        <div>
+          <span>Low Stock</span>
+          <strong>{{ lowStockCount }}</strong>
+          <small>Below reorder</small>
+        </div>
+      </article>
+    </section>
 
     <div class="pharmacy-filter-card">
       <div class="pharmacy-filter-head">
         <div>
-          <h2>Inventory Filters</h2>
+          <h2><i class="fa fa-filter"></i> Inventory Filters</h2>
           <p>Search pharmacy medicines and narrow results by store or low-stock state.</p>
         </div>
       </div>
 
-      <div class="pharmacy-filter-grid">
-        <label>
-          <span>Search</span>
-          <input class="form-control" [(ngModel)]="search" (ngModelChange)="applyFilters()" placeholder="Medicine, SKU, barcode" />
-        </label>
+      <div class="pharmacy-filter-body">
+        <div class="pharmacy-filter-grid">
+          <label class="pharmacy-field pharmacy-field-search">
+            <span>Search</span>
+            <div class="pharmacy-input-wrap">
+              <i class="fa fa-search pharmacy-leading-icon" aria-hidden="true"></i>
+              <input class="form-control" type="search" [(ngModel)]="search" (ngModelChange)="applyFilters()" placeholder="Medicine, SKU, barcode" />
+            </div>
+          </label>
 
-        <label>
-          <span>Store</span>
-          <select class="form-select" [(ngModel)]="storeId" (ngModelChange)="loadInventory()">
-            <option value="">All stores</option>
-            <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
-          </select>
-        </label>
+          <label class="pharmacy-field">
+            <span>Store</span>
+            <select class="form-select" [(ngModel)]="storeId" (ngModelChange)="loadInventory()">
+              <option value="">All stores</option>
+              <option *ngFor="let store of stores" [value]="store._id">{{ store.name }}</option>
+            </select>
+          </label>
 
-        <label>
-          <span>Inventory Mode</span>
-          <select class="form-select" [(ngModel)]="lowStockOnly" (ngModelChange)="applyFilters()">
-            <option [ngValue]="false">All stock lines</option>
-            <option [ngValue]="true">Low stock only</option>
-          </select>
-        </label>
+          <label class="pharmacy-field">
+            <span>Inventory Mode</span>
+            <select class="form-select" [(ngModel)]="lowStockOnly" (ngModelChange)="applyFilters()">
+              <option [ngValue]="false">All stock lines</option>
+              <option [ngValue]="true">Low stock only</option>
+            </select>
+          </label>
+        </div>
 
         <div class="pharmacy-filter-actions">
-          <button class="btn btn-outline-primary" type="button" (click)="loadInventory()">Apply</button>
-          <button class="btn btn-outline-secondary" type="button" (click)="search=''; lowStockOnly=false; applyFilters()">Reset</button>
+          <button class="ph-btn primary" type="button" (click)="loadInventory()">
+            <i class="fa fa-filter"></i>
+            <span>Apply Filters</span>
+          </button>
+          <button class="ph-btn ghost" type="button" (click)="search=''; lowStockOnly=false; applyFilters()">
+            <i class="fa fa-refresh"></i>
+            <span>Reset</span>
+          </button>
         </div>
       </div>
     </div>
@@ -78,7 +111,8 @@
       <div class="card-body">
         <div *ngIf="loading" class="pharmacy-empty-state">Loading inventory...</div>
         <div *ngIf="!loading && !filteredProducts.length" class="pharmacy-empty-state">No inventory items matched the current filters.</div>
-        <div class="table-responsive" *ngIf="!loading && filteredProducts.length">
+
+        <div class="table-responsive ph-desktop-table" *ngIf="!loading && filteredProducts.length">
           <table class="table align-middle">
             <thead>
               <tr>
@@ -86,11 +120,11 @@
                 <th>Batch</th>
                 <th>Expiry</th>
                 <th>Available</th>
-                <th>Reorder Level</th>
+                <th>Status</th>
                 <th>Cost</th>
                 <th>Retail</th>
                 <th>Valuation</th>
-                <th class="text-end" *ngIf="canAdjust()">Adjust</th>
+                <th class="text-end" *ngIf="canAdjust()">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -102,16 +136,51 @@
                 <td>{{ product.batchNumber || '-' }}</td>
                 <td>{{ product.expiryDate || '-' }}</td>
                 <td>{{ qty(product) }}</td>
-                <td>{{ reorder(product) }}</td>
+                <td>
+                  <span
+                    class="pharmacy-status-pill"
+                    [class.status-in-stock]="!isLowStock(product)"
+                    [class.status-low-stock]="isLowStock(product)">
+                    {{ isLowStock(product) ? 'Low Stock' : 'In Stock' }}
+                  </span>
+                </td>
                 <td>{{ currency(product.costPrice) }}</td>
                 <td>{{ currency(product.sellingPrice) }}</td>
                 <td>{{ currency(qty(product) * price(product)) }}</td>
                 <td class="text-end" *ngIf="canAdjust()">
-                  <button class="btn btn-outline-primary btn-sm" type="button" (click)="openAdjust(product)">Adjust</button>
+                    <button class="ph-icon-btn" type="button" title="Adjust" (click)="openAdjust(product)">
+                      <i class="fa fa-wrench"></i>
+                    </button>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="ph-mobile-list" *ngIf="!loading && filteredProducts.length">
+          <article class="ph-mobile-card" *ngFor="let product of filteredProducts">
+            <div class="ph-mobile-top">
+              <div>
+                <strong>{{ product.name }}</strong>
+                <small>{{ product.sku }} · Batch {{ product.batchNumber || '-' }}</small>
+              </div>
+              <span
+                class="pharmacy-status-pill"
+                [class.status-in-stock]="!isLowStock(product)"
+                [class.status-low-stock]="isLowStock(product)">
+                {{ isLowStock(product) ? 'Low Stock' : 'In Stock' }}
+              </span>
+            </div>
+            <div class="ph-mobile-meta">
+              <span>Qty {{ qty(product) }}</span>
+              <span>Exp {{ product.expiryDate || '-' }}</span>
+              <span>{{ currency(qty(product) * price(product)) }}</span>
+            </div>
+            <div class="ph-mobile-row" *ngIf="canAdjust()">
+              <span class="text-muted">Retail {{ currency(product.sellingPrice) }}</span>
+              <button class="ph-btn ghost" type="button" (click)="openAdjust(product)">Adjust</button>
+            </div>
+          </article>
         </div>
       </div>
     </div>
@@ -120,8 +189,15 @@
 
 <div class="pharmacy-modal-backdrop" *ngIf="adjustModalOpen" (click)="dismissAdjust()">
   <div class="pharmacy-modal" (click)="$event.stopPropagation()">
-    <h3>Adjust Stock</h3>
-    <p *ngIf="adjustProduct as product">{{ product.name }} · current {{ qty(product) }} units</p>
+    <div class="pharmacy-modal-head">
+      <div>
+        <h3>Adjust Stock</h3>
+        <p *ngIf="adjustProduct as product">{{ product.name }} · current {{ qty(product) }} units</p>
+      </div>
+      <button type="button" class="pharmacy-modal-close" (click)="dismissAdjust()" aria-label="Close" [disabled]="savingAdjust">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
     <label class="field-label" for="adjust-type">Adjustment Type</label>
     <select id="adjust-type" class="form-select" [(ngModel)]="adjustType">
       <option value="INCREASE">Increase</option>
@@ -133,8 +209,8 @@
     <label class="field-label mt-2" for="adjust-note">Note</label>
     <input id="adjust-note" class="form-control" type="text" [(ngModel)]="adjustNote" placeholder="Optional note" />
     <div class="pharmacy-modal-actions">
-      <button class="btn btn-outline-secondary" type="button" (click)="dismissAdjust()" [disabled]="savingAdjust">Cancel</button>
-      <button class="btn btn-primary" type="button" (click)="submitAdjust()" [disabled]="savingAdjust">
+      <button class="ph-btn ghost" type="button" (click)="dismissAdjust()" [disabled]="savingAdjust">Cancel</button>
+      <button class="ph-btn primary" type="button" (click)="submitAdjust()" [disabled]="savingAdjust">
         {{ savingAdjust ? 'Saving...' : 'Save Adjustment' }}
       </button>
     </div>

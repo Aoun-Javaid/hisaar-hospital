@@ -79,6 +79,37 @@ export class PharmacySalesComponent implements OnInit {
     return this.backend.hasPermission('sales.cancel') && sale.status === 'completed';
   }
 
+  get totalSales(): number {
+    return this.sales.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+  }
+
+  get totalPaid(): number {
+    return this.sales.reduce((sum, sale) => sum + Number(sale.paidAmount || 0), 0);
+  }
+
+  get totalItems(): number {
+    return this.sales.reduce((sum, sale) => sum + (sale.items?.length || 0), 0);
+  }
+
+  get unpaidCount(): number {
+    return this.sales.filter((sale) => String(sale.paymentStatus || '').toLowerCase() !== 'paid').length;
+  }
+
+  statusClass(status?: string): string {
+    return `status-${String(status || 'draft').replace(/_/g, '-')}`;
+  }
+
+  paymentStatusClass(status?: string): string {
+    const value = String(status || '').toLowerCase();
+    if (value === 'paid') {
+      return 'status-paid';
+    }
+    if (value === 'unpaid' || value === 'partial' || value === 'partially_paid') {
+      return 'status-unpaid';
+    }
+    return this.statusClass(status);
+  }
+
   async cancel(sale: Sale): Promise<void> {
     const confirmed = await this.dialog.confirm({
       title: 'Cancel Sale',

@@ -1,106 +1,233 @@
-<div id="main-content" class="modern-dashboard ward-page-shell">
-  <div class="container-fluid ward-page-container">
-    <div class="ward-page-header ward-page-header--compact">
-      <div class="ward-page-header__copy">
-        <h1>Pharmacy Ward Requests</h1>
+<div id="main-content" class="pharmacy-page ph-list">
+  <div class="pharmacy-shell pharmacy-admin-page">
+    <header class="pharmacy-hero">
+      <div class="pharmacy-hero-main">
+        <h1><i class="fa fa-bed"></i> Pharmacy Ward Requests</h1>
         <p>Review and issue medicines requested from ward admissions.</p>
+      </div>
+    </header>
+
+    <section class="ph-highlights" aria-label="Ward request highlights">
+      <article class="ph-stat">
+        <div class="ph-stat-icon blue"><i class="fa fa-list"></i></div>
+        <div>
+          <span>Requests</span>
+          <strong>{{ items.length }}</strong>
+          <small>Visible</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon amber"><i class="fa fa-clock-o"></i></div>
+        <div>
+          <span>Open</span>
+          <strong>{{ openCount }}</strong>
+          <small>Need issue</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon green"><i class="fa fa-check-circle"></i></div>
+        <div>
+          <span>Issued</span>
+          <strong>{{ issuedCount }}</strong>
+          <small>Completed</small>
+        </div>
+      </article>
+      <article class="ph-stat">
+        <div class="ph-stat-icon purple"><i class="fa fa-cubes"></i></div>
+        <div>
+          <span>Line Items</span>
+          <strong>{{ lineItemCount }}</strong>
+          <small>Across requests</small>
+        </div>
+      </article>
+    </section>
+
+    <div class="pharmacy-filter-card">
+      <div class="pharmacy-filter-head">
+        <div>
+          <h2><i class="fa fa-filter"></i> Request Filters</h2>
+          <p>Filter ward medicine requests by status, ward, patient, and date.</p>
+        </div>
+      </div>
+      <div class="pharmacy-filter-body">
+        <div class="pharmacy-filter-grid">
+          <label class="pharmacy-field">
+            <span>Status</span>
+            <select class="form-select" [(ngModel)]="status">
+              <option value="PENDING">Pending / Partial</option>
+              <option value="REQUESTED">Requested</option>
+              <option value="PARTIALLY_ISSUED">Partial</option>
+              <option value="ISSUED">Issued</option>
+              <option value="">All</option>
+            </select>
+          </label>
+          <label class="pharmacy-field">
+            <span>Ward</span>
+            <input class="form-control" [(ngModel)]="wardLabel" placeholder="Ward" />
+          </label>
+          <label class="pharmacy-field">
+            <span>Patient ID</span>
+            <input class="form-control" [(ngModel)]="patientId" placeholder="Patient ID" />
+          </label>
+          <label class="pharmacy-field">
+            <span>From Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="fromDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
+          <label class="pharmacy-field">
+            <span>To Date</span>
+            <div class="pharmacy-input-wrap">
+              <input class="form-control" type="date" [(ngModel)]="toDate" />
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+            </div>
+          </label>
+        </div>
+        <div class="pharmacy-filter-actions">
+          <button class="ph-btn primary" type="button" (click)="load()">
+            <i class="fa fa-filter"></i>
+            <span>Apply Filters</span>
+          </button>
+        </div>
       </div>
     </div>
 
-    <section class="ward-panel">
-      <div class="roster-filters">
-        <select [(ngModel)]="status" (change)="load()">
-          <option value="PENDING">Pending / Partial</option>
-          <option value="REQUESTED">Requested</option>
-          <option value="PARTIALLY_ISSUED">Partial</option>
-          <option value="ISSUED">Issued</option>
-          <option value="">All</option>
-        </select>
-        <input [(ngModel)]="wardLabel" placeholder="Ward" />
-        <input [(ngModel)]="patientId" placeholder="Patient ID" />
-        <input type="date" [(ngModel)]="fromDate" />
-        <input type="date" [(ngModel)]="toDate" />
-        <button class="btn btn-outline-primary btn-sm" (click)="load()">Refresh</button>
+    <div class="pharmacy-table-card">
+      <div class="pharmacy-table-head">
+        <div>
+          <h2>Request Register</h2>
+          <p>{{ items.length }} ward medicine requests in the current result set.</p>
+        </div>
       </div>
+      <div class="card-body">
+        <div *ngIf="loading" class="pharmacy-empty-state">Loading requests...</div>
+        <div *ngIf="!loading && !items.length" class="pharmacy-empty-state">No ward medicine requests.</div>
 
-      <div class="table-responsive" *ngIf="!loading; else loadingTpl">
-        <table class="table table-sm ward-table">
-          <thead>
-            <tr>
-              <th>Request No</th>
-              <th>Patient</th>
-              <th>Admission</th>
-              <th>Ward</th>
-              <th>Requested By</th>
-              <th>Requested At</th>
-              <th>Items</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let row of items">
-              <td>{{ row['requestNo'] }}</td>
-              <td>{{ patientName(row) }}</td>
-              <td>{{ row['admissionNo'] || '—' }}</td>
-              <td>{{ row['wardLabel'] || '—' }}</td>
-              <td>{{ requesterName(row) }}</td>
-              <td>{{ asDate(row['requestedAt']) | date:'short' }}</td>
-              <td>
-                <div *ngFor="let item of rowItems(row)">
-                  {{ item['productName'] }} — req {{ item['requestedQty'] }} / issued {{ item['issuedQty'] || 0 }}
-                </div>
-              </td>
-              <td>{{ row['status'] }}</td>
-              <td>
-                <button
-                  *ngIf="row['status'] !== 'ISSUED' && row['status'] !== 'CANCELLED'"
-                  class="btn btn-sm btn-primary"
-                  (click)="openIssue(row)"
-                >
-                  Issue
-                </button>
-              </td>
-            </tr>
-            <tr *ngIf="items.length === 0"><td colspan="9" class="text-muted">No ward medicine requests.</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <ng-template #loadingTpl><p class="text-muted">Loading requests...</p></ng-template>
-    </section>
+        <div class="table-responsive ph-desktop-table" *ngIf="!loading && items.length">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Request No</th>
+                <th>Patient</th>
+                <th>Admission</th>
+                <th>Ward</th>
+                <th>Requested By</th>
+                <th>Requested At</th>
+                <th>Items</th>
+                <th>Status</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of items">
+                <td class="fw-semibold">{{ row['requestNo'] }}</td>
+                <td>{{ patientName(row) }}</td>
+                <td>{{ row['admissionNo'] || '—' }}</td>
+                <td>{{ row['wardLabel'] || '—' }}</td>
+                <td>{{ requesterName(row) }}</td>
+                <td>{{ asDate(row['requestedAt']) | date:'short' }}</td>
+                <td>
+                  <div *ngFor="let item of rowItems(row)">
+                    {{ item['productName'] }} — req {{ item['requestedQty'] }} / issued {{ item['issuedQty'] || 0 }}
+                  </div>
+                </td>
+                <td><span [ngClass]="statusClass(row['status'])">{{ row['status'] }}</span></td>
+                <td class="text-end">
+                  <button
+                    *ngIf="row['status'] !== 'ISSUED' && row['status'] !== 'CANCELLED'"
+                    class="ph-btn primary"
+                    type="button"
+                    (click)="openIssue(row)"
+                  >
+                    Issue
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-    <section class="ward-panel" *ngIf="selected">
-      <h3>Issue Request {{ selected['requestNo'] }}</h3>
-      <div class="roster-form">
-        <input [(ngModel)]="storeId" placeholder="Pharmacy store ID" />
+        <div class="ph-mobile-list" *ngIf="!loading && items.length">
+          <article class="ph-mobile-card" *ngFor="let row of items">
+            <div class="ph-mobile-top">
+              <div>
+                <strong>{{ row['requestNo'] }}</strong>
+                <small>{{ patientName(row) }} · {{ row['wardLabel'] || '—' }}</small>
+              </div>
+              <span [ngClass]="statusClass(row['status'])">{{ row['status'] }}</span>
+            </div>
+            <div class="ph-mobile-meta">
+              <span>{{ asDate(row['requestedAt']) | date:'short' }}</span>
+              <span>{{ requesterName(row) }}</span>
+            </div>
+            <div class="ph-mobile-row">
+              <small class="text-muted">{{ rowItems(row).length }} items</small>
+              <button
+                *ngIf="row['status'] !== 'ISSUED' && row['status'] !== 'CANCELLED'"
+                class="ph-btn primary"
+                type="button"
+                (click)="openIssue(row)"
+              >
+                Issue
+              </button>
+            </div>
+          </article>
+        </div>
       </div>
-      <div class="table-responsive">
-        <table class="table table-sm">
-          <thead><tr><th>Medicine</th><th>Requested</th><th>Issued</th><th>Remaining</th><th>Issue Qty</th></tr></thead>
-          <tbody>
-            <tr *ngFor="let item of selectedItems()">
-              <td>{{ item['productName'] }}</td>
-              <td>{{ item['requestedQty'] }}</td>
-              <td>{{ item['issuedQty'] || 0 }}</td>
-              <td>{{ remainingQty(item) }}</td>
-              <td>
-                <input
-                  type="number"
-                  [disabled]="remainingQty(item) <= 0"
-                  [ngModel]="issueQtyFor(item)"
-                  (ngModelChange)="setIssueQty(item, $event)"
-                  [max]="remainingQty(item)"
-                  min="0"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    </div>
+
+    <div class="pharmacy-table-card" *ngIf="selected">
+      <div class="pharmacy-table-head">
+        <div>
+          <h2>Issue Request {{ selected['requestNo'] }}</h2>
+          <p>Confirm pharmacy store and quantities to issue against this ward request.</p>
+        </div>
       </div>
-      <div class="roster-form">
-        <button class="btn btn-primary btn-sm" (click)="issue()">Confirm Issue</button>
-        <button class="btn btn-outline-secondary btn-sm" (click)="selected = null">Cancel</button>
+      <div class="card-body">
+        <div class="pharmacy-filter-grid mb-3">
+          <label>
+            <span>Pharmacy store ID</span>
+            <input class="form-control" [(ngModel)]="storeId" placeholder="Pharmacy store ID" />
+          </label>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Medicine</th>
+                <th>Requested</th>
+                <th>Issued</th>
+                <th>Remaining</th>
+                <th>Issue Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of selectedItems()">
+                <td>{{ item['productName'] }}</td>
+                <td>{{ item['requestedQty'] }}</td>
+                <td>{{ item['issuedQty'] || 0 }}</td>
+                <td>{{ remainingQty(item) }}</td>
+                <td>
+                  <input
+                    class="form-control"
+                    type="number"
+                    [disabled]="remainingQty(item) <= 0"
+                    [ngModel]="issueQtyFor(item)"
+                    (ngModelChange)="setIssueQty(item, $event)"
+                    [max]="remainingQty(item)"
+                    min="0"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pharmacy-filter-actions mt-3">
+          <button class="ph-btn primary" type="button" (click)="issue()">Confirm Issue</button>
+          <button class="ph-btn ghost" type="button" (click)="selected = null">Cancel</button>
+        </div>
       </div>
-    </section>
+    </div>
   </div>
 </div>
