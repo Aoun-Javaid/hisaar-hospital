@@ -235,11 +235,12 @@
         <label>
           <span>Paid amount</span>
           <input class="form-control" type="number" [(ngModel)]="form.paidAmount" />
+          <small class="text-muted" *ngIf="supplierCreditHint">{{ supplierCreditHint }}</small>
         </label>
         <label>
           <span>Payment method</span>
           <select class="form-select" [(ngModel)]="form.paymentMethod">
-            <option value="">Credit</option>
+            <option value="">Credit (unpaid / supplier AP)</option>
             <option value="cash">Cash</option>
             <option value="bank">Bank</option>
           </select>
@@ -271,11 +272,38 @@
             </thead>
             <tbody>
               <tr *ngFor="let line of form.items; let i = index">
-                <td>
-                  <select class="form-select" [(ngModel)]="line.productId">
-                    <option value="">Select</option>
-                    <option *ngFor="let product of products" [value]="product._id">{{ product.name }}</option>
-                  </select>
+                <td class="purchase-product-cell">
+                  <div class="purchase-product-search">
+                    <input
+                      class="form-control"
+                      type="search"
+                      [(ngModel)]="line.productSearch"
+                      (ngModelChange)="onLineProductSearchChange(i)"
+                      (focus)="onLineProductSearchFocus(i)"
+                      (keydown.enter)="handleLineProductSearchEnter($event, i)"
+                      placeholder="Search name / SKU / barcode — Enter to select"
+                      autocomplete="off"
+                    />
+                    <div
+                      class="purchase-product-results"
+                      *ngIf="activeSearchLineIndex === i && (lineSearchLoading || lineSearchResults.length)"
+                    >
+                      <div class="purchase-product-results__status" *ngIf="lineSearchLoading">Searching…</div>
+                      <button
+                        type="button"
+                        class="purchase-product-results__item"
+                        *ngFor="let product of lineSearchResults"
+                        (mousedown)="selectLineProduct(i, product)"
+                      >
+                        <strong>{{ product.name }}</strong>
+                        <span>
+                          <ng-container *ngIf="product.sku">SKU {{ product.sku }}</ng-container>
+                          <ng-container *ngIf="product.barcode"> · {{ product.barcode }}</ng-container>
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                  <small class="text-muted" *ngIf="line.productId">Selected</small>
                 </td>
                 <td><input class="form-control" type="number" [(ngModel)]="line.qty" /></td>
                 <td><input class="form-control" type="number" [(ngModel)]="line.unitCost" /></td>

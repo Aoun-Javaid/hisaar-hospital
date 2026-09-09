@@ -13,7 +13,7 @@ export const DEFAULT_HOSPITAL_MODULES: HospitalEnabledModules = {
 
 const PHARMACY_ROUTE_PREFIXES = ['/pharmacy', '/pos-reports'];
 const LABORATORY_ROUTE_PREFIXES = ['/laboratory'];
-const WARD_ROUTE_PREFIXES = ['/ward', '/room-allotment', '/ward-admin'];
+const WARD_ROUTE_PREFIXES = ['/ward', '/room-allotment', '/ward-admin', '/operations'];
 const HOSPITAL_SETUP_ROUTE_PREFIXES = ['/hospital-setup'];
 const HOSPITAL_PATIENT_ROUTE_PREFIXES = ['/patients'];
 const HOSPITAL_BILLING_ROUTE_PREFIXES = ['/payments'];
@@ -49,7 +49,14 @@ const PHARMACY_API_PREFIXES = [
   '/payments',
 ];
 
-const WARD_API_PREFIXES = ['/ward', '/rooms', '/room-allotments', '/hospital-wards'];
+const WARD_API_PREFIXES = [
+  '/ward',
+  '/rooms',
+  '/room-allotments',
+  '/hospital-wards',
+  '/ward-billing',
+  '/operation-schedules',
+];
 
 const CLINICAL_API_PREFIXES = [
   '/doctors',
@@ -58,6 +65,7 @@ const CLINICAL_API_PREFIXES = [
   '/departments',
   '/patient-history',
   '/hospital-dashboard',
+  '/treatment-catalog',
 ];
 
 export const normalizeHospitalModules = (
@@ -250,7 +258,9 @@ export const resolvePermissionModuleKey = (permission: string): HospitalModuleKe
     key.startsWith('ward.') ||
     key.startsWith('rooms.') ||
     key.startsWith('room_allotments.') ||
-    key.startsWith('pharmacy.ward_')
+    key.startsWith('pharmacy.ward_') ||
+    key.startsWith('operations.') ||
+    key.startsWith('admission_discounts.')
   ) {
     return 'ward';
   }
@@ -264,7 +274,7 @@ export const resolvePermissionModuleKey = (permission: string): HospitalModuleKe
   }
 
   if (
-    /^(departments|doctors|appointments|prescriptions|patients_history|hospital_dashboard)\./.test(key)
+    /^(departments|doctors|appointments|prescriptions|patients_history|hospital_dashboard|treatment_catalog)\./.test(key)
   ) {
     return 'clinical';
   }

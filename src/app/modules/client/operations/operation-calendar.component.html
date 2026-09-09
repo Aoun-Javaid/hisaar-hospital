@@ -1,0 +1,160 @@
+<div class="hms-page ops-page">
+  <header class="hms-page-header ops-header">
+    <div>
+      <h1>Operation Calendar</h1>
+      <p>Plan and monitor hospital operations by date, department and assigned doctors.</p>
+    </div>
+  </header>
+
+  <section class="hms-kpi-grid ops-kpi-grid">
+    <article class="hms-kpi-card is-blue"><span>Today</span><strong>{{ kpis.today }}</strong></article>
+    <article class="hms-kpi-card is-teal"><span>Upcoming</span><strong>{{ kpis.upcoming }}</strong></article>
+    <article class="hms-kpi-card is-orange"><span>Pending Scheduling</span><strong>{{ kpis.pending }}</strong></article>
+    <article class="hms-kpi-card is-purple"><span>In Progress</span><strong>{{ kpis.inProgress }}</strong></article>
+    <article class="hms-kpi-card is-green"><span>Completed</span><strong>{{ kpis.completed }}</strong></article>
+  </section>
+
+  <section class="ops-tabs">
+    <button type="button" [class.is-active]="viewMode === 'list'" (click)="setView('list')">List</button>
+    <button type="button" [class.is-active]="viewMode === 'needs'" (click)="setView('needs')">Needs Scheduling</button>
+    <button type="button" [class.is-active]="viewMode === 'calendar'" (click)="setView('calendar')">Calendar</button>
+  </section>
+
+  <section class="hms-filter-card ops-filters">
+    <label>
+      <span>Date</span>
+      <input type="date" [(ngModel)]="selectedDate" (change)="refresh()" />
+    </label>
+    <label>
+      <span>Search</span>
+      <input type="search" [(ngModel)]="search" placeholder="Patient / operation #" (keyup.enter)="refresh()" />
+    </label>
+    <label>
+      <span>Department</span>
+      <select [(ngModel)]="departmentFilter">
+        <option value="">All</option>
+        <option *ngFor="let dept of departments" [value]="dept._id">{{ dept.name }}</option>
+      </select>
+    </label>
+    <label>
+      <span>Doctor</span>
+      <select [(ngModel)]="doctorFilter">
+        <option value="">All</option>
+        <option *ngFor="let doctor of doctors" [value]="doctor._id">{{ doctor.user?.name || doctor.specialization }}</option>
+      </select>
+    </label>
+    <label>
+      <span>Status</span>
+      <select [(ngModel)]="statusFilter">
+        <option value="">All</option>
+        <option *ngFor="let status of statuses" [value]="status">{{ statusLabel(status) }}</option>
+      </select>
+    </label>
+    <button type="button" class="hms-btn" (click)="refresh()">Apply</button>
+  </section>
+
+  <section class="hms-card ops-card" *ngIf="!loading; else loadingTpl">
+    <div class="ops-desktop-table" *ngIf="viewMode !== 'needs'">
+      <table class="hms-table">
+        <thead>
+          <tr>
+            <th>Operation #</th>
+            <th>Date &amp; Time</th>
+            <th>Patient</th>
+            <th>Procedure</th>
+            <th>Department</th>
+            <th>Operating Doctor</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of items">
+            <td>{{ item.operationNo || '—' }}</td>
+            <td>{{ item.scheduledStart ? (item.scheduledStart | date:'short') : 'Needs scheduling' }}</td>
+            <td>{{ patientName(item) }}</td>
+            <td>{{ procedureName(item) }}</td>
+            <td>{{ departmentName(item) }}</td>
+            <td>{{ doctorName(item) }}</td>
+            <td><span class="hms-status-chip">{{ statusLabel(item.status) }}</span></td>
+            <td><button type="button" class="hms-btn-secondary" (click)="openDetails(item)">Open</button></td>
+          </tr>
+          <tr *ngIf="!items.length"><td colspan="8" class="ops-empty">No operations found.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ops-needs" *ngIf="viewMode === 'needs'">
+      <article class="hms-mobile-card" *ngFor="let item of needsScheduling">
+        <strong>{{ procedureName(item) }}</strong>
+        <span>{{ patientName(item) }} · {{ doctorName(item) }}</span>
+        <span class="hms-status-chip">{{ statusLabel(item.status) }}</span>
+        <button type="button" class="hms-btn-secondary" (click)="openDetails(item)">Schedule</button>
+      </article>
+      <p class="ops-empty" *ngIf="!needsScheduling.length">No operations need scheduling.</p>
+    </div>
+
+    <div class="ops-mobile-list">
+      <article class="hms-mobile-card" *ngFor="let item of (viewMode === 'needs' ? needsScheduling : items)">
+        <div class="ops-mobile-topline">
+          <strong>{{ item.scheduledStart ? (item.scheduledStart | date:'shortTime') : 'TBD' }}</strong>
+          <span class="hms-status-chip">{{ statusLabel(item.status) }}</span>
+        </div>
+        <strong>{{ procedureName(item) }}</strong>
+        <span>{{ patientName(item) }}</span>
+        <span>{{ departmentName(item) }} · {{ doctorName(item) }}</span>
+        <button type="button" class="hms-btn-secondary" (click)="openDetails(item)">Open</button>
+      </article>
+    </div>
+  </section>
+</div>
+
+<ng-template #loadingTpl>
+  <p class="ops-empty">Loading operations…</p>
+</ng-template>
+
+<aside class="ops-drawer" *ngIf="selected as item">
+  <div class="ops-drawer__backdrop" (click)="closeDetails()"></div>
+  <div class="ops-drawer__panel">
+    <header>
+      <div>
+        <h2>Operation Details</h2>
+        <small>{{ item.operationNo || item._id }}</small>
+      </div>
+      <span class="hms-status-chip">{{ statusLabel(item.status) }}</span>
+    </header>
+
+    <section>
+      <h3>Patient</h3>
+      <p><strong>{{ patientName(item) }}</strong></p>
+    </section>
+
+    <section>
+      <h3>Operation</h3>
+      <p>Procedure: {{ procedureName(item) }}</p>
+      <p>Department: {{ departmentName(item) }}</p>
+      <p>Doctor: {{ doctorName(item) }}</p>
+      <p>When: {{ item.scheduledStart ? (item.scheduledStart | date:'medium') : 'Needs scheduling' }}</p>
+      <p>Duration: {{ item.durationMinutes || item.treatmentPricingSnapshot?.durationMinutes || 0 }} min</p>
+      <p>Priority: {{ item.priority || 'routine' }}</p>
+    </section>
+
+    <section *ngIf="item.treatmentPricingSnapshot as pricing">
+      <h3>Pricing Snapshot</h3>
+      <p>Package Rate: PKR {{ pricing.baseRate || 0 | number:'1.0-2' }}</p>
+      <p *ngIf="item.procedureDiscountApproved as discount">
+        Approved Discount: {{ discount.type || 'none' }}
+        <ng-container *ngIf="discount.type === 'percentage'"> {{ discount.value }}%</ng-container>
+        <ng-container *ngIf="discount.type === 'fixed'"> PKR {{ discount.value }}</ng-container>
+      </p>
+      <small>Charge will be posted when operation is completed.</small>
+    </section>
+
+    <footer>
+      <button *ngIf="can('operations.update')" type="button" class="hms-btn-secondary" (click)="updateStatus(item, 'confirmed')">Confirm</button>
+      <button *ngIf="can('operations.update')" type="button" class="hms-btn" (click)="updateStatus(item, 'in_progress')">Mark In Progress</button>
+      <button *ngIf="can('operations.complete')" type="button" class="hms-btn" (click)="complete(item)">Complete Operation</button>
+      <button *ngIf="can('operations.cancel')" type="button" class="hms-btn-secondary" (click)="cancel(item)">Cancel</button>
+    </footer>
+  </div>
+</aside>

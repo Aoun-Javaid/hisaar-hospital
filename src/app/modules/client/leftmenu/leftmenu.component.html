@@ -123,6 +123,7 @@
                         <li><a [routerLink]="['/ward/bed-management']" routerLinkActive="active">Bed Management</a></li>
                         <li><a [routerLink]="['/ward/patient-list']" routerLinkActive="active">Patient List</a></li>
                         <li><a [routerLink]="['/ward/admissions']" routerLinkActive="active">Admissions</a></li>
+                        <li *ngIf="canViewOperations"><a [routerLink]="['/operations']" routerLinkActive="active">Operation Calendar</a></li>
                         <li class="header">Nursing Care</li>
                         <li><a [routerLink]="['/ward/nursing-care']" routerLinkActive="active">Nursing Care</a></li>
                         <li><a [routerLink]="['/ward/mar']" routerLinkActive="active">MAR / Medications</a></li>
@@ -142,6 +143,10 @@
                         <li class="header">Notes</li>
                         <li><a [routerLink]="['/ward-admin']" routerLinkActive="active">Ward Notes</a></li>
                     </ul>
+                </li>
+
+                <li *ngIf="canViewOperationsStandalone" [routerLinkActive]="['active']">
+                    <a [routerLink]="['/operations']"><i class="fa fa-medkit"></i><span>Operations</span></a>
                 </li>
 
                 <li *ngIf="canViewPatients || canManagePatients || canViewBilling">
@@ -167,8 +172,14 @@
                     </ul>
                 </li>
 
-                <li *ngIf="canViewHospitalSetup" [routerLinkActive]="['active']" [routerLinkActiveOptions]="{ exact: true }">
-                    <a [routerLink]="['/hospital-setup']"><i class="fa fa-hospital-o"></i><span>Hospital Setup</span></a>
+                <li *ngIf="canViewHospitalSetup">
+                    <a (click)="SetupCollapsed = !SetupCollapsed" [attr.aria-expanded]="!SetupCollapsed" class="has-arrow">
+                        <i class="fa fa-hospital-o"></i><span>Hospital Setup</span>
+                    </a>
+                    <ul class="nav-dropdown" *ngIf="!SetupCollapsed" [@collapseExpand]>
+                        <li><a [routerLink]="['/hospital-setup']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Setup Overview</a></li>
+                        <li *ngIf="canViewTreatments"><a [routerLink]="['/hospital-setup/treatments-procedures']" routerLinkActive="active">Treatments &amp; Procedures</a></li>
+                    </ul>
                 </li>
 
                 <li *ngIf="canViewBilling || canManageBilling">

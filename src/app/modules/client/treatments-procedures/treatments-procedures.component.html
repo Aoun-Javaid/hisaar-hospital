@@ -1,0 +1,207 @@
+<div class="hms-page tp-page">
+  <nav class="tp-breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/">Home</a>
+    <span>/</span>
+    <a routerLink="/hospital-setup">Hospital Setup</a>
+    <span>/</span>
+    <strong>Treatments &amp; Procedures</strong>
+  </nav>
+
+  <header class="hms-page-header tp-header">
+    <div>
+      <h1>Treatments &amp; Procedures</h1>
+      <p>Hospital master catalog for treatments, procedures, operations, and packages.</p>
+    </div>
+    <div class="hms-page-actions">
+      <button *ngIf="canManage" type="button" class="hms-btn" (click)="openModal()">
+        <i class="fa fa-plus" aria-hidden="true"></i>
+        Add Treatment
+      </button>
+    </div>
+  </header>
+
+  <section class="hms-kpi-grid tp-kpi-grid">
+    <article class="hms-kpi-card is-blue"><span>Total</span><strong>{{ kpis.total }}</strong></article>
+    <article class="hms-kpi-card is-green"><span>Active</span><strong>{{ kpis.active }}</strong></article>
+    <article class="hms-kpi-card is-orange"><span>Operations</span><strong>{{ kpis.operations }}</strong></article>
+    <article class="hms-kpi-card is-purple"><span>Procedures</span><strong>{{ kpis.procedures }}</strong></article>
+    <article class="hms-kpi-card is-red"><span>Packages</span><strong>{{ kpis.packages }}</strong></article>
+  </section>
+
+  <section class="hms-filter-card tp-filters">
+    <label>
+      <span>Search</span>
+      <input type="search" [(ngModel)]="search" placeholder="Search by name or code" (keyup.enter)="loadItems()" />
+    </label>
+    <label>
+      <span>Department</span>
+      <select [(ngModel)]="departmentFilter">
+        <option value="">All Departments</option>
+        <option *ngFor="let dept of departments" [value]="dept._id">{{ dept.name }}</option>
+      </select>
+    </label>
+    <label>
+      <span>Type</span>
+      <select [(ngModel)]="typeFilter">
+        <option value="">All Types</option>
+        <option *ngFor="let type of types" [value]="type">{{ typeLabel(type) }}</option>
+      </select>
+    </label>
+    <label>
+      <span>Status</span>
+      <select [(ngModel)]="statusFilter">
+        <option value="true">Active</option>
+        <option value="false">Inactive</option>
+        <option value="all">All</option>
+      </select>
+    </label>
+    <button type="button" class="hms-btn" (click)="loadItems()">Apply</button>
+  </section>
+
+  <section class="hms-card tp-table-card">
+    <div class="tp-desktop-table" *ngIf="!loading; else loadingTpl">
+      <table class="hms-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Code</th>
+            <th>Treatment / Procedure</th>
+            <th>Type</th>
+            <th>Department</th>
+            <th>Rate (PKR)</th>
+            <th>Duration</th>
+            <th>OT Required</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of items; let i = index">
+            <td>{{ i + 1 }}</td>
+            <td><strong>{{ item.code }}</strong></td>
+            <td>{{ item.name }}</td>
+            <td><span class="tp-type-badge">{{ typeLabel(item.type) }}</span></td>
+            <td>{{ departmentName(item) }}</td>
+            <td>{{ item.baseRate | number:'1.0-0' }}</td>
+            <td>{{ item.defaultDurationMinutes || 0 }} min</td>
+            <td>{{ item.requiresOperationSchedule ? 'Yes' : 'No' }}</td>
+            <td>
+              <span class="hms-status-chip" [class.is-active]="item.isActive !== false" [class.is-inactive]="item.isActive === false">
+                {{ item.isActive === false ? 'Inactive' : 'Active' }}
+              </span>
+            </td>
+            <td class="tp-actions">
+              <button *ngIf="canManage" type="button" class="hms-btn-secondary" (click)="openModal(item)">Edit</button>
+              <button *ngIf="canManage && item.isActive !== false" type="button" class="hms-btn-secondary" (click)="deactivate(item)">
+                Deactivate
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="!items.length">
+            <td colspan="10" class="tp-empty">No treatments found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tp-mobile-list" *ngIf="!loading">
+      <article class="hms-mobile-card" *ngFor="let item of items">
+        <div class="hms-mobile-card__topline">
+          <strong>{{ item.name }}</strong>
+          <span class="hms-status-chip" [class.is-active]="item.isActive !== false">
+            {{ item.isActive === false ? 'Inactive' : 'Active' }}
+          </span>
+        </div>
+        <div class="hms-mobile-card__meta">
+          <span>{{ item.code }}</span>
+          <span class="tp-type-badge">{{ typeLabel(item.type) }}</span>
+        </div>
+        <div class="hms-mobile-card__meta">
+          <span>{{ departmentName(item) }}</span>
+          <strong>PKR {{ item.baseRate | number:'1.0-0' }}</strong>
+        </div>
+        <div class="hms-mobile-card__meta">
+          <span>{{ item.defaultDurationMinutes || 0 }} min</span>
+          <span>{{ item.requiresOperationSchedule ? 'OT required' : 'No OT' }}</span>
+        </div>
+        <div class="tp-actions" *ngIf="canManage">
+          <button type="button" class="hms-btn-secondary" (click)="openModal(item)">Edit</button>
+        </div>
+      </article>
+      <p class="tp-empty" *ngIf="!items.length">No treatments found.</p>
+    </div>
+  </section>
+</div>
+
+<ng-template #loadingTpl>
+  <p class="tp-empty">Loading treatments…</p>
+</ng-template>
+
+<div class="tp-modal" *ngIf="showModal" role="dialog" aria-modal="true">
+  <div class="tp-modal__backdrop" (click)="closeModal()"></div>
+  <div class="tp-modal__panel">
+    <header>
+      <h2>{{ editingId ? 'Edit Treatment / Procedure' : 'Add Treatment / Procedure' }}</h2>
+      <button type="button" class="hms-btn-secondary" (click)="closeModal()">Close</button>
+    </header>
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="tp-form-grid">
+        <label><span>Name *</span><input formControlName="name" /></label>
+        <label><span>Code *</span><input formControlName="code" /></label>
+        <label>
+          <span>Type *</span>
+          <select formControlName="type">
+            <option *ngFor="let type of types" [value]="type">{{ typeLabel(type) }}</option>
+          </select>
+        </label>
+        <label>
+          <span>Department</span>
+          <select formControlName="departmentId">
+            <option value="">Select department</option>
+            <option *ngFor="let dept of departments" [value]="dept._id">{{ dept.name }}</option>
+          </select>
+        </label>
+        <label><span>Standard Rate (PKR) *</span><input type="number" min="0" formControlName="baseRate" /></label>
+        <label><span>Default Duration (minutes)</span><input type="number" min="0" formControlName="defaultDurationMinutes" /></label>
+      </div>
+
+      <label class="tp-toggle">
+        <input type="checkbox" formControlName="requiresOperationSchedule" />
+        <span>
+          <strong>Requires Operation Schedule</strong>
+          <small>This procedure requires scheduling in the operation theater.</small>
+        </span>
+      </label>
+
+      <label class="tp-toggle">
+        <input type="checkbox" formControlName="isActive" />
+        <span>
+          <strong>Active</strong>
+          <small>Make this treatment/procedure available for selection.</small>
+        </span>
+      </label>
+
+      <label class="tp-full"><span>Description / Package Notes</span><textarea rows="3" formControlName="packageNotes"></textarea></label>
+      <label class="tp-full"><span>Internal Description</span><textarea rows="2" formControlName="description"></textarea></label>
+
+      <div class="tp-includes">
+        <span>Package Includes</span>
+        <div class="tp-chips">
+          <span class="tp-chip" *ngFor="let entry of includedItems">
+            {{ entry }}
+            <button type="button" (click)="removeIncludedItem(entry)" aria-label="Remove">×</button>
+          </span>
+        </div>
+        <div class="tp-add-chip">
+          <input [(ngModel)]="includedItemDraft" [ngModelOptions]="{ standalone: true }" placeholder="OT Charges, Surgeon Fee…" />
+          <button type="button" class="hms-btn-secondary" (click)="addIncludedItem()">+ Add item</button>
+        </div>
+      </div>
+
+      <footer>
+        <button type="button" class="hms-btn-secondary" (click)="closeModal()">Cancel</button>
+        <button type="submit" class="hms-btn" [disabled]="saving">{{ saving ? 'Saving…' : 'Save Treatment' }}</button>
+      </footer>
+    </form>
+  </div>
+</div>

@@ -3,14 +3,55 @@
         <div class="storepos-command-strip">
             <div class="storepos-search-box" data-tour="pos-search">
                 <span>Search:</span>
-                <label>
-                    <i class="fa fa-search"></i>
-                    <input type="search" [(ngModel)]="productSearch" placeholder="Product name / SKU / scan barcode"
-                        [class.keyboard-active]="keyboardZone === 'search'" (focus)="setKeyboardZone('search')"
-                        (ngModelChange)="onProductSearchChange()"
-                        (keydown.enter)="handleProductSearchEnter($event)" />
-                    <i class="fa fa-barcode"></i>
-                </label>
+                <div class="storepos-search-field">
+                    <label>
+                        <i class="fa fa-search"></i>
+                        <input type="search" [(ngModel)]="productSearch" placeholder="Product name / SKU / scan barcode"
+                            [class.keyboard-active]="keyboardZone === 'search'" (focus)="onProductSearchFocus()"
+                            (ngModelChange)="onProductSearchChange()"
+                            (keydown)="handleProductSearchKeydown($event)"
+                            (blur)="onProductSearchBlur()"
+                            autocomplete="off" />
+                        <i class="fa fa-barcode"></i>
+                    </label>
+                    <div
+                        class="storepos-search-dropdown"
+                        *ngIf="showSearchDropdown && productSearch.trim()"
+                        role="listbox"
+                        aria-label="Product suggestions"
+                    >
+                        <div class="storepos-search-dropdown__status" *ngIf="searchLoading && !searchSuggestions().length">
+                            Searching medicines…
+                        </div>
+                        <button
+                            type="button"
+                            class="storepos-search-dropdown__item"
+                            *ngFor="let product of searchSuggestions(); let i = index"
+                            role="option"
+                            [attr.aria-selected]="i === selectedProductIndex"
+                            [class.is-active]="i === selectedProductIndex"
+                            (mousedown)="selectSearchSuggestion($event, product)"
+                        >
+                            <span class="storepos-search-dropdown__main">
+                                <strong>{{ productDisplay(product) }}</strong>
+                                <small>
+                                    <ng-container *ngIf="product.sku">SKU {{ product.sku }}</ng-container>
+                                    <ng-container *ngIf="product.barcode"> · {{ product.barcode }}</ng-container>
+                                </small>
+                            </span>
+                            <span class="storepos-search-dropdown__meta">
+                                <em>{{ stockLabel(product) }}</em>
+                                <b>{{ formatCurrency(product.sellingPrice || 0) }}</b>
+                            </span>
+                        </button>
+                        <div
+                            class="storepos-search-dropdown__status"
+                            *ngIf="!searchLoading && productSearch.trim() && !searchSuggestions().length"
+                        >
+                            No medicine matches this name / SKU / barcode.
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="storepos-toolbar-icons">
@@ -145,6 +186,7 @@
                                 {{ customer.name }}{{ customer.phone ? ' · ' + customer.phone : '' }}
                             </option>
                         </select>
+                        <small class="text-muted" *ngIf="customerCreditHint">{{ customerCreditHint }}</small>
                     </label>
                 </ng-template>
                 <label class="storepos-field">

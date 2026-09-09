@@ -180,6 +180,80 @@
           </label>
 
           <div class="admission-section-head admission-section-head--spaced">
+            <h4>Treatment / Operation Package</h4>
+            <p>Select a catalog package and recommend discounts. Financial posting happens only after admission/operation completion.</p>
+          </div>
+
+          <div class="admission-grid-2">
+            <label class="hms-form-field">
+              <span class="hms-form-field__label">Treatment / Operation</span>
+              <select formControlName="treatmentCatalogId" data-testid="admission-treatment-catalog">
+                <option value="">Select treatment / procedure</option>
+                <option *ngFor="let item of treatmentCatalog" [value]="item._id">
+                  {{ item.code }} — {{ item.name }} (PKR {{ item.baseRate | number:'1.0-0' }})
+                </option>
+              </select>
+            </label>
+            <label class="hms-form-field">
+              <span class="hms-form-field__label">Operating Doctor</span>
+              <select formControlName="recommendedOperatingDoctorId">
+                <option value="">Same as recommending doctor</option>
+                <option *ngFor="let doctor of doctors" [value]="doctor._id">
+                  {{ doctor.user?.name || doctor.specialization || doctor._id }}
+                </option>
+              </select>
+            </label>
+            <label class="hms-form-field">
+              <span class="hms-form-field__label">Preferred Operation Date &amp; Time</span>
+              <input type="datetime-local" formControlName="preferredOperationAt" />
+            </label>
+            <div class="hms-form-field" *ngIf="selectedTreatmentRate as rate">
+              <span class="hms-form-field__label">Standard Package Rate</span>
+              <strong>PKR {{ rate | number:'1.0-0' }}</strong>
+              <small class="field-hint">Read-only catalog rate. Snapshotted at admission.</small>
+            </div>
+          </div>
+
+          <div class="admission-section-head admission-section-head--spaced">
+            <h4>Doctor Recommended Discount</h4>
+            <p>Recommendations only — approval happens at Review &amp; Admit.</p>
+          </div>
+          <div class="admission-grid-2">
+            <label class="hms-form-field">
+              <span class="hms-form-field__label">Room Discount Type</span>
+              <select formControlName="roomDiscountType">
+                <option value="none">None</option>
+                <option value="percentage">Percentage</option>
+                <option value="fixed">Fixed</option>
+              </select>
+            </label>
+            <label class="hms-form-field">
+              <span class="hms-form-field__label">Room Discount Value</span>
+              <input type="number" min="0" formControlName="roomDiscountValue" />
+            </label>
+            <label class="hms-form-field admission-field--wide">
+              <span class="hms-form-field__label">Room Discount Reason</span>
+              <input formControlName="roomDiscountReason" placeholder="Reason for room discount recommendation" />
+            </label>
+            <label class="hms-form-field">
+              <span class="hms-form-field__label">Operation Discount Type</span>
+              <select formControlName="procedureDiscountType">
+                <option value="none">None</option>
+                <option value="percentage">Percentage</option>
+                <option value="fixed">Fixed</option>
+              </select>
+            </label>
+            <label class="hms-form-field">
+              <span class="hms-form-field__label">Operation Discount Value</span>
+              <input type="number" min="0" formControlName="procedureDiscountValue" />
+            </label>
+            <label class="hms-form-field admission-field--wide">
+              <span class="hms-form-field__label">Operation Discount Reason</span>
+              <input formControlName="procedureDiscountReason" placeholder="Reason for operation discount recommendation" />
+            </label>
+          </div>
+
+          <div class="admission-section-head admission-section-head--spaced">
             <h4>Clinical Information</h4>
             <p>Provide the key clinical details supporting this admission recommendation.</p>
           </div>

@@ -589,7 +589,17 @@ export class WardDataService {
           const recommendationRows = mapAdmissionRecommendationRows(pendingRecommendations, bundle.doctors);
           return [...recommendationRows, ...baseRows];
         }),
-        catchError(() => of([] as WardModuleRow[]))
+        catchError(() =>
+          this.backend.listAdmissionRecommendations({ limit: 100 }).pipe(
+            map((result) =>
+              mapAdmissionRecommendationRows(
+                (result.items || []).filter((item) => !['admitted'].includes(String(item['status'] || ''))),
+                []
+              )
+            ),
+            catchError(() => of([] as WardModuleRow[]))
+          )
+        )
       );
     }
 

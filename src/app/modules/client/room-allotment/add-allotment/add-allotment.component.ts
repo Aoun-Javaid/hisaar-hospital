@@ -11,7 +11,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { BackendService } from '../../../../core/services/backend.service';
-import { Patient, Room, Doctor, RoomAllotment } from '../../../../shared/models/hospital.model';
+import { Patient, Room, Doctor, RoomAllotment, TreatmentCatalogItem } from '../../../../shared/models/hospital.model';
 
 interface WardAdmissionSuccess {
   admissionNo: string;
@@ -49,6 +49,8 @@ export class AddAllotmentComponent implements OnInit {
   recommendationSummary: Record<string, unknown> | null = null;
   recommendationReadOnly = false;
   admissionSuccess: WardAdmissionSuccess | null = null;
+  treatmentCatalog: TreatmentCatalogItem[] = [];
+  canApproveDiscounts = false;
 
   constructor(
     private fb: FormBuilder,
@@ -59,14 +61,21 @@ export class AddAllotmentComponent implements OnInit {
   ) {
     this.allotmentForm = this.fb.group({
       roomId: ['', Validators.required],
-      bedLabel: [''],
+      bedLabel: ['', Validators.required],
       consultantDoctorId: [''],
-      admissionReason: [''],
+      admissionReason: ['', Validators.required],
+      treatmentCatalogId: [''],
+      roomDiscountType: ['none'],
+      roomDiscountValue: [0],
+      roomDiscountReason: [''],
+      procedureDiscountType: ['none'],
+      procedureDiscountValue: [0],
+      procedureDiscountReason: [''],
       advanceAmount: [null],
       advanceMethod: ['cash'],
       securityAmount: [null],
       securityMethod: ['cash'],
-      admittedAt: [this.currentDateTimeLocalValue()],
+      admittedAt: [this.currentDateTimeLocalValue(), Validators.required],
       notes: [''],
     });
   }
@@ -76,7 +85,11 @@ export class AddAllotmentComponent implements OnInit {
     this.currentHospitalId = currentUser?.hospitalId || null;
     this.prefilledWardName = String(this.route.snapshot.queryParamMap.get('wardName') || '').trim();
     this.prefilledBedId = String(this.route.snapshot.queryParamMap.get('bedId') || '').trim();
-    this.admissionRecommendationId = String(this.route.snapshot.queryParamMap.get('recommendationId') || '').trim();
+    this.admissionRecommendationId = String(
+      this.route.snapshot.queryParamMap.get('recommendationId')
+        || this.route.snapshot.queryParamMap.get('recommendationid')
+        || ''
+    ).trim();
 
     const bedNo = String(this.route.snapshot.queryParamMap.get('bedNo') || '').trim();
     if (bedNo) {
@@ -88,7 +101,21 @@ export class AddAllotmentComponent implements OnInit {
     });
 
     this.loadRooms();
+    this.loadTreatmentCatalog();
+    this.canApproveDiscounts =
+      this.backend.hasPermission('admission_discounts.approve') || this.backend.hasPermission('*');
     this.loadAdmissionRecommendationContext();
+  }
+
+  private loadTreatmentCatalog(): void {
+    this.backend.getTreatmentCatalog({ limit: 100, isActive: true }).subscribe({
+      next: (result) => {
+        this.treatmentCatalog = result.items || [];
+      },
+      error: () => {
+        this.treatmentCatalog = [];
+      },
+    });
   }
 
   private loadAdmissionRecommendationContext(): void {
@@ -113,6 +140,22 @@ export class AddAllotmentComponent implements OnInit {
               ? String((recommendation['recommendedByDoctorId'] as Doctor)?._id || '')
               : String(recommendation['recommendedByDoctorId'] || ''),
           admissionReason: String(recommendation['reason'] || recommendation['initialDiagnosis'] || ''),
+          treatmentCatalogId:
+            typeof recommendation['treatmentCatalogId'] === 'object'
+              ? String((recommendation['treatmentCatalogId'] as { _id?: string })?._id || '')
+              : String(recommendation['treatmentCatalogId'] || ''),
+          roomDiscountType:
+            (recommendation['roomDiscountRecommendation'] as { type?: string } | undefined)?.type || 'none',
+          roomDiscountValue:
+            Number((recommendation['roomDiscountRecommendation'] as { value?: number } | undefined)?.value || 0),
+          roomDiscountReason:
+            String((recommendation['roomDiscountRecommendation'] as { reason?: string } | undefined)?.reason || ''),
+          procedureDiscountType:
+            (recommendation['procedureDiscountRecommendation'] as { type?: string } | undefined)?.type || 'none',
+          procedureDiscountValue:
+            Number((recommendation['procedureDiscountRecommendation'] as { value?: number } | undefined)?.value || 0),
+          procedureDiscountReason:
+            String((recommendation['procedureDiscountRecommendation'] as { reason?: string } | undefined)?.reason || ''),
         });
       },
       error: () => this.toastr.error('Unable to load admission recommendation.'),
@@ -155,6 +198,166 @@ export class AddAllotmentComponent implements OnInit {
 
       return left.roomNo.localeCompare(right.roomNo, undefined, { numeric: true });
     });
+  }
+
+  get notesCount(): number {
+    return String(this.allotmentForm.get('notes')?.value || '').length;
+  }
+
+  get roomCharge(): number {
+    return Number(this.selectedRoom?.chargesPerDay || 0);
+  }
+
+  get packageRate(): number {
+    const id = String(this.allotmentForm.get('treatmentCatalogId')?.value || '').trim();
+    const fromCatalog = this.treatmentCatalog.find((item) => item._id === id)?.baseRate;
+    if (fromCatalog != null) return Number(fromCatalog || 0);
+    return Number((this.recommendationSummary?.['treatmentSnapshot'] as { baseRate?: number } | undefined)?.baseRate || 0);
+  }
+
+  get recommendedRoomDiscountLabel(): string {
+    const rec = this.recommendationSummary?.['roomDiscountRecommendation'] as
+      | { type?: string; value?: number }
+      | undefined;
+    return this.formatDiscountLabel(rec?.type, rec?.value);
+  }
+
+  get recommendedProcedureDiscountLabel(): string {
+    const rec = this.recommendationSummary?.['procedureDiscountRecommendation'] as
+      | { type?: string; value?: number }
+      | undefined;
+    return this.formatDiscountLabel(rec?.type, rec?.value);
+  }
+
+  get effectiveRoomRate(): number {
+    return this.applyDiscount(
+      this.roomCharge,
+      String(this.allotmentForm.get('roomDiscountType')?.value || 'none'),
+      Number(this.allotmentForm.get('roomDiscountValue')?.value || 0)
+    );
+  }
+
+  get effectivePackageRate(): number {
+    return this.applyDiscount(
+      this.packageRate,
+      String(this.allotmentForm.get('procedureDiscountType')?.value || 'none'),
+      Number(this.allotmentForm.get('procedureDiscountValue')?.value || 0)
+    );
+  }
+
+  private formatDiscountLabel(type?: string, value?: number): string {
+    if (!type || type === 'none') return 'None';
+    if (type === 'percentage') return `${Number(value || 0)}%`;
+    return `Rs. ${Number(value || 0).toLocaleString()}`;
+  }
+
+  private applyDiscount(gross: number, type: string, value: number): number {
+    if (type === 'percentage') {
+      return Math.max(0, gross - (gross * Math.min(100, Math.max(0, value))) / 100);
+    }
+    if (type === 'fixed') {
+      return Math.max(0, gross - Math.max(0, value));
+    }
+    return gross;
+  }
+
+  get advanceCharge(): number {
+    return Number(this.allotmentForm.get('advanceAmount')?.value || 0);
+  }
+
+  get securityCharge(): number {
+    return Number(this.allotmentForm.get('securityAmount')?.value || 0);
+  }
+
+  get totalPayableToday(): number {
+    return this.advanceCharge + this.securityCharge;
+  }
+
+  get estimatedChargesTotal(): number {
+    return this.effectiveRoomRate + this.effectivePackageRate;
+  }
+
+  isUrgentPriority(priority: unknown): boolean {
+    return String(priority || '').toLowerCase() === 'urgent';
+  }
+
+  priorityLabel(priority: unknown): string {
+    const value = String(priority || 'normal').trim() || 'normal';
+    return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  doctorDisplayName(value: unknown): string {
+    if (!value) return '—';
+    if (typeof value === 'object') {
+      const doctor = value as Doctor;
+      return doctor.user?.name || doctor.specialization || '—';
+    }
+    return String(value);
+  }
+
+  treatmentDisplayName(rec: Record<string, unknown>): string {
+    const snapshot = rec['treatmentSnapshot'] as { name?: string; code?: string } | undefined;
+    if (snapshot?.name) {
+      return snapshot.code ? `${snapshot.code} — ${snapshot.name}` : snapshot.name;
+    }
+    const catalog = rec['treatmentCatalogId'];
+    if (catalog && typeof catalog === 'object') {
+      const item = catalog as { name?: string; code?: string };
+      return item.code ? `${item.code} — ${item.name}` : item.name || '—';
+    }
+    return '—';
+  }
+
+  packageRateFromRecommendation(rec: Record<string, unknown>): number {
+    const snapshot = rec['treatmentSnapshot'] as { baseRate?: number } | undefined;
+    if (snapshot?.baseRate != null) return Number(snapshot.baseRate || 0);
+    const catalog = rec['treatmentCatalogId'];
+    if (catalog && typeof catalog === 'object') {
+      return Number((catalog as { baseRate?: number }).baseRate || 0);
+    }
+    return this.packageRate;
+  }
+
+  clearForm(): void {
+    const keepRecommendationPatient = this.recommendationReadOnly && !!this.selectedPatient;
+    const consultantDoctorId = this.allotmentForm.get('consultantDoctorId')?.value || '';
+    const admissionReason = keepRecommendationPatient
+      ? String(this.recommendationSummary?.['reason'] || this.allotmentForm.get('admissionReason')?.value || '')
+      : '';
+
+    this.allotmentForm.reset({
+      roomId: '',
+      bedLabel: '',
+      consultantDoctorId,
+      admissionReason,
+      treatmentCatalogId: keepRecommendationPatient
+        ? this.allotmentForm.get('treatmentCatalogId')?.value || ''
+        : '',
+      roomDiscountType: 'none',
+      roomDiscountValue: 0,
+      roomDiscountReason: '',
+      procedureDiscountType: 'none',
+      procedureDiscountValue: 0,
+      procedureDiscountReason: '',
+      advanceAmount: null,
+      advanceMethod: 'cash',
+      securityAmount: null,
+      securityMethod: 'cash',
+      admittedAt: this.currentDateTimeLocalValue(),
+      notes: '',
+    });
+    this.selectedRoom = null;
+
+    if (!keepRecommendationPatient) {
+      this.selectedPatient = null;
+      this.matchedPatients = [];
+      this.patientLookupPerformed = false;
+      this.patientSearchQuery = '';
+    }
+  }
+
+  scrollToRoomField(): void {
+    document.getElementById('room-field')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   private loadRooms(): void {
@@ -333,7 +536,7 @@ export class AddAllotmentComponent implements OnInit {
 
     if (this.allotmentForm.invalid) {
       this.allotmentForm.markAllAsTouched();
-      this.toastr.error('Please select a room before saving.');
+      this.toastr.error('Please complete required allotment fields before saving.');
       return;
     }
 
@@ -358,6 +561,23 @@ export class AddAllotmentComponent implements OnInit {
           ? String((this.recommendationSummary?.['sourceAppointmentId'] as { _id?: string })._id || '')
           : String(this.recommendationSummary?.['sourceAppointmentId'] || '') || undefined,
       initialDiagnosis: String(this.recommendationSummary?.['initialDiagnosis'] || value.admissionReason || '') || undefined,
+      treatmentCatalogId: value.treatmentCatalogId || undefined,
+      roomDiscountApproved: {
+        type: value.roomDiscountType || 'none',
+        value: Number(value.roomDiscountValue || 0),
+        reason: String(value.roomDiscountReason || '').trim(),
+      },
+      procedureDiscountApproved: {
+        type: value.procedureDiscountType || 'none',
+        value: Number(value.procedureDiscountValue || 0),
+        reason: String(value.procedureDiscountReason || '').trim(),
+      },
+      recommendedOperatingDoctorId:
+        typeof this.recommendationSummary?.['recommendedOperatingDoctorId'] === 'object'
+          ? String((this.recommendationSummary?.['recommendedOperatingDoctorId'] as { _id?: string })?._id || '')
+          : String(this.recommendationSummary?.['recommendedOperatingDoctorId'] || '') || undefined,
+      preferredOperationAt: this.recommendationSummary?.['preferredOperationAt'] || undefined,
+      operationScheduleId: this.recommendationSummary?.['operationScheduleId'] || undefined,
     };
 
     if (this.currentHospitalId) {

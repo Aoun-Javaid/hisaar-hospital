@@ -27,6 +27,21 @@ export interface AdmissionRecommendationRecord {
   createdAt?: string;
   roomAllotmentId?: string | null;
   admissionNo?: string;
+  treatmentCatalogId?: string | { _id?: string; name?: string; code?: string; baseRate?: number; type?: string } | null;
+  treatmentSnapshot?: Record<string, unknown> | null;
+  recommendedOperatingDoctorId?: string | Doctor | null;
+  preferredOperationAt?: string | null;
+  roomDiscountRecommendation?: {
+    type?: 'none' | 'percentage' | 'fixed';
+    value?: number;
+    reason?: string;
+  } | null;
+  procedureDiscountRecommendation?: {
+    type?: 'none' | 'percentage' | 'fixed';
+    value?: number;
+    reason?: string;
+  } | null;
+  operationScheduleId?: string | null;
 }
 
 export function doctorDisplayName(doctor?: Doctor | null): string {
@@ -56,6 +71,14 @@ export function mapAdmissionRecommendationRecord(raw: unknown): AdmissionRecomme
     createdAt: item['createdAt'] ? String(item['createdAt']) : undefined,
     roomAllotmentId: item['roomAllotmentId'] ? String(item['roomAllotmentId']) : null,
     admissionNo: item['admissionNo'] ? String(item['admissionNo']) : undefined,
+    treatmentCatalogId: item['treatmentCatalogId'] as AdmissionRecommendationRecord['treatmentCatalogId'],
+    treatmentSnapshot: (item['treatmentSnapshot'] as Record<string, unknown>) || null,
+    recommendedOperatingDoctorId: item['recommendedOperatingDoctorId'] as AdmissionRecommendationRecord['recommendedOperatingDoctorId'],
+    preferredOperationAt: item['preferredOperationAt'] ? String(item['preferredOperationAt']) : null,
+    roomDiscountRecommendation: (item['roomDiscountRecommendation'] as AdmissionRecommendationRecord['roomDiscountRecommendation']) || null,
+    procedureDiscountRecommendation:
+      (item['procedureDiscountRecommendation'] as AdmissionRecommendationRecord['procedureDiscountRecommendation']) || null,
+    operationScheduleId: item['operationScheduleId'] ? String(item['operationScheduleId']) : null,
   };
 }
 
@@ -305,6 +328,15 @@ export function buildAdmissionRecommendationForm(fb: FormBuilder): FormGroup {
     otherInvestigations: [''],
     proposedProcedures: [''],
     specialistConsults: [''],
+    treatmentCatalogId: [''],
+    recommendedOperatingDoctorId: [''],
+    preferredOperationAt: [''],
+    roomDiscountType: ['none'],
+    roomDiscountValue: [0],
+    roomDiscountReason: [''],
+    procedureDiscountType: ['none'],
+    procedureDiscountValue: [0],
+    procedureDiscountReason: [''],
     isolationRequired: ['no'],
     isolationType: [''],
     isolationReason: [''],
@@ -473,6 +505,17 @@ export function patchAdmissionRecommendationForm(
     otherInvestigations: investigations['other'] || '',
     proposedProcedures: procedures['proposedProcedures'] || '',
     specialistConsults: procedures['specialistConsults'] || '',
+    treatmentCatalogId: normalizeEntityId(record?.treatmentCatalogId || ''),
+    recommendedOperatingDoctorId: normalizeEntityId(record?.recommendedOperatingDoctorId || ''),
+    preferredOperationAt: record?.preferredOperationAt
+      ? String(record.preferredOperationAt).slice(0, 16)
+      : '',
+    roomDiscountType: record?.roomDiscountRecommendation?.type || 'none',
+    roomDiscountValue: record?.roomDiscountRecommendation?.value || 0,
+    roomDiscountReason: record?.roomDiscountRecommendation?.reason || '',
+    procedureDiscountType: record?.procedureDiscountRecommendation?.type || 'none',
+    procedureDiscountValue: record?.procedureDiscountRecommendation?.value || 0,
+    procedureDiscountReason: record?.procedureDiscountRecommendation?.reason || '',
     isolationRequired: isolation['required'] || 'no',
     isolationType: isolation['type'] || '',
     isolationReason: isolation['reason'] || '',
@@ -525,6 +568,19 @@ export function buildAdmissionRecommendationPayload(
     priority: value.priority,
     status: context.recommend ? 'pending' : context.status || 'draft',
     recommend: context.recommend === true,
+    treatmentCatalogId: value.treatmentCatalogId || undefined,
+    recommendedOperatingDoctorId: value.recommendedOperatingDoctorId || value.consultantDoctorId || undefined,
+    preferredOperationAt: value.preferredOperationAt || undefined,
+    roomDiscountRecommendation: {
+      type: value.roomDiscountType || 'none',
+      value: Number(value.roomDiscountValue || 0),
+      reason: String(value.roomDiscountReason || '').trim(),
+    },
+    procedureDiscountRecommendation: {
+      type: value.procedureDiscountType || 'none',
+      value: Number(value.procedureDiscountValue || 0),
+      reason: String(value.procedureDiscountReason || '').trim(),
+    },
     clinicalSnapshot: {
       admissionDecision: {
         admissionRequired: value.admissionRequired !== false,

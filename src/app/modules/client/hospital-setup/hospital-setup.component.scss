@@ -84,6 +84,27 @@
   white-space: nowrap;
 }
 
+a.hospital-setup-tabs__link {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  color: inherit;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 13px;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 14px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.hospital-setup-tabs__link:hover {
+  border-color: var(--rx-blue, #1168c8);
+  color: var(--rx-blue, #1168c8);
+}
+
 .hospital-setup-tabs button.is-active {
   background: var(--rx-blue, #1168c8);
   border-color: var(--rx-blue, #1168c8);
@@ -1092,12 +1113,13 @@
   .hospital-setup-tabs {
     display: grid;
     gap: 6px;
-    grid-template-columns: repeat(4, minmax(82px, 1fr));
+    grid-template-columns: repeat(5, minmax(72px, 1fr));
     overflow-x: auto;
     padding: 0 0 3px;
   }
 
-  .hospital-setup-tabs button {
+  .hospital-setup-tabs button,
+  a.hospital-setup-tabs__link {
     align-items: center;
     border-radius: 9px;
     color: #385274;
@@ -1109,7 +1131,8 @@
     padding: 8px 6px;
   }
 
-  .hospital-setup-tabs button i {
+  .hospital-setup-tabs button i,
+  a.hospital-setup-tabs__link i {
     font-size: 17px;
   }
 

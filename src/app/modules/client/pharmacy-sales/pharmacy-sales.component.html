@@ -6,6 +6,15 @@
         <p>Completed and in-progress pharmacy POS invoices with drilldown and control actions.</p>
       </div>
       <div class="pharmacy-hero-actions">
+        <app-hms-document-toolbar
+          title="Pharmacy Sales"
+          filename="pharmacy-sales.pdf"
+          orientation="landscape"
+          [showExcel]="true"
+          [disabled]="loading || !sales.length"
+          [getHtml]="getExportHtml"
+          (excelClick)="exportExcel()"
+        ></app-hms-document-toolbar>
         <a class="ph-btn ghost" routerLink="/pharmacy/returns/sales">Sales Returns</a>
         <a class="ph-btn primary" [routerLink]="['/pharmacy/pos']" [queryParams]="storeId ? { storeId: storeId } : null">
           <i class="fa fa-shopping-cart"></i>

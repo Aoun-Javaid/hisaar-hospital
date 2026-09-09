@@ -6,6 +6,19 @@
         <p>Manage walk-in and repeat customers linked to pharmacy POS billing.</p>
       </div>
       <div class="pharmacy-hero-actions">
+        <app-hms-document-toolbar
+          title="Pharmacy Customers"
+          filename="pharmacy-customers.pdf"
+          orientation="landscape"
+          [showExcel]="true"
+          [disabled]="loading || !customers.length"
+          [getHtml]="getExportHtml"
+          (excelClick)="exportExcel()"
+        ></app-hms-document-toolbar>
+        <button class="pharmacy-rules-btn" type="button" (click)="openRules()">
+          <i class="fa fa-book" aria-hidden="true"></i>
+          Rules
+        </button>
         <button class="ph-btn primary" type="button" (click)="openCreate()" [disabled]="!canCreate">
           <i class="fa fa-plus"></i>
           <span>Add Customer</span>
@@ -109,7 +122,9 @@
                 <th>Contact</th>
                 <th>City</th>
                 <th>Opening Balance</th>
+                <th>Outstanding</th>
                 <th>Credit Limit</th>
+                <th>Available</th>
                 <th>Status</th>
                 <th class="text-end">Actions</th>
               </tr>
@@ -126,7 +141,9 @@
                 </td>
                 <td>{{ customer.city || '-' }}</td>
                 <td>{{ currency(customer.openingBalance) }}</td>
+                <td>{{ currency(customer.outstandingBalance) }}</td>
                 <td>{{ currency(customer.creditLimit) }}</td>
+                <td>{{ currency(customer.availableCredit) }}</td>
                 <td>
                   <span
                     class="pharmacy-status-pill"
@@ -165,8 +182,9 @@
               </span>
             </div>
             <div class="ph-mobile-meta">
-              <span>Balance {{ currency(customer.openingBalance) }}</span>
-              <span>Credit {{ currency(customer.creditLimit) }}</span>
+              <span>Outstanding {{ currency(customer.outstandingBalance) }}</span>
+              <span>Limit {{ currency(customer.creditLimit) }}</span>
+              <span>Available {{ currency(customer.availableCredit) }}</span>
             </div>
             <div class="ph-mobile-row">
               <small class="text-muted">{{ shortId(customer._id) }}</small>
@@ -219,6 +237,7 @@
               <div class="col-md-6">
                 <label class="form-label">Credit Limit</label>
                 <input class="form-control" type="number" [(ngModel)]="form.creditLimit" />
+                <small class="text-muted">0 = credit sales blocked. Opening balance + unpaid POS bills count toward this limit.</small>
               </div>
               <div class="col-12">
                 <label class="form-label">Address</label>
@@ -242,6 +261,39 @@
               {{ saving ? 'Saving...' : (editingCustomer ? 'Update Customer' : 'Create Customer') }}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pharmacy-rules-modal" *ngIf="showRules" role="dialog" aria-modal="true" aria-labelledby="customer-credit-rules-title">
+      <div class="pharmacy-rules-modal__backdrop" (click)="closeRules()"></div>
+      <div class="pharmacy-rules-modal__dialog">
+        <h2 id="customer-credit-rules-title">Customer Credit — Easy Rules</h2>
+        <p>Simple guide for pharmacy counter credit sales.</p>
+        <div class="pharmacy-rules-list">
+          <article>
+            <strong>What is Credit Limit?</strong>
+            <p>Maximum unpaid amount this customer can owe. Example: limit PKR 10,000 means unpaid POS bills cannot go above 10,000.</p>
+          </article>
+          <article>
+            <strong>Credit Limit = 0</strong>
+            <p>Credit sale not allowed. Customer must pay in full (cash/card/bank). Walk-in with no customer also cannot use Credit.</p>
+          </article>
+          <article>
+            <strong>Opening Balance</strong>
+            <p>Old unpaid amount you already know. It counts toward used credit together with new unpaid sales.</p>
+          </article>
+          <article>
+            <strong>How to use at POS</strong>
+            <p>1) Set credit limit here. 2) At POS select the customer. 3) Choose Credit / pay 0. System blocks the sale if outstanding + this bill exceeds the limit.</p>
+          </article>
+          <article>
+            <strong>Ledger / reports</strong>
+            <p>Outstanding and available credit show in this list. Export PDF / Excel / Print from the toolbar for statements.</p>
+          </article>
+        </div>
+        <div class="pharmacy-rules-modal__footer">
+          <button class="ph-btn primary" type="button" (click)="closeRules()">Got it</button>
         </div>
       </div>
     </div>

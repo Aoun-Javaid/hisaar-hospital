@@ -6,13 +6,16 @@ import { finalize } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 
 import { BackendService } from '../../../core/services/backend.service';
+import { downloadExcelWorkbook } from '../../../core/utils/excel-export.util';
+import { HmsDocumentToolbarComponent } from '../../../shared/components/hms-document-toolbar/hms-document-toolbar.component';
 import { ProductCatalogItem, Store } from '../../../shared/models/hospital.model';
 import { formatCurrency, normalizeText, readAssignedStoreId } from '../pharmacy-admin.utils';
+import { buildPharmacyReportHtml } from '../pharmacy-export.util';
 
 @Component({
   selector: 'app-pharmacy-inventory',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, HmsDocumentToolbarComponent],
   templateUrl: './pharmacy-inventory.component.html',
   styleUrl: './pharmacy-inventory.component.scss',
 })
@@ -30,6 +33,24 @@ export class PharmacyInventoryComponent implements OnInit {
   adjustType: 'INCREASE' | 'DECREASE' | 'SET' = 'INCREASE';
   adjustQty = 0;
   adjustNote = '';
+
+  readonly getExportHtml = () =>
+    buildPharmacyReportHtml(
+      'Pharmacy Inventory',
+      [
+        { header: 'Medicine', key: 'name' },
+        { header: 'SKU', key: 'sku' },
+        { header: 'Brand', key: 'brand' },
+        { header: 'Batch', key: 'batchNumber' },
+        { header: 'Expiry', key: 'expiryDate' },
+        { header: 'Available', key: 'available' },
+        { header: 'Status', key: 'status' },
+        { header: 'Cost', key: 'cost' },
+        { header: 'Retail', key: 'retail' },
+        { header: 'Valuation', key: 'valuation' },
+      ],
+      this.exportRows(),
+    );
 
   constructor(
     private backend: BackendService,
@@ -137,6 +158,42 @@ export class PharmacyInventoryComponent implements OnInit {
 
   currency(value: number | string | null | undefined): string {
     return formatCurrency(value);
+  }
+
+  exportExcel(): void {
+    downloadExcelWorkbook('pharmacy-inventory', [
+      {
+        name: 'Inventory',
+        columns: [
+          { header: 'Medicine', key: 'name' },
+          { header: 'SKU', key: 'sku' },
+          { header: 'Brand', key: 'brand' },
+          { header: 'Batch', key: 'batchNumber' },
+          { header: 'Expiry', key: 'expiryDate' },
+          { header: 'Available', key: 'available' },
+          { header: 'Status', key: 'status' },
+          { header: 'Cost', key: 'cost' },
+          { header: 'Retail', key: 'retail' },
+          { header: 'Valuation', key: 'valuation' },
+        ],
+        rows: this.exportRows(),
+      },
+    ]);
+  }
+
+  private exportRows(): Array<Record<string, unknown>> {
+    return this.filteredProducts.map((product) => ({
+      name: product.name,
+      sku: product.sku || '',
+      brand: product.brand || '',
+      batchNumber: product.batchNumber || '-',
+      expiryDate: product.expiryDate || '-',
+      available: this.qty(product),
+      status: this.isLowStock(product) ? 'Low Stock' : 'In Stock',
+      cost: this.currency(product.costPrice),
+      retail: this.currency(product.sellingPrice),
+      valuation: this.currency(this.qty(product) * this.price(product)),
+    }));
   }
 
   canAdjust(): boolean {

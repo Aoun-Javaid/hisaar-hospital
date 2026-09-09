@@ -4,10 +4,12 @@ import {
   ChangeDetectorRef,
   Component,
   HostListener,
+  OnDestroy,
   OnInit,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { WARD_MODULE_PAGE_CONFIGS } from './ward-module.config';
 import {
@@ -36,7 +38,7 @@ import { readCurrentUserName, readStoredHospitalDocumentInfo } from '../../../co
   styleUrl: './ward-module-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class WardModulePageComponent implements OnInit {
+export class WardModulePageComponent implements OnInit, OnDestroy {
   config!: WardModulePageConfig;
   loading = false;
   rows: WardModuleRow[] = [];
@@ -58,6 +60,7 @@ export class WardModulePageComponent implements OnInit {
   contextPatientName = '';
   contextRoomId = '';
   contextBedNo = '';
+  contextRecommendationId = '';
 
   wardOptions: string[] = [];
   readonly shiftOptions = WARD_PATIENT_SHIFT_OPTIONS;
@@ -73,6 +76,8 @@ export class WardModulePageComponent implements OnInit {
   typeFilter = '';
   sortDesc = true;
   private pendingDripPatch: { rowId: string; status: 'planned' | 'running' | 'completed' } | null = null;
+  private querySub: Subscription | null = null;
+  private openedRecommendationId = '';
 
   constructor(
     private route: ActivatedRoute,
@@ -113,6 +118,16 @@ export class WardModulePageComponent implements OnInit {
     this.applyRouteContext(this.route.snapshot.queryParamMap);
     this.loadWardOptions();
     this.refreshRows();
+
+    this.querySub = this.route.queryParamMap.subscribe((params) => {
+      this.applyRouteContext(params);
+      this.openRecommendationFromQueryIfNeeded();
+    });
+    this.openRecommendationFromQueryIfNeeded();
+  }
+
+  ngOnDestroy(): void {
+    this.querySub?.unsubscribe();
   }
 
   get displayKpis(): WardModuleKpi[] {
@@ -958,12 +973,13 @@ export class WardModulePageComponent implements OnInit {
     return this.allRows.filter((row) => row.cells['_tab'] === countTab).length;
   }
 
-  private applyRouteContext(query: { get: (key: string) => string | null }): void {
+  private applyRouteContext(query: { get: (key: string) => string | null; keys?: string[] }): void {
     this.contextPatientId = query.get('patientId') || '';
     this.contextAdmissionId = query.get('admissionId') || '';
     this.contextPatientName = query.get('patientName') || '';
     this.contextRoomId = query.get('roomId') || '';
     this.contextBedNo = query.get('bedNo') || '';
+    this.contextRecommendationId = this.readRecommendationId(query);
 
     const wardName = query.get('wardName');
     if (wardName) {
@@ -974,6 +990,43 @@ export class WardModulePageComponent implements OnInit {
       this.contextPatientName && !this.contextPatientId && !this.contextAdmissionId
         ? this.contextPatientName
         : '';
+
+    if (this.contextRecommendationId && this.config?.key === 'admissions') {
+      this.activeTab = 'pending';
+    }
+  }
+
+  private readRecommendationId(query: { get: (key: string) => string | null; keys?: string[] }): string {
+    const direct = String(query.get('recommendationId') || query.get('recommendationid') || '').trim();
+    if (direct) {
+      return direct;
+    }
+
+    const keys = query.keys || [];
+    for (const key of keys) {
+      if (String(key).toLowerCase() === 'recommendationid') {
+        return String(query.get(key) || '').trim();
+      }
+    }
+    return '';
+  }
+
+  private openRecommendationFromQueryIfNeeded(): void {
+    if (this.config?.key !== 'admissions') {
+      return;
+    }
+
+    const recommendationId = this.contextRecommendationId;
+    if (!recommendationId || recommendationId === this.openedRecommendationId) {
+      return;
+    }
+
+    this.openedRecommendationId = recommendationId;
+    this.toastr.info('Opening admission recommendation for bed allotment…');
+    void this.router.navigate(['/room-allotment/add-alloted-rooms'], {
+      queryParams: { recommendationId },
+      replaceUrl: true,
+    });
   }
 
   private moduleFilters() {

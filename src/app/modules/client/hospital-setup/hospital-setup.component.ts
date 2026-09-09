@@ -18,6 +18,7 @@ import { readStoredHospitalId } from '../../auth/hospital-scope';
 import {
   BirthCertificateSettings,
   Department,
+  Doctor,
   HospitalWard,
 } from '../../../shared/models/hospital.model';
 
@@ -107,6 +108,7 @@ export class HospitalSetupComponent implements OnInit {
 
   departments: Department[] = [];
   wards: WardOverview[] = [];
+  doctors: Doctor[] = [];
   doctorCountByDepartment: Record<string, number> = {};
   hospitalId = '';
 
@@ -165,6 +167,7 @@ export class HospitalSetupComponent implements OnInit {
       name: ['', [Validators.required, Validators.minLength(2)]],
       code: [''],
       category: ['OTHER', Validators.required],
+      inChargeDoctorId: [''],
       description: [''],
       status: ['active', Validators.required],
     });
@@ -203,6 +206,17 @@ export class HospitalSetupComponent implements OnInit {
 
   can(permission: string): boolean {
     return this.backend.hasPermission(permission);
+  }
+
+  get canViewTreatmentsCatalog(): boolean {
+    return (
+      this.can('*') ||
+      this.can('treatment_catalog.read') ||
+      this.can('treatment_catalog.create') ||
+      this.can('treatment_catalog.update') ||
+      this.can('hospitals.update') ||
+      this.can('departments.update')
+    );
   }
 
   get canManageDepartments(): boolean {
@@ -314,23 +328,46 @@ export class HospitalSetupComponent implements OnInit {
   private loadDoctorCounts(): void {
     if (!this.can('doctors.read')) {
       this.doctorCountByDepartment = {};
+      this.doctors = [];
       return;
     }
 
     this.backend.getDoctors({ limit: 100, page: 1 }).subscribe({
       next: (result) => {
+        this.doctors = result.items || [];
         const counts: Record<string, number> = {};
-        for (const doctor of result.items || []) {
-          const deptId = String(doctor.departmentId || '');
+        for (const doctor of this.doctors) {
+          const deptId = String(doctor.departmentId || doctor.department?._id || '');
           if (!deptId) continue;
           counts[deptId] = (counts[deptId] || 0) + 1;
         }
         this.doctorCountByDepartment = counts;
       },
       error: () => {
+        this.doctors = [];
         this.doctorCountByDepartment = {};
       },
     });
+  }
+
+  get doctorsForDepartmentForm(): Doctor[] {
+    return this.doctors.filter((doctor) => doctor.status === 'active');
+  }
+
+  inChargeDoctorName(item: Department): string {
+    const populated =
+      (typeof item.inChargeDoctorId === 'object' && item.inChargeDoctorId
+        ? item.inChargeDoctorId
+        : null) || item.inChargeDoctor;
+    if (populated?.user?.name) {
+      return populated.user.name;
+    }
+    const id =
+      typeof item.inChargeDoctorId === 'string'
+        ? item.inChargeDoctorId
+        : populated?._id || '';
+    if (!id) return '—';
+    return this.doctors.find((doctor) => doctor._id === id)?.user?.name || '—';
   }
 
   get filteredDepartments(): Department[] {
@@ -413,6 +450,10 @@ export class HospitalSetupComponent implements OnInit {
         name: department.name,
         code: department.code || '',
         category: department.category || 'OTHER',
+        inChargeDoctorId:
+          typeof department.inChargeDoctorId === 'object' && department.inChargeDoctorId
+            ? department.inChargeDoctorId._id
+            : department.inChargeDoctorId || '',
         description: department.description || '',
         status: department.status,
       });
@@ -423,6 +464,7 @@ export class HospitalSetupComponent implements OnInit {
         name: '',
         code: '',
         category: 'OTHER',
+        inChargeDoctorId: '',
         description: '',
         status: 'active',
       });
@@ -446,6 +488,7 @@ export class HospitalSetupComponent implements OnInit {
       name: String(value.name || '').trim(),
       code: String(value.code || '').trim(),
       category: value.category,
+      inChargeDoctorId: value.inChargeDoctorId || null,
       description: value.description || '',
       status: value.status,
     };

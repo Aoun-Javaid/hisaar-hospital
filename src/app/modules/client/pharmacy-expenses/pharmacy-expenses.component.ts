@@ -6,13 +6,16 @@ import { ToastrService } from 'ngx-toastr';
 
 import { AppDialogService } from '../../../core/services/app-dialog.service';
 import { BackendService } from '../../../core/services/backend.service';
+import { downloadExcelWorkbook } from '../../../core/utils/excel-export.util';
+import { HmsDocumentToolbarComponent } from '../../../shared/components/hms-document-toolbar/hms-document-toolbar.component';
 import { Expense, RegisterSession, SalePaymentMethod, Store } from '../../../shared/models/hospital.model';
 import { formatCurrency, formatDate, readAssignedStoreId, toDateInputValue } from '../pharmacy-admin.utils';
+import { buildPharmacyReportHtml } from '../pharmacy-export.util';
 
 @Component({
   selector: 'app-pharmacy-expenses',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HmsDocumentToolbarComponent],
   templateUrl: './pharmacy-expenses.component.html',
   styleUrl: './pharmacy-expenses.component.scss',
 })
@@ -30,6 +33,21 @@ export class PharmacyExpensesComponent implements OnInit {
   toDate = '';
   methods: SalePaymentMethod[] = ['cash', 'card', 'bank', 'online', 'wallet', 'check'];
   form = this.emptyForm();
+
+  readonly getExportHtml = () =>
+    buildPharmacyReportHtml(
+      'Pharmacy Expenses',
+      [
+        { header: 'Date', key: 'expenseDate' },
+        { header: 'Title', key: 'title' },
+        { header: 'Category', key: 'category' },
+        { header: 'Method', key: 'paymentMethod' },
+        { header: 'Amount', key: 'amount' },
+        { header: 'Register Session', key: 'registerSessionId' },
+        { header: 'Note', key: 'note' },
+      ],
+      this.exportRows(),
+    );
 
   constructor(
     private backend: BackendService,
@@ -217,6 +235,36 @@ export class PharmacyExpensesComponent implements OnInit {
 
   date(value: string | null | undefined): string {
     return formatDate(value);
+  }
+
+  exportExcel(): void {
+    downloadExcelWorkbook('pharmacy-expenses', [
+      {
+        name: 'Expenses',
+        columns: [
+          { header: 'Date', key: 'expenseDate' },
+          { header: 'Title', key: 'title' },
+          { header: 'Category', key: 'category' },
+          { header: 'Method', key: 'paymentMethod' },
+          { header: 'Amount', key: 'amount' },
+          { header: 'Register Session', key: 'registerSessionId' },
+          { header: 'Note', key: 'note' },
+        ],
+        rows: this.exportRows(),
+      },
+    ]);
+  }
+
+  private exportRows(): Array<Record<string, unknown>> {
+    return this.expenses.map((expense) => ({
+      expenseDate: this.date(expense.expenseDate),
+      title: expense.title,
+      category: expense.category,
+      paymentMethod: expense.paymentMethod || '-',
+      amount: this.currency(expense.amount),
+      registerSessionId: expense.registerSessionId || '-',
+      note: expense.note || '',
+    }));
   }
 
   private emptyForm() {

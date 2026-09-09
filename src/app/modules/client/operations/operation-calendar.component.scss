@@ -1,0 +1,255 @@
+:host {
+  display: block;
+}
+
+.ops-page {
+  padding: 20px 24px 40px;
+}
+
+.ops-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 4px;
+}
+
+.ops-header p {
+  color: #6b7280;
+  margin: 0 0 16px;
+}
+
+.ops-kpi-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.hms-kpi-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  border-top: 3px solid #3b82f6;
+  padding: 14px 16px;
+}
+
+.hms-kpi-card.is-teal { border-top-color: #019c9d; }
+.hms-kpi-card.is-orange { border-top-color: #f59e0b; }
+.hms-kpi-card.is-purple { border-top-color: #8b5cf6; }
+.hms-kpi-card.is-green { border-top-color: #16a34a; }
+
+.hms-kpi-card span {
+  color: #6b7280;
+  display: block;
+  font-size: 12px;
+}
+
+.hms-kpi-card strong {
+  display: block;
+  font-size: 22px;
+  margin-top: 4px;
+}
+
+.ops-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ops-tabs button {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 8px 14px;
+}
+
+.ops-tabs button.is-active {
+  background: #019c9d;
+  border-color: #019c9d;
+  color: #fff;
+}
+
+.ops-filters {
+  align-items: end;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+  margin-bottom: 16px;
+  padding: 14px;
+}
+
+.ops-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ops-filters span {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ops-filters input,
+.ops-filters select {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.ops-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.hms-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.hms-table th,
+.hms-table td {
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.hms-table th {
+  background: #f8fafc;
+  color: #6b7280;
+}
+
+.hms-status-chip {
+  background: #eef2ff;
+  border-radius: 999px;
+  color: #3730a3;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  text-transform: capitalize;
+}
+
+.ops-empty {
+  color: #6b7280;
+  padding: 24px;
+  text-align: center;
+}
+
+.ops-mobile-list,
+.ops-needs {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.hms-mobile-card {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+}
+
+.ops-mobile-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ops-drawer {
+  inset: 0;
+  position: fixed;
+  z-index: 90;
+}
+
+.ops-drawer__backdrop {
+  background: rgba(15, 23, 42, 0.4);
+  inset: 0;
+  position: absolute;
+}
+
+.ops-drawer__panel {
+  background: #fff;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 420px;
+  overflow: auto;
+  padding: 18px;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: min(420px, 100vw);
+}
+
+.ops-drawer__panel header {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ops-drawer__panel h2,
+.ops-drawer__panel h3 {
+  margin: 0 0 6px;
+}
+
+.ops-drawer__panel p,
+.ops-drawer__panel small {
+  color: #4b5563;
+  margin: 0 0 4px;
+}
+
+.ops-drawer__panel footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+}
+
+@media (max-width: 1100px) {
+  .ops-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ops-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .ops-page {
+    padding: 14px;
+  }
+
+  .ops-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ops-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-desktop-table {
+    display: none;
+  }
+
+  .ops-mobile-list,
+  .ops-needs {
+    display: flex;
+  }
+}

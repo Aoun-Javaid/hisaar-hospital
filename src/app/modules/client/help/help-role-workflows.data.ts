@@ -136,6 +136,7 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
     description: 'Configure the hospital, assign access, and monitor operations and finance.',
     commonTaskSlugs: [
       'hospital-setup-guide',
+      'treatment-catalog-setup',
       'create-rooms-beds',
       'birth-certificate-issue',
       'add-doctor-guide',
@@ -146,6 +147,7 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
     ],
     quickTaskSlugs: [
       'hospital-setup-guide',
+      'treatment-catalog-setup',
       'create-rooms-beds',
       'birth-certificate-issue',
       'add-doctor-guide',
@@ -155,9 +157,10 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
       'department-performance-report',
       'how-to-register-patient',
     ],
-    moduleGuideKeys: ['setup', 'roles', 'clinical', 'ward', 'laboratory', 'pharmacy', 'accounts', 'nursery'],
+    moduleGuideKeys: ['setup', 'roles', 'clinical', 'ward', 'operations', 'laboratory', 'pharmacy', 'accounts', 'nursery'],
     preferredGuideSlugs: [
       'hospital-setup-guide',
+      'treatment-catalog-setup',
       'birth-certificate-issue',
       'create-rooms-beds',
       'roles-permissions',
@@ -170,23 +173,23 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
         type: 'row',
         items: [
           step('setup', '1', 'Hospital Setup', 'hospital-setup-guide', { module: 'setup' }),
-          step('dept', '2', 'Departments', 'hospital-setup-guide', { module: 'setup' }),
+          step('dept', '2', 'Departments / In-Charge', 'hospital-setup-guide', { module: 'setup' }),
           step('wards', '3', 'Wards / Rooms / Beds', 'create-rooms-beds', { module: 'setup' }),
         ],
       },
       {
         type: 'row',
         items: [
-          step('birth', '4', 'Birth Cert Setup', 'birth-certificate-issue', { module: 'nursery' }),
-          step('docs', '5', 'Doctors', 'add-doctor-guide', { module: 'clinical' }),
-          step('users', '6', 'Users & Roles', 'roles-permissions', { module: 'setup' }),
+          step('catalog', '4', 'Treatments Catalog', 'treatment-catalog-setup', { module: 'setup', accent: true }),
+          step('birth', '5', 'Birth Cert Setup', 'birth-certificate-issue', { module: 'nursery' }),
+          step('docs', '6', 'Doctors', 'add-doctor-guide', { module: 'clinical' }),
         ],
       },
       {
         type: 'row',
         items: [
-          step('modules', '7', 'Lab / Pharmacy Setup', 'hospital-setup-guide'),
-          step('ops', '8', 'Hospital Operations', 'getting-started-overview'),
+          step('users', '7', 'Users & Roles', 'roles-permissions', { module: 'setup' }),
+          step('ops', '8', 'Operations Calendar', 'operation-calendar-guide', { module: 'ward' }),
           step('accounts', '9', 'Accounts & Reports', 'accounts-overview', { module: 'accounts' }),
         ],
       },
@@ -249,10 +252,13 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
   doctor: {
     id: 'doctor',
     title: 'Doctor Workflow',
-    description: 'Consult, prescribe, recommend admission, and manage inpatient orders — doctors do not allocate beds.',
+    description:
+      'Consult, prescribe, recommend admission (optional package/discounts), and manage My Operations when permitted — doctors do not allocate beds.',
     commonTaskSlugs: [
       'doctor-consultation-flow',
       'doctor-recommend-admission',
+      'doctor-my-operations',
+      'operation-calendar-guide',
       'add-doctor-order',
       'lab-order-from-ward',
       'admission-history-guide',
@@ -260,16 +266,20 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
     quickTaskSlugs: [
       'doctor-consultation-flow',
       'doctor-recommend-admission',
+      'doctor-my-operations',
+      'operation-calendar-guide',
       'add-doctor-order',
       'lab-order-from-ward',
       'radiology-imaging-guide',
       'admission-history-guide',
       'mar-medicine-guide',
     ],
-    moduleGuideKeys: ['clinical', 'ward', 'laboratory'],
+    moduleGuideKeys: ['clinical', 'ward', 'laboratory', 'operations'],
     preferredGuideSlugs: [
       'doctor-consultation-flow',
       'doctor-recommend-admission',
+      'doctor-my-operations',
+      'operation-calendar-guide',
       'add-doctor-order',
       'lab-order-from-ward',
       'radiology-imaging-guide',
@@ -297,19 +307,29 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
         label: 'OR',
         items: [
           step('opd', '5A', 'OPD Complete / Follow-up', 'doctor-consultation-flow', { muted: true, module: 'clinical' }),
-          step('rec', '5B', 'Recommend Admission', 'doctor-recommend-admission', { accent: true, module: 'clinical' }),
+          step('rec', '5B', 'Recommend Admission (+ package)', 'doctor-recommend-admission', {
+            accent: true,
+            module: 'clinical',
+          }),
         ],
       },
       {
         type: 'note',
-        text: 'Next: Ward Reception completes actual admission with ward, room, and bed.',
+        text: 'Next: Ward Reception completes Review & Admit (bed + approved discounts). If package set → Operation Schedule is created.',
       },
       {
         type: 'row',
         items: [
           step('admitted', '6', 'Open Admitted Patient', 'ward-control-panel', { module: 'ward' }),
           step('orders', '7', 'Doctor Orders', 'add-doctor-order', { module: 'ward' }),
-          step('review', '8', 'Review Results / Plan Discharge', 'how-to-discharge-patient', { module: 'ward' }),
+          step('ops', '8', 'My Operations (if permitted)', 'doctor-my-operations', { module: 'ward', accent: true }),
+        ],
+      },
+      {
+        type: 'row',
+        items: [
+          step('complete', '9', 'Complete OT Case', 'operation-calendar-guide', { module: 'ward' }),
+          step('review', '10', 'Review Results / Plan Discharge', 'how-to-discharge-patient', { module: 'ward' }),
         ],
       },
     ],
@@ -318,9 +338,11 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
   ward: {
     id: 'ward',
     title: 'Ward Receptionist / Nurse Workflow',
-    description: 'Ward Reception completes admissions; nurses execute care, MAR, and on-behalf orders with doctor attribution.',
+    description:
+      'Ward Reception completes Review & Admit (bed + approved discounts / OT package); nurses execute care, MAR, and on-behalf orders with doctor attribution.',
     commonTaskSlugs: [
       'how-to-admit-patient',
+      'operation-calendar-guide',
       'ward-control-panel',
       'how-to-create-duty-roster',
       'assign-nurse-duty',
@@ -330,6 +352,7 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
     ],
     quickTaskSlugs: [
       'how-to-admit-patient',
+      'operation-calendar-guide',
       'room-bed-hierarchy',
       'ward-control-panel',
       'mar-medicine-guide',
@@ -338,9 +361,10 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
       'radiology-imaging-guide',
       'how-to-discharge-patient',
     ],
-    moduleGuideKeys: ['ward', 'laboratory', 'pharmacy'],
+    moduleGuideKeys: ['ward', 'operations', 'laboratory', 'pharmacy'],
     preferredGuideSlugs: [
       'how-to-admit-patient',
+      'operation-calendar-guide',
       'ward-control-panel',
       'mar-medicine-guide',
       'ward-nursing-care',
@@ -353,7 +377,7 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
         items: [
           step('notif', '1', 'Admission Notification', 'ward-notifications-guide', { module: 'ward' }),
           step('pending', '2', 'Pending Admissions', 'how-to-admit-patient', { module: 'ward' }),
-          step('review', '3', 'Review Doctor Recommendation', 'how-to-admit-patient', { module: 'ward' }),
+          step('review', '3', 'Review Package / Discounts', 'how-to-admit-patient', { module: 'ward' }),
         ],
       },
       {
@@ -368,7 +392,8 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
         type: 'row',
         items: [
           step('enc', '7', 'Admission Encounter', 'how-to-admit-patient', { module: 'ward' }),
-          step('panel', '8', 'Open Patient Control Panel', 'ward-control-panel', { module: 'ward' }),
+          step('ot', '8', 'Operations Calendar', 'operation-calendar-guide', { module: 'ward', accent: true }),
+          step('panel', '9', 'Open Patient Control Panel', 'ward-control-panel', { module: 'ward' }),
         ],
       },
       { type: 'heading', text: 'Nurse Care' },
@@ -395,7 +420,7 @@ export const HELP_ROLE_WORKFLOWS: Record<HelpRoleKey, HelpRoleWorkflowConfig> = 
       },
       {
         type: 'note',
-        text: 'Nurse-entered orders must record Recommended By doctor for audit.',
+        text: 'Nurse-entered orders must record Recommended By doctor for audit. Complete OT cases from Operations before final discharge bill.',
       },
     ],
     mobileSteps: [],

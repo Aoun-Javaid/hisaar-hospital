@@ -60,6 +60,7 @@ export class LeftmenuComponent implements OnInit, AfterViewInit {
   PrescriptionCollapsed = true;
   LaboratoryCollapsed = true;
   WardCollapsed = true;
+  SetupCollapsed = true;
   AccountsCollapsed = true;
   private router = inject(Router);
   private authService = inject(AuthService);
@@ -483,6 +484,37 @@ export class LeftmenuComponent implements OnInit, AfterViewInit {
     return this.canViewAllRoutes || canAccessHospitalSetup();
   }
 
+  get canViewTreatments(): boolean {
+    if (this.isLaboratoryEdition || !isHospitalSetupModuleAllowed()) {
+      return false;
+    }
+    return (
+      this.canViewAllRoutes ||
+      this.hasPermission('treatment_catalog.read') ||
+      this.hasPermission('treatment_catalog.create') ||
+      this.hasPermission('treatment_catalog.update') ||
+      // Hospital admins who already manage setup — rates live under Setup
+      this.hasPermission('hospitals.update') ||
+      this.hasPermission('departments.update')
+    );
+  }
+
+  get canViewOperations(): boolean {
+    if (this.isLaboratoryEdition || !isWardModuleEnabled()) {
+      return false;
+    }
+    return (
+      this.canViewAllRoutes ||
+      this.hasPermission('operations.read') ||
+      this.hasPermission('operations.read_all')
+    );
+  }
+
+  /** Doctors may have operations without ward.read — show a top-level Ops entry. */
+  get canViewOperationsStandalone(): boolean {
+    return this.canViewOperations && !this.canViewWardAdmin;
+  }
+
   get canViewDepartments(): boolean {
     if (this.isLaboratoryEdition || !isClinicalModuleEnabled()) {
       return false;
@@ -574,7 +606,8 @@ export class LeftmenuComponent implements OnInit, AfterViewInit {
       url.includes('pharmacy') || url.includes('pos-reports')
     );
     this.LaboratoryCollapsed = !url.includes('laboratory');
-    this.WardCollapsed = !(url.includes('/ward') || url.includes('ward-admin'));
+    this.WardCollapsed = !(url.includes('/ward') || url.includes('ward-admin') || url.includes('/operations'));
+    this.SetupCollapsed = !url.includes('hospital-setup');
     this.AccountsCollapsed = !url.includes('/accounts');
   }
 

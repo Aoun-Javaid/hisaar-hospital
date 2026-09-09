@@ -5,13 +5,16 @@ import { finalize } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 
 import { BackendService } from '../../../core/services/backend.service';
+import { downloadExcelWorkbook } from '../../../core/utils/excel-export.util';
+import { HmsDocumentToolbarComponent } from '../../../shared/components/hms-document-toolbar/hms-document-toolbar.component';
 import { StockMovement } from '../../../shared/models/hospital.model';
 import { formatDateTime } from '../pharmacy-admin.utils';
+import { buildPharmacyReportHtml } from '../pharmacy-export.util';
 
 @Component({
   selector: 'app-pharmacy-stock-movements',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HmsDocumentToolbarComponent],
   templateUrl: './pharmacy-stock-movements.component.html',
   styleUrl: './pharmacy-stock-movements.component.scss',
 })
@@ -22,6 +25,24 @@ export class PharmacyStockMovementsComponent implements OnInit {
   locationType = '';
   fromDate = '';
   toDate = '';
+
+  readonly getExportHtml = () =>
+    buildPharmacyReportHtml(
+      'Pharmacy Stock Movements',
+      [
+        { header: 'When', key: 'when' },
+        { header: 'Medicine', key: 'medicine' },
+        { header: 'SKU', key: 'sku' },
+        { header: 'Reference', key: 'reference' },
+        { header: 'Document', key: 'document' },
+        { header: 'Movement', key: 'movement' },
+        { header: 'Location', key: 'location' },
+        { header: 'Quantity', key: 'quantity' },
+        { header: 'Balance', key: 'balance' },
+        { header: 'Note', key: 'note' },
+      ],
+      this.exportRows(),
+    );
 
   constructor(
     private backend: BackendService,
@@ -137,6 +158,42 @@ export class PharmacyStockMovementsComponent implements OnInit {
     const note = String(movement.note || '');
     const match = note.match(/\b(?:SAL|SRET|PUR|TRF|WRQ|EXP)-[A-Z0-9-]+\b/i);
     return match ? match[0] : '';
+  }
+
+  exportExcel(): void {
+    downloadExcelWorkbook('pharmacy-stock-movements', [
+      {
+        name: 'Stock Movements',
+        columns: [
+          { header: 'When', key: 'when' },
+          { header: 'Medicine', key: 'medicine' },
+          { header: 'SKU', key: 'sku' },
+          { header: 'Reference', key: 'reference' },
+          { header: 'Document', key: 'document' },
+          { header: 'Movement', key: 'movement' },
+          { header: 'Location', key: 'location' },
+          { header: 'Quantity', key: 'quantity' },
+          { header: 'Balance', key: 'balance' },
+          { header: 'Note', key: 'note' },
+        ],
+        rows: this.exportRows(),
+      },
+    ]);
+  }
+
+  private exportRows(): Array<Record<string, unknown>> {
+    return this.movements.map((movement) => ({
+      when: this.dateTime(movement.createdAt),
+      medicine: this.productName(movement),
+      sku: this.productSku(movement),
+      reference: this.referenceTypeLabel(movement.referenceType),
+      document: this.referenceDocLabel(movement),
+      movement: this.movementTypeLabel(movement.movementType),
+      location: this.locationLabel(movement),
+      quantity: this.qty(movement),
+      balance: this.balance(movement),
+      note: movement.note || '',
+    }));
   }
 
   private numeric(value: string | number | null | undefined): string {

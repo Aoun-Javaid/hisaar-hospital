@@ -4,7 +4,7 @@
       <span class="hospital-setup-page__intro-icon"><i class="fa fa-hospital-o"></i></span>
       <div>
         <h2>Hospital Setup</h2>
-        <p>Configure your hospital's departments, wards, rooms, beds, and certificate settings.</p>
+        <p>Configure departments, wards, rooms, beds, certificate settings, and treatment / operation rates.</p>
       </div>
     </div>
     <div class="hospital-setup-page__callout">
@@ -12,6 +12,14 @@
       <span>A well-configured hospital powers<br />better care and smoother operations.</span>
     </div>
     <div class="hospital-setup-page__actions">
+      <a
+        *ngIf="canViewTreatmentsCatalog"
+        routerLink="/hospital-setup/treatments-procedures"
+        class="btn-soft"
+        (click)="closeHeaderMenus()"
+      >
+        <i class="fa fa-medkit"></i> Treatments &amp; Rates
+      </a>
       <div class="hospital-setup-more hospital-setup-add" (click)="$event.stopPropagation()">
         <button type="button" class="btn-primary hospital-setup-add__toggle" (click)="toggleAddMenu()">
           <i class="fa fa-plus"></i> Add New <i class="fa fa-angle-down"></i>
@@ -25,6 +33,13 @@
           </button>
           <a routerLink="/ward/bed-management" (click)="closeHeaderMenus()">
             <i class="fa fa-th-large"></i> Manage Rooms &amp; Beds
+          </a>
+          <a
+            *ngIf="canViewTreatmentsCatalog"
+            routerLink="/hospital-setup/treatments-procedures"
+            (click)="closeHeaderMenus()"
+          >
+            <i class="fa fa-medkit"></i> Treatments &amp; Operation Rates
           </a>
         </div>
       </div>
@@ -46,6 +61,11 @@
     <button type="button" [class.is-active]="activeTab === 'departments'" (click)="setTab('departments')"><i class="fa fa-building-o"></i><span>Departments</span></button>
     <button type="button" [class.is-active]="activeTab === 'wards'" (click)="setTab('wards')"><i class="fa fa-bed"></i><span>Wards</span></button>
     <button type="button" [class.is-active]="activeTab === 'rooms-beds'" (click)="setTab('rooms-beds')"><i class="fa fa-briefcase"></i><span>Rooms</span></button>
+    <a
+      *ngIf="canViewTreatmentsCatalog"
+      routerLink="/hospital-setup/treatments-procedures"
+      class="hospital-setup-tabs__link"
+    ><i class="fa fa-medkit"></i><span>Treatments &amp; Rates</span></a>
     <button type="button" [class.is-active]="activeTab === 'birth-certificates'" (click)="setTab('birth-certificates')"><i class="fa fa-file-text-o"></i><span>Birth Certificate</span></button>
   </nav>
 
@@ -97,7 +117,7 @@
             <th><button type="button" class="sort-btn" (click)="setDepartmentSort('name')">Department {{ sortIndicator('name') }}</button></th>
             <th><button type="button" class="sort-btn" (click)="setDepartmentSort('code')">Code {{ sortIndicator('code') }}</button></th>
             <th><button type="button" class="sort-btn" (click)="setDepartmentSort('category')">Category {{ sortIndicator('category') }}</button></th>
-            <th><button type="button" class="sort-btn" (click)="setDepartmentSort('doctors')">Doctors {{ sortIndicator('doctors') }}</button></th>
+            <th>In-Charge Doctor</th>
             <th><button type="button" class="sort-btn" (click)="setDepartmentSort('status')">Status {{ sortIndicator('status') }}</button></th>
             <th>Actions</th>
           </tr>
@@ -107,7 +127,7 @@
             <td class="cell-primary" [title]="item.name">{{ item.name }}</td>
             <td class="cell-ellipsis" [title]="item.code || ''">{{ item.code || '—' }}</td>
             <td class="cell-ellipsis">{{ formatLabel(item.category || 'OTHER') }}</td>
-            <td>{{ doctorCountByDepartment[item._id] || 0 }}</td>
+            <td class="cell-ellipsis">{{ inChargeDoctorName(item) }}</td>
             <td><span class="status-pill" [class.is-active]="item.status === 'active'">{{ item.status }}</span></td>
             <td class="actions-cell">
               <button type="button" class="row-action-trigger" aria-label="Department actions" (click)="openDepartmentActions($event, item)"><i class="fa fa-ellipsis-v"></i></button>
@@ -129,7 +149,7 @@
           </div>
           <span>Code: <b>{{ item.code || '—' }}</b></span>
           <span>Category: {{ formatLabel(item.category || 'OTHER') }}</span>
-          <span class="setup-mobile-card__meta"><i class="fa fa-user-md"></i> {{ doctorCountByDepartment[item._id] || 0 }} doctors</span>
+          <span class="setup-mobile-card__meta"><i class="fa fa-user-md"></i> {{ inChargeDoctorName(item) }}</span>
         </div>
         <button type="button" class="row-action-trigger" aria-label="Department actions" (click)="openDepartmentActions($event, item)"><i class="fa fa-ellipsis-v"></i></button>
       </article>
@@ -531,6 +551,15 @@
         <span>Category</span>
         <select formControlName="category">
           <option *ngFor="let cat of departmentCategories" [value]="cat">{{ formatLabel(cat) }}</option>
+        </select>
+      </label>
+      <label>
+        <span>Department In-Charge</span>
+        <select formControlName="inChargeDoctorId">
+          <option value="">Select doctor</option>
+          <option *ngFor="let doctor of doctorsForDepartmentForm" [value]="doctor._id">
+            {{ doctor.user?.name || doctor.specialization || doctor._id }}
+          </option>
         </select>
       </label>
       <label class="full"><span>Description</span><textarea rows="2" formControlName="description"></textarea></label>

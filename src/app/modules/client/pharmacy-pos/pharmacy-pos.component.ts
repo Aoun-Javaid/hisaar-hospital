@@ -254,6 +254,7 @@ export class PharmacyPosComponent implements OnInit, OnDestroy {
   searchResults: ProductCatalogItem[] | null = null;
   searchLoading = false;
   scanResolving = false;
+  showSearchDropdown = false;
   tutorialActive = false;
   tutorialStep = 0;
   tutorialRect: { top: number; left: number; width: number; height: number } | null = null;
@@ -1325,6 +1326,20 @@ export class PharmacyPosComponent implements OnInit, OnDestroy {
     this.refreshRegisterState();
   }
 
+  onProductSearchFocus(): void {
+    this.setKeyboardZone('search');
+    if (this.productSearch.trim()) {
+      this.showSearchDropdown = true;
+    }
+  }
+
+  onProductSearchBlur(): void {
+    // Delay so mousedown on a suggestion can fire first.
+    setTimeout(() => {
+      this.showSearchDropdown = false;
+    }, 150);
+  }
+
   onProductSearchChange(): void {
     this.selectedProductIndex = 0;
     this.clampKeyboardNavigationState();
@@ -1338,12 +1353,73 @@ export class PharmacyPosComponent implements OnInit, OnDestroy {
     if (!raw) {
       this.searchResults = null;
       this.searchLoading = false;
+      this.showSearchDropdown = false;
       return;
     }
 
+    // Instant local suggestions while remote search is in flight.
+    this.searchResults = this.localProductMatches(raw).slice(0, POS_SEARCH_LIMIT);
+    this.showSearchDropdown = true;
+
     this.searchDebounceTimer = setTimeout(() => {
       void this.runCatalogSearch(raw);
-    }, 220);
+    }, 180);
+  }
+
+  handleProductSearchKeydown(event: KeyboardEvent): void {
+    const key = event.key;
+    const suggestions = this.searchSuggestions();
+
+    if (key === 'ArrowDown') {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!suggestions.length) {
+        return;
+      }
+      this.showSearchDropdown = true;
+      this.selectedProductIndex = Math.min(
+        this.selectedProductIndex + 1,
+        suggestions.length - 1,
+      );
+      return;
+    }
+
+    if (key === 'ArrowUp') {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!suggestions.length) {
+        return;
+      }
+      this.showSearchDropdown = true;
+      this.selectedProductIndex = Math.max(this.selectedProductIndex - 1, 0);
+      return;
+    }
+
+    if (key === 'Escape') {
+      event.preventDefault();
+      this.showSearchDropdown = false;
+      return;
+    }
+
+    if (key === 'Enter') {
+      event.preventDefault();
+      event.stopPropagation();
+      void this.handleProductSearchEnter(event);
+    }
+  }
+
+  searchSuggestions(): ProductCatalogItem[] {
+    if (!this.productSearch.trim()) {
+      return [];
+    }
+    return this.filteredProducts();
+  }
+
+  selectSearchSuggestion(event: Event, product: ProductCatalogItem): void {
+    event.preventDefault();
+    this.mergeProductIntoCatalog(product);
+    this.addProduct(product);
+    this.showSearchDropdown = false;
   }
 
   async handleProductSearchEnter(event: Event): Promise<void> {
@@ -1358,7 +1434,21 @@ export class PharmacyPosComponent implements OnInit, OnDestroy {
       this.searchDebounceTimer = null;
     }
 
+    // Prefer already-visible / highlighted suggestion — no extra API delay.
+    const suggestions = this.searchSuggestions();
+    if (suggestions.length) {
+      const highlighted =
+        suggestions[this.selectedProductIndex] || suggestions[0];
+      if (highlighted) {
+        this.mergeProductIntoCatalog(highlighted);
+        this.addProduct(highlighted);
+        this.showSearchDropdown = false;
+        return;
+      }
+    }
+
     this.scanResolving = true;
+    this.showSearchDropdown = true;
     try {
       const product = await this.resolveScannedOrSearchedProduct(raw);
       if (!product) {
@@ -1368,6 +1458,7 @@ export class PharmacyPosComponent implements OnInit, OnDestroy {
       this.mergeProductIntoCatalog(product);
       this.addProduct(product);
       this.searchResults = null;
+      this.showSearchDropdown = false;
     } finally {
       this.scanResolving = false;
     }
@@ -1410,10 +1501,12 @@ export class PharmacyPosComponent implements OnInit, OnDestroy {
       const items = result.items || [];
       this.searchResults = this.rankSearchHits(items, raw);
       this.selectedProductIndex = 0;
+      this.showSearchDropdown = true;
       this.clampKeyboardNavigationState();
     } catch {
       if (requestId !== this.searchRequestSeq) return;
       this.searchResults = this.localProductMatches(raw).slice(0, POS_SEARCH_LIMIT);
+      this.showSearchDropdown = true;
     } finally {
       if (requestId === this.searchRequestSeq) {
         this.searchLoading = false;
@@ -1541,6 +1634,63 @@ export class PharmacyPosComponent implements OnInit, OnDestroy {
     this.paidAmountTouched = true;
     this.cashReceivedTouched = false;
     this.confirmBilling();
+  }
+
+  get selectedCustomer(): Customer | null {
+    if (!this.selectedCustomerId) {
+      return null;
+    }
+    return this.customers.find((item) => item._id === this.selectedCustomerId) || null;
+  }
+
+  get customerCreditHint(): string {
+    const customer = this.selectedCustomer;
+    if (!customer) {
+      return this.paymentMethod === 'credit'
+        ? 'Select a customer with a credit limit before using Credit.'
+        : '';
+    }
+    const limit = Number(customer.creditLimit || 0);
+    if (limit <= 0) {
+      return 'Credit not allowed for this customer (limit is 0).';
+    }
+    const available =
+      customer.availableCredit != null && customer.availableCredit !== ''
+        ? Number(customer.availableCredit || 0)
+        : Math.max(limit - Number(customer.outstandingBalance || customer.openingBalance || 0), 0);
+    return `Available credit ~ ${this.formatMoney(available)} (limit ${this.formatMoney(limit)}).`;
+  }
+
+  private assertCustomerCreditAllowed(billTotal: number): string | null {
+    if (billTotal <= 0) {
+      return null;
+    }
+    if (!this.selectedCustomerId) {
+      return 'Select a customer before creating a credit sale.';
+    }
+    const customer = this.selectedCustomer;
+    if (!customer) {
+      return 'Selected customer was not found. Refresh and try again.';
+    }
+    const limit = Number(customer.creditLimit || 0);
+    if (limit <= 0) {
+      return 'Credit not allowed for this customer (credit limit is 0).';
+    }
+    if (customer.availableCredit != null && customer.availableCredit !== '') {
+      if (billTotal > Number(customer.availableCredit || 0)) {
+        return `Credit limit exceeded. Available ${this.formatMoney(customer.availableCredit)}, bill ${this.formatMoney(billTotal)}.`;
+      }
+      return null;
+    }
+    const outstanding = Number(customer.outstandingBalance ?? customer.openingBalance ?? 0);
+    if (outstanding + billTotal > limit) {
+      return `Credit limit exceeded. Outstanding ${this.formatMoney(outstanding)} + bill ${this.formatMoney(billTotal)} > limit ${this.formatMoney(limit)}.`;
+    }
+    return null;
+  }
+
+  private formatMoney(value: number | string | null | undefined): string {
+    return `PKR ${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   clearSale(): void {
@@ -1902,6 +2052,7 @@ export class PharmacyPosComponent implements OnInit, OnDestroy {
     this.productSearch = '';
     this.searchResults = null;
     this.searchLoading = false;
+    this.showSearchDropdown = false;
     this.selectedProductIndex = 0;
 
     if (availableQty <= 0) {
@@ -2183,6 +2334,17 @@ export class PharmacyPosComponent implements OnInit, OnDestroy {
       this.settlementMode === 'ENCOUNTER' || this.paymentMethod === 'credit'
         ? 0
         : this.normalizeMoneyInput(this.paidAmount, this.subtotal);
+
+    if (this.settlementMode !== 'ENCOUNTER') {
+      const unpaidPortion = Math.max(Number(this.payableAmount || 0) - paidAmount, 0);
+      if (this.paymentMethod === 'credit' || unpaidPortion > 0) {
+        const creditError = this.assertCustomerCreditAllowed(unpaidPortion);
+        if (creditError) {
+          this.toastr.error(creditError);
+          return;
+        }
+      }
+    }
 
     const isPaidCounterSale =
       this.settlementMode !== 'ENCOUNTER' &&
@@ -3787,13 +3949,10 @@ export class PharmacyPosComponent implements OnInit, OnDestroy {
     if (this.isSearchInputTarget(event.target)) {
       switch (event.key) {
         case 'ArrowDown':
-          event.preventDefault();
-          this.focusProductCard(0);
-          return true;
         case 'ArrowUp':
-          event.preventDefault();
-          this.focusProductCard(this.filteredProducts().length - 1);
-          return true;
+        case 'Enter':
+          // Handled by handleProductSearchKeydown on the search input (dropdown UX).
+          return false;
         case 'Tab':
           event.preventDefault();
           if (event.shiftKey) {

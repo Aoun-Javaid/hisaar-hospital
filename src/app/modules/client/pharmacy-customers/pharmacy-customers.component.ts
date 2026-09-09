@@ -6,13 +6,16 @@ import { ToastrService } from 'ngx-toastr';
 
 import { BackendService } from '../../../core/services/backend.service';
 import { AppDialogService } from '../../../core/services/app-dialog.service';
+import { downloadExcelWorkbook } from '../../../core/utils/excel-export.util';
+import { HmsDocumentToolbarComponent } from '../../../shared/components/hms-document-toolbar/hms-document-toolbar.component';
 import { Customer } from '../../../shared/models/hospital.model';
 import { formatCurrency } from '../pharmacy-admin.utils';
+import { buildPharmacyReportHtml } from '../pharmacy-export.util';
 
 @Component({
   selector: 'app-pharmacy-customers',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HmsDocumentToolbarComponent],
   templateUrl: './pharmacy-customers.component.html',
   styleUrl: './pharmacy-customers.component.scss',
 })
@@ -21,10 +24,28 @@ export class PharmacyCustomersComponent implements OnInit {
   loading = false;
   saving = false;
   modalOpen = false;
+  showRules = false;
   search = '';
   statusFilter = '';
   editingCustomer: Customer | null = null;
   form = this.emptyForm();
+
+  readonly getExportHtml = () =>
+    buildPharmacyReportHtml(
+      'Pharmacy Customers',
+      [
+        { header: 'Name', key: 'name' },
+        { header: 'Phone', key: 'phone' },
+        { header: 'Email', key: 'email' },
+        { header: 'City', key: 'city' },
+        { header: 'Opening Balance', key: 'openingBalance' },
+        { header: 'Outstanding', key: 'outstandingBalance' },
+        { header: 'Credit Limit', key: 'creditLimit' },
+        { header: 'Available Credit', key: 'availableCredit' },
+        { header: 'Status', key: 'status' },
+      ],
+      this.exportRows(),
+    );
 
   constructor(
     private backend: BackendService,
@@ -71,11 +92,12 @@ export class PharmacyCustomersComponent implements OnInit {
 
   loadCustomers(): void {
     this.loading = true;
-    this.backend.getCustomers({
-      limit: 100,
-      search: this.search.trim() || undefined,
-      isActive: this.statusFilter === '' ? undefined : this.statusFilter,
-    })
+    this.backend
+      .getCustomers({
+        limit: 100,
+        search: this.search.trim() || undefined,
+        isActive: this.statusFilter === '' ? undefined : this.statusFilter,
+      })
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
         next: (result) => (this.customers = result.items),
@@ -118,6 +140,34 @@ export class PharmacyCustomersComponent implements OnInit {
     if (!this.saving) {
       this.modalOpen = false;
     }
+  }
+
+  openRules(): void {
+    this.showRules = true;
+  }
+
+  closeRules(): void {
+    this.showRules = false;
+  }
+
+  exportExcel(): void {
+    downloadExcelWorkbook('pharmacy-customers', [
+      {
+        name: 'Customers',
+        columns: [
+          { header: 'Name', key: 'name' },
+          { header: 'Phone', key: 'phone' },
+          { header: 'Email', key: 'email' },
+          { header: 'City', key: 'city' },
+          { header: 'Opening Balance', key: 'openingBalance' },
+          { header: 'Outstanding', key: 'outstandingBalance' },
+          { header: 'Credit Limit', key: 'creditLimit' },
+          { header: 'Available Credit', key: 'availableCredit' },
+          { header: 'Status', key: 'status' },
+        ],
+        rows: this.exportRows(),
+      },
+    ]);
   }
 
   save(): void {
@@ -180,6 +230,20 @@ export class PharmacyCustomersComponent implements OnInit {
 
   currency(value: number | string | null | undefined): string {
     return formatCurrency(value);
+  }
+
+  private exportRows(): Array<Record<string, unknown>> {
+    return this.customers.map((customer) => ({
+      name: customer.name,
+      phone: customer.phone || '',
+      email: customer.email || '',
+      city: customer.city || '',
+      openingBalance: this.currency(customer.openingBalance),
+      outstandingBalance: this.currency(customer.outstandingBalance),
+      creditLimit: this.currency(customer.creditLimit),
+      availableCredit: this.currency(customer.availableCredit),
+      status: customer.isActive ? 'Active' : 'Inactive',
+    }));
   }
 
   private emptyForm() {
