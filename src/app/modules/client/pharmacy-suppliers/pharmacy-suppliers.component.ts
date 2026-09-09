@@ -6,13 +6,16 @@ import { ToastrService } from 'ngx-toastr';
 
 import { BackendService } from '../../../core/services/backend.service';
 import { AppDialogService } from '../../../core/services/app-dialog.service';
+import { downloadExcelWorkbook } from '../../../core/utils/excel-export.util';
+import { HmsDocumentToolbarComponent } from '../../../shared/components/hms-document-toolbar/hms-document-toolbar.component';
 import { Supplier } from '../../../shared/models/hospital.model';
 import { formatCurrency } from '../pharmacy-admin.utils';
+import { buildPharmacyReportHtml } from '../pharmacy-export.util';
 
 @Component({
   selector: 'app-pharmacy-suppliers',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HmsDocumentToolbarComponent],
   templateUrl: './pharmacy-suppliers.component.html',
   styleUrl: './pharmacy-suppliers.component.scss',
 })
@@ -21,10 +24,29 @@ export class PharmacySuppliersComponent implements OnInit {
   loading = false;
   saving = false;
   modalOpen = false;
+  showRules = false;
   search = '';
   statusFilter = '';
   editingSupplier: Supplier | null = null;
   form = this.emptyForm();
+
+  readonly getExportHtml = () =>
+    buildPharmacyReportHtml(
+      'Pharmacy Suppliers',
+      [
+        { header: 'Name', key: 'name' },
+        { header: 'Phone', key: 'phone' },
+        { header: 'Email', key: 'email' },
+        { header: 'Tax No.', key: 'taxNumber' },
+        { header: 'City', key: 'city' },
+        { header: 'Opening Balance', key: 'openingBalance' },
+        { header: 'Outstanding', key: 'outstandingBalance' },
+        { header: 'Credit Limit', key: 'creditLimit' },
+        { header: 'Available Credit', key: 'availableCredit' },
+        { header: 'Status', key: 'status' },
+      ],
+      this.exportRows(),
+    );
 
   constructor(
     private backend: BackendService,
@@ -116,6 +138,35 @@ export class PharmacySuppliersComponent implements OnInit {
     }
   }
 
+  openRules(): void {
+    this.showRules = true;
+  }
+
+  closeRules(): void {
+    this.showRules = false;
+  }
+
+  exportExcel(): void {
+    downloadExcelWorkbook('pharmacy-suppliers', [
+      {
+        name: 'Suppliers',
+        columns: [
+          { header: 'Name', key: 'name' },
+          { header: 'Phone', key: 'phone' },
+          { header: 'Email', key: 'email' },
+          { header: 'Tax No.', key: 'taxNumber' },
+          { header: 'City', key: 'city' },
+          { header: 'Opening Balance', key: 'openingBalance' },
+          { header: 'Outstanding', key: 'outstandingBalance' },
+          { header: 'Credit Limit', key: 'creditLimit' },
+          { header: 'Available Credit', key: 'availableCredit' },
+          { header: 'Status', key: 'status' },
+        ],
+        rows: this.exportRows(),
+      },
+    ]);
+  }
+
   save(): void {
     if (!this.form.name.trim()) {
       this.toastr.error('Supplier name is required.');
@@ -177,6 +228,21 @@ export class PharmacySuppliersComponent implements OnInit {
 
   currency(value: number | string | null | undefined): string {
     return formatCurrency(value);
+  }
+
+  private exportRows(): Array<Record<string, unknown>> {
+    return this.suppliers.map((supplier) => ({
+      name: supplier.name,
+      phone: supplier.phone || '',
+      email: supplier.email || '',
+      taxNumber: supplier.taxNumber || '',
+      city: supplier.city || '',
+      openingBalance: this.currency(supplier.openingBalance),
+      outstandingBalance: this.currency(supplier.outstandingBalance),
+      creditLimit: this.currency(supplier.creditLimit),
+      availableCredit: this.currency(supplier.availableCredit),
+      status: supplier.isActive ? 'Active' : 'Inactive',
+    }));
   }
 
   private emptyForm() {

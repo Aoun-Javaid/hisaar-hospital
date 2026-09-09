@@ -6,6 +6,15 @@
         <p>Track pharmacy counter costs, petty cash, and store operating expenses.</p>
       </div>
       <div class="pharmacy-hero-actions">
+        <app-hms-document-toolbar
+          title="Pharmacy Expenses"
+          filename="pharmacy-expenses.pdf"
+          orientation="landscape"
+          [showExcel]="true"
+          [disabled]="loading || !expenses.length"
+          [getHtml]="getExportHtml"
+          (excelClick)="exportExcel()"
+        ></app-hms-document-toolbar>
         <button class="ph-btn primary" type="button" (click)="openCreate()" [disabled]="!canCreate">
           <i class="fa fa-plus"></i>
           <span>Add Expense</span>

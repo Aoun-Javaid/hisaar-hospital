@@ -6,6 +6,15 @@
         <p>Live stock snapshot for pharmacy medicines, store availability, and valuation.</p>
       </div>
       <div class="pharmacy-hero-actions">
+        <app-hms-document-toolbar
+          title="Pharmacy Inventory"
+          filename="pharmacy-inventory.pdf"
+          orientation="landscape"
+          [showExcel]="true"
+          [disabled]="loading || !filteredProducts.length"
+          [getHtml]="getExportHtml"
+          (excelClick)="exportExcel()"
+        ></app-hms-document-toolbar>
         <button class="ph-btn ghost" type="button" (click)="loadInventory()">
           <i class="fa fa-refresh"></i>
           <span>Refresh</span>

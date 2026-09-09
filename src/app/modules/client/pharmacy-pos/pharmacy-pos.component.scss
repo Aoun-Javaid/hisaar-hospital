@@ -44,6 +44,8 @@
   display: flex;
   gap: 8px;
   min-width: 0;
+  position: relative;
+  z-index: 40;
 }
 
 .storepos-search-box > span {
@@ -52,6 +54,12 @@
   font-weight: 900;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+}
+
+.storepos-search-field {
+  flex: 1;
+  min-width: 0;
+  position: relative;
 }
 
 .storepos-search-box label {
@@ -82,6 +90,93 @@
   min-height: 34px;
   min-width: 0;
   outline: 0;
+}
+
+.storepos-search-dropdown {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.22);
+  left: 0;
+  max-height: min(52vh, 360px);
+  overflow: auto;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 80;
+}
+
+.storepos-search-dropdown__status {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 12px 14px;
+}
+
+.storepos-search-dropdown__item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.storepos-search-dropdown__item:last-child {
+  border-bottom: 0;
+}
+
+.storepos-search-dropdown__item:hover,
+.storepos-search-dropdown__item.is-active {
+  background: #ecfeff;
+}
+
+.storepos-search-dropdown__item.is-active {
+  box-shadow: inset 3px 0 0 #0f766e;
+}
+
+.storepos-search-dropdown__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.storepos-search-dropdown__main strong {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.storepos-search-dropdown__main small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.storepos-search-dropdown__meta {
+  align-items: flex-end;
+  display: grid;
+  flex: 0 0 auto;
+  gap: 2px;
+  text-align: right;
+}
+
+.storepos-search-dropdown__meta em {
+  color: #64748b;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.storepos-search-dropdown__meta b {
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .storepos-search-box input.keyboard-active,

@@ -149,6 +149,9 @@ export interface Customer {
   city?: string | null;
   openingBalance?: number | string;
   creditLimit?: number | string;
+  outstandingBalance?: number | string;
+  availableCredit?: number | string;
+  creditEnabled?: boolean;
   notes?: string | null;
   isActive: boolean;
   createdAt?: string;
@@ -165,6 +168,9 @@ export interface Supplier {
   city?: string | null;
   openingBalance?: number | string;
   creditLimit?: number | string;
+  outstandingBalance?: number | string;
+  availableCredit?: number | string;
+  creditEnabled?: boolean;
   taxNumber?: string | null;
   notes?: string | null;
   isActive: boolean;

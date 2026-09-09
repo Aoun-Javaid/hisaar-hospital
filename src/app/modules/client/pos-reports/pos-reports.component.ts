@@ -5,6 +5,8 @@ import { ActivatedRoute } from '@angular/router';
 import { finalize, forkJoin, map, Observable, of } from 'rxjs';
 
 import { BackendService } from '../../../core/services/backend.service';
+import { downloadExcelWorkbook } from '../../../core/utils/excel-export.util';
+import { HmsDocumentToolbarComponent } from '../../../shared/components/hms-document-toolbar/hms-document-toolbar.component';
 import {
   ProductCatalogItem,
   RegisterSession,
@@ -12,6 +14,7 @@ import {
   Store,
   User,
 } from '../../../shared/models/hospital.model';
+import { buildPharmacyReportHtml } from '../pharmacy-export.util';
 
 type ReportKey =
   | 'sales'
@@ -31,7 +34,7 @@ interface ReportDefinition {
 @Component({
   selector: 'app-pos-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HmsDocumentToolbarComponent],
   templateUrl: './pos-reports.component.html',
   styleUrl: './pos-reports.component.scss',
 })
@@ -86,6 +89,13 @@ export class PosReportsComponent implements OnInit {
   storeId = '';
   lowStockOnly = false;
   localFallbackMode = false;
+
+  readonly getExportHtml = () =>
+    buildPharmacyReportHtml(
+      `Pharmacy ${this.activeReportDefinition.title} Report`,
+      this.exportColumns(),
+      this.exportRows(),
+    );
 
   constructor(
     private route: ActivatedRoute,
@@ -295,6 +305,34 @@ export class PosReportsComponent implements OnInit {
 
   trackByIndex(index: number): number {
     return index;
+  }
+
+  exportExcel(): void {
+    const columns = this.exportColumns();
+    downloadExcelWorkbook(`pharmacy-${this.activeReport}-report`, [
+      {
+        name: this.activeReportDefinition.title,
+        columns,
+        rows: this.exportRows(),
+      },
+    ]);
+  }
+
+  private exportColumns(): Array<{ header: string; key: string }> {
+    return this.tableColumns.map((column) => ({
+      header: this.labelFor(column),
+      key: column,
+    }));
+  }
+
+  private exportRows(): Array<Record<string, unknown>> {
+    return this.items.map((row) => {
+      const mapped: Record<string, unknown> = {};
+      for (const column of this.tableColumns) {
+        mapped[column] = this.formatValue(column, this.cellValue(row, column));
+      }
+      return mapped;
+    });
   }
 
   private resolveReportRequest(params: Record<string, unknown>): Observable<unknown[] | Record<string, unknown>> {

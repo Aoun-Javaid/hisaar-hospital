@@ -5,6 +5,7 @@ import { finalize } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 
 import { BackendService } from '../../../core/services/backend.service';
+import { downloadExcelWorkbook } from '../../../core/utils/excel-export.util';
 import {
   Expense,
   Payment,
@@ -20,6 +21,7 @@ import {
   readAssignedStoreId,
   toDateInputValue,
 } from '../pharmacy-admin.utils';
+import { buildPharmacyReportHtml } from '../pharmacy-export.util';
 
 type PaymentSortKey = 'dateDesc' | 'dateAsc' | 'amountDesc' | 'amountAsc';
 
@@ -68,6 +70,21 @@ export class PharmacyPaymentsComponent implements OnInit {
     'check',
   ];
   form = this.emptyForm();
+
+  readonly getExportHtml = () =>
+    buildPharmacyReportHtml(
+      'Pharmacy Payments',
+      [
+        { header: 'Date & Time', key: 'paymentDate' },
+        { header: 'Reference', key: 'reference' },
+        { header: 'Document', key: 'document' },
+        { header: 'Store', key: 'store' },
+        { header: 'Method', key: 'method' },
+        { header: 'Amount', key: 'amount' },
+        { header: 'Note', key: 'note' },
+      ],
+      this.exportRows(),
+    );
 
   constructor(
     private backend: BackendService,
@@ -491,6 +508,24 @@ export class PharmacyPaymentsComponent implements OnInit {
     );
   }
 
+  exportExcel(): void {
+    downloadExcelWorkbook('pharmacy-payments', [
+      {
+        name: 'Payments',
+        columns: [
+          { header: 'Date & Time', key: 'paymentDate' },
+          { header: 'Reference', key: 'reference' },
+          { header: 'Document', key: 'document' },
+          { header: 'Store', key: 'store' },
+          { header: 'Method', key: 'method' },
+          { header: 'Amount', key: 'amount' },
+          { header: 'Note', key: 'note' },
+        ],
+        rows: this.exportRows(),
+      },
+    ]);
+  }
+
   printSingle(payment: Payment): void {
     this.openPrintDocument([payment], 'Pharmacy Payment Advice');
   }
@@ -795,6 +830,18 @@ export class PharmacyPaymentsComponent implements OnInit {
         next: (result) => (this.expenses = result.items),
         error: () => (this.expenses = []),
       });
+  }
+
+  private exportRows(): Array<Record<string, unknown>> {
+    return this.visiblePayments.map((payment) => ({
+      paymentDate: this.dateTime(payment.paymentDate),
+      reference: this.referenceTypeLabel(payment.referenceType),
+      document: this.referenceDocLabel(payment),
+      store: this.storeName(payment.storeId),
+      method: this.methodLabel(payment.method),
+      amount: this.currency(payment.amount),
+      note: this.displayNote(payment),
+    }));
   }
 
   private emptyForm() {

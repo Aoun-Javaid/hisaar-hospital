@@ -14,6 +14,10 @@
           <i class="fa fa-print"></i>
           <span>Print</span>
         </button>
+        <button class="ppay-btn ghost" type="button" (click)="exportExcel()" [disabled]="!visiblePayments.length">
+          <i class="fa fa-file-excel-o"></i>
+          <span>Excel</span>
+        </button>
         <button class="ppay-btn primary" type="button" (click)="openCreate()" [disabled]="!canCreate">
           <i class="fa fa-plus"></i>
           <span>Add Payment</span>

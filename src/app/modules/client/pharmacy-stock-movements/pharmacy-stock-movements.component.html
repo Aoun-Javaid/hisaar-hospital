@@ -5,6 +5,17 @@
         <h1><i class="fa fa-exchange"></i> Pharmacy Stock Movements</h1>
         <p>Audit every stock adjustment affecting pharmacy inventory across stores and warehouses.</p>
       </div>
+      <div class="pharmacy-hero-actions">
+        <app-hms-document-toolbar
+          title="Pharmacy Stock Movements"
+          filename="pharmacy-stock-movements.pdf"
+          orientation="landscape"
+          [showExcel]="true"
+          [disabled]="loading || !movements.length"
+          [getHtml]="getExportHtml"
+          (excelClick)="exportExcel()"
+        ></app-hms-document-toolbar>
+      </div>
     </header>
 
     <section class="ph-highlights" aria-label="Movement highlights">

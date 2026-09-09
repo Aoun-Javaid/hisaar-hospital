@@ -67,6 +67,104 @@
   justify-content: flex-end;
 }
 
+.pharmacy-rules-btn {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--pharmacy-line);
+  border-radius: 8px;
+  color: var(--pharmacy-ink, #0f172a);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 14px;
+}
+
+.pharmacy-rules-btn:hover {
+  border-color: rgba(1, 156, 157, 0.5);
+  color: var(--pharmacy-teal, #019c9d);
+}
+
+.pharmacy-rules-btn .fa {
+  color: var(--pharmacy-teal, #019c9d);
+}
+
+.pharmacy-rules-modal {
+  inset: 0;
+  position: fixed;
+  z-index: 100050;
+}
+
+.pharmacy-rules-modal__backdrop {
+  backdrop-filter: blur(1.5px);
+  background: rgba(28, 43, 63, 0.56);
+  inset: 0;
+  position: absolute;
+}
+
+.pharmacy-rules-modal__dialog {
+  background: #fff;
+  border: 1px solid var(--pharmacy-line);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+  left: 50%;
+  max-height: min(84vh, 720px);
+  max-width: 640px;
+  overflow: auto;
+  padding: 20px 22px;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
+}
+
+.pharmacy-rules-modal__dialog h2 {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+
+.pharmacy-rules-modal__dialog > p {
+  color: var(--pharmacy-muted);
+  font-size: 13px;
+  margin: 0 0 16px;
+}
+
+.pharmacy-rules-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.pharmacy-rules-list article {
+  background: #f8fafc;
+  border: 1px solid var(--pharmacy-line);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.pharmacy-rules-list strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.pharmacy-rules-list p {
+  color: var(--pharmacy-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.pharmacy-rules-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
 .pharmacy-loading,
 .pharmacy-empty-state {
   align-items: center;

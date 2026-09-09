@@ -6,6 +6,15 @@
         <p>Backend-calculated pharmacy POS sales, stock, payment, and profit reports.</p>
       </div>
       <div class="pharmacy-hero-actions">
+        <app-hms-document-toolbar
+          [title]="'Pharmacy ' + activeReportDefinition.title + ' Report'"
+          [filename]="'pharmacy-' + activeReport + '-report.pdf'"
+          orientation="landscape"
+          [showExcel]="true"
+          [disabled]="loading || !items.length"
+          [getHtml]="getExportHtml"
+          (excelClick)="exportExcel()"
+        ></app-hms-document-toolbar>
         <button type="button" class="ph-btn primary" (click)="loadReport()" [disabled]="loading">
           <i class="fa" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-refresh'"></i>
           <span>Refresh</span>
