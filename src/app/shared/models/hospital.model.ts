@@ -240,6 +240,95 @@ export interface Department {
   sortOrder?: number;
   description?: string | null;
   status: Status;
+  inChargeDoctorId?: string | Doctor | null;
+  inChargeDoctor?: Doctor | null;
+}
+
+export type TreatmentCatalogType =
+  | 'treatment'
+  | 'procedure'
+  | 'operation'
+  | 'surgery'
+  | 'package';
+
+export type DiscountType = 'none' | 'percentage' | 'fixed';
+
+export interface DiscountSnapshot {
+  type?: DiscountType;
+  value?: number;
+  amount?: number;
+  reason?: string;
+  recommendedByDoctorId?: string | null;
+  recommendedAt?: string | null;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+}
+
+export interface TreatmentCatalogItem {
+  _id: string;
+  hospitalId: string;
+  companyId?: string | null;
+  code: string;
+  name: string;
+  type: TreatmentCatalogType;
+  departmentId?: string | Department | null;
+  department?: Department | null;
+  baseRate: number;
+  description?: string;
+  defaultDurationMinutes?: number;
+  requiresOperationSchedule?: boolean;
+  isActive?: boolean;
+  includedItems?: string[];
+  packageNotes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type OperationScheduleStatus =
+  | 'requested'
+  | 'scheduled'
+  | 'confirmed'
+  | 'in_progress'
+  | 'completed'
+  | 'postponed'
+  | 'cancelled';
+
+export interface OperationSchedule {
+  _id: string;
+  hospitalId: string;
+  operationNo?: string;
+  patientId: string | Patient;
+  patient?: Patient | null;
+  departmentId?: string | Department | null;
+  treatmentCatalogId?: string | TreatmentCatalogItem | null;
+  treatmentCatalog?: TreatmentCatalogItem | null;
+  admissionRecommendationId?: string | null;
+  encounterId?: string | null;
+  roomAllotmentId?: string | null;
+  assignedOperatingDoctorId?: string | Doctor | null;
+  assignedOperatingDoctor?: Doctor | null;
+  assistantDoctorIds?: string[];
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+  durationMinutes?: number;
+  priority?: 'routine' | 'urgent' | 'emergency';
+  status: OperationScheduleStatus;
+  clinicalNotes?: string;
+  operationNotes?: string;
+  treatmentPricingSnapshot?: {
+    treatmentCatalogId?: string;
+    code?: string;
+    name?: string;
+    type?: string;
+    baseRate?: number;
+    durationMinutes?: number;
+    requiresOperationSchedule?: boolean;
+  } | null;
+  procedureDiscountApproved?: DiscountSnapshot | null;
+  ledgerItemId?: string | null;
+  billingPostedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Doctor {
@@ -707,6 +796,15 @@ export interface RoomAllotment {
   assignedNurse?: Pick<User, '_id' | 'name' | 'email' | 'phone'> | null;
   admissionRecommendationId?: string | null;
   admissionNo?: string | null;
+  treatmentCatalogId?: string | null;
+  treatmentPricingSnapshot?: OperationSchedule['treatmentPricingSnapshot'];
+  roomPricingSnapshot?: {
+    roomId?: string;
+    roomNo?: string;
+    chargesPerDay?: number;
+  } | null;
+  roomDiscountApproved?: DiscountSnapshot | null;
+  procedureDiscountApproved?: DiscountSnapshot | null;
 }
 
 export interface BillItem {

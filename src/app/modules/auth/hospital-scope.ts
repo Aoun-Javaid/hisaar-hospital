@@ -35,6 +35,9 @@ export const HOSPITAL_SETUP_ACCESS: AccessRequirement = {
     'ward.create',
     'ward.update',
     'hospitals.update',
+    'treatment_catalog.read',
+    'treatment_catalog.create',
+    'treatment_catalog.update',
     '*',
   ],
 };

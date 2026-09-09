@@ -38,6 +38,8 @@ import {
   Encounter,
   EncounterLedger,
   Expense,
+  OperationSchedule,
+  TreatmentCatalogItem,
   Hospital,
   ListResult,
   Patient,
@@ -511,6 +513,96 @@ export class BackendService {
     return this.delete<Department>(`${CONFIG.departments}/${id}`).pipe(
       tap(() => this.invalidateLookup('departments'))
     );
+  }
+
+  getTreatmentCatalog(params?: Record<string, unknown>): Observable<ListResult<TreatmentCatalogItem> & { kpis?: Record<string, number> }> {
+    if (
+      !this.hasPermission('treatment_catalog.read') &&
+      !this.hasPermission('ward.admissions.recommend') &&
+      !this.hasPermission('operations.read') &&
+      !this.hasPermission('hospitals.update') &&
+      !this.hasPermission('departments.update') &&
+      !this.hasPermission('*')
+    ) {
+      return of(this.emptyListResult<TreatmentCatalogItem>());
+    }
+
+    return this.get<PaginatedResponse<TreatmentCatalogItem> & { kpis?: Record<string, number> }>(
+      CONFIG.treatmentCatalog,
+      params
+    ).pipe(map((response) => this.unwrapData(response)));
+  }
+
+  getTreatmentCatalogItem(id: string): Observable<TreatmentCatalogItem> {
+    return this.get<TreatmentCatalogItem>(`${CONFIG.treatmentCatalog}/${id}`).pipe(
+      map((response) => this.unwrapData(response))
+    );
+  }
+
+  createTreatmentCatalogItem(payload: Partial<TreatmentCatalogItem>): Observable<ApiResponse<TreatmentCatalogItem>> {
+    return this.post<TreatmentCatalogItem>(CONFIG.treatmentCatalog, payload);
+  }
+
+  updateTreatmentCatalogItem(
+    id: string,
+    payload: Partial<TreatmentCatalogItem>
+  ): Observable<ApiResponse<TreatmentCatalogItem>> {
+    return this.patch<TreatmentCatalogItem>(`${CONFIG.treatmentCatalog}/${id}`, payload);
+  }
+
+  deactivateTreatmentCatalogItem(id: string): Observable<ApiResponse<TreatmentCatalogItem>> {
+    return this.delete<TreatmentCatalogItem>(`${CONFIG.treatmentCatalog}/${id}`);
+  }
+
+  getOperationSchedules(params?: Record<string, unknown>): Observable<ListResult<OperationSchedule>> {
+    if (!this.hasPermission('operations.read') && !this.hasPermission('operations.read_all') && !this.hasPermission('*')) {
+      return of(this.emptyListResult<OperationSchedule>());
+    }
+
+    return this.get<PaginatedResponse<OperationSchedule>>(CONFIG.operationSchedules, params).pipe(
+      map((response) => this.unwrapData(response))
+    );
+  }
+
+  getOperationScheduleCalendar(params?: Record<string, unknown>): Observable<OperationSchedule[]> {
+    return this.get<OperationSchedule[]>(`${CONFIG.operationSchedules}/calendar`, params).pipe(
+      map((response) => {
+        const data = this.unwrapData(response) as unknown;
+        return Array.isArray(data) ? data : ((data as { items?: OperationSchedule[] })?.items || []);
+      })
+    );
+  }
+
+  getOperationScheduleKpis(params?: Record<string, unknown>): Observable<Record<string, number>> {
+    return this.get<Record<string, number>>(`${CONFIG.operationSchedules}/kpi`, params).pipe(
+      map((response) => this.unwrapData(response))
+    );
+  }
+
+  getOperationSchedule(id: string): Observable<OperationSchedule> {
+    return this.get<OperationSchedule>(`${CONFIG.operationSchedules}/${id}`).pipe(
+      map((response) => this.unwrapData(response))
+    );
+  }
+
+  createOperationSchedule(payload: Record<string, unknown>): Observable<ApiResponse<OperationSchedule>> {
+    return this.post<OperationSchedule>(CONFIG.operationSchedules, payload);
+  }
+
+  updateOperationSchedule(id: string, payload: Record<string, unknown>): Observable<ApiResponse<OperationSchedule>> {
+    return this.patch<OperationSchedule>(`${CONFIG.operationSchedules}/${id}`, payload);
+  }
+
+  updateOperationScheduleStatus(id: string, status: string): Observable<ApiResponse<OperationSchedule>> {
+    return this.post<OperationSchedule>(`${CONFIG.operationSchedules}/${id}/status`, { status });
+  }
+
+  completeOperationSchedule(id: string): Observable<ApiResponse<OperationSchedule>> {
+    return this.post<OperationSchedule>(`${CONFIG.operationSchedules}/${id}/complete`, {});
+  }
+
+  cancelOperationSchedule(id: string, payload?: Record<string, unknown>): Observable<ApiResponse<OperationSchedule>> {
+    return this.post<OperationSchedule>(`${CONFIG.operationSchedules}/${id}/cancel`, payload || {});
   }
 
   getDoctors(params?: Record<string, unknown>): Observable<ListResult<Doctor>> {

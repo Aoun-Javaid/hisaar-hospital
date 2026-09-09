@@ -10,6 +10,7 @@ import {
   Appointment,
   DashboardStatusBreakdown,
   DashboardSummary,
+  OperationSchedule,
   Patient,
 } from '../../../shared/models/hospital.model';
 import { isDoctorRole } from '../../auth/access-control';
@@ -55,6 +56,13 @@ export class DoctorDashboardComponent implements OnInit {
   canOpenPrescriptions = false;
   canOpenPatients = false;
   canOpenAppointments = false;
+  canOpenOperations = false;
+  operationKpis = {
+    today: 0,
+    upcoming: 0,
+    pending: 0,
+  };
+  myOperations: OperationSchedule[] = [];
 
   summary: DashboardSummary = this.emptySummary();
   currentUserName = 'Doctor';
@@ -74,6 +82,7 @@ export class DoctorDashboardComponent implements OnInit {
     this.hydrateSession();
     this.initializePermissions();
     this.loadSummary();
+    this.loadOperationsSnapshot();
   }
 
   get isDoctor(): boolean {
@@ -101,6 +110,47 @@ export class DoctorDashboardComponent implements OnInit {
           this.toastr.error(err?.error?.message || 'Unable to load dashboard.');
         },
       });
+  }
+
+  private loadOperationsSnapshot(): void {
+    if (!this.canOpenOperations) {
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    this.backend.getOperationScheduleKpis({ from: `${today}T00:00:00.000Z`, to: `${today}T23:59:59.999Z` }).subscribe({
+      next: (kpis) => {
+        this.operationKpis = {
+          today: Number(kpis['today'] || 0),
+          upcoming: Number(kpis['upcoming'] || 0),
+          pending: Number(kpis['pending'] || kpis['pendingScheduling'] || 0),
+        };
+      },
+      error: () => undefined,
+    });
+
+    this.backend.getOperationSchedules({ limit: 8, from: `${today}T00:00:00.000Z` }).subscribe({
+      next: (result) => {
+        this.myOperations = result.items || [];
+      },
+      error: () => {
+        this.myOperations = [];
+      },
+    });
+  }
+
+  operationPatientName(item: OperationSchedule): string {
+    const patient = typeof item.patientId === 'object' ? item.patientId : item.patient;
+    return this.patientName(patient || null);
+  }
+
+  operationProcedureName(item: OperationSchedule): string {
+    return (
+      item.treatmentPricingSnapshot?.name ||
+      (typeof item.treatmentCatalogId === 'object' ? item.treatmentCatalogId?.name : '') ||
+      item.treatmentCatalog?.name ||
+      '—'
+    );
   }
 
   patientName(patient?: Patient | null): string {
@@ -139,12 +189,17 @@ export class DoctorDashboardComponent implements OnInit {
       this.backend.hasPermission('prescriptions.create');
     this.canOpenPatients = this.backend.hasPermission('patients.read');
     this.canOpenAppointments = this.backend.hasPermission('appointments.read');
+    this.canOpenOperations =
+      this.backend.hasPermission('operations.read') ||
+      this.backend.hasPermission('operations.read_all') ||
+      this.backend.hasPermission('*');
 
     this.quickLinks = [
       { label: 'Appointments', route: '/appointments', icon: 'fa-calendar', visible: this.canOpenAppointments },
       { label: 'Prescriptions', route: '/prescriptions', icon: 'fa-file-text-o', visible: this.canOpenPrescriptions },
       { label: 'Clinical Records', route: '/clinical-records', icon: 'fa-stethoscope', visible: this.canOpenClinicalRecords },
       { label: 'My Patients', route: '/patients/all-patients', icon: 'fa-users', visible: this.canOpenPatients },
+      { label: 'Operation Calendar', route: '/operations', icon: 'fa-heartbeat', visible: this.canOpenOperations },
     ];
   }
 

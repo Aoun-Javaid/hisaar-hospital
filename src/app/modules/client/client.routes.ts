@@ -331,6 +331,38 @@ export const clientRoutes: Routes = [
         canActivate: [roleGuard(HOSPITAL_SETUP_ACCESS)],
       },
       {
+        path: 'hospital-setup/treatments-procedures',
+        loadComponent: () =>
+          import('./treatments-procedures/treatments-procedures.component').then(
+            (m) => m.TreatmentsProceduresComponent
+          ),
+        data: { title: 'Hisaar360 Hospital Management System | Treatments & Procedures' },
+        canActivate: [
+          roleGuard({
+            any: [
+              'treatment_catalog.read',
+              'treatment_catalog.create',
+              'treatment_catalog.update',
+              'hospitals.update',
+              'departments.update',
+              '*',
+            ],
+          }),
+        ],
+      },
+      {
+        path: 'operations',
+        loadComponent: () =>
+          import('./operations/operation-calendar.component').then((m) => m.OperationCalendarComponent),
+        data: { title: 'Hisaar360 Hospital Management System | Operation Calendar' },
+        canActivate: [roleGuard({ any: ['operations.read', 'operations.read_all', '*'] })],
+      },
+      {
+        path: 'operations/calendar',
+        pathMatch: 'full',
+        redirectTo: 'operations',
+      },
+      {
         path: 'our-centers',
         pathMatch: 'full',
         redirectTo: 'dashboard',

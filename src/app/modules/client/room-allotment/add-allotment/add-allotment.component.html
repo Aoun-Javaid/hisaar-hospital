@@ -1,244 +1,517 @@
-<div id="main-content" class="allotment-page">
-    <div class="allotment-shell">
-        <header class="allotment-header">
-            <h1>{{ recommendationReadOnly ? 'Review & Admit Patient' : 'Add Room Allotment' }}</h1>
-            <p>{{ recommendationReadOnly ? 'Doctor admission order is read-only. Complete ward/bed allocation below.' : 'Admit patient to a room' }}</p>
-        </header>
+<div id="main-content" class="allotment-page" [class.is-review]="recommendationReadOnly">
+  <div class="allotment-shell">
+    <nav class="allotment-breadcrumb" aria-label="Breadcrumb">
+      <a routerLink="/">Home</a>
+      <span>/</span>
+      <a routerLink="/room-allotment/alloted-rooms">Room Allotment</a>
+      <span>/</span>
+      <strong>{{ recommendationReadOnly ? 'Review & Admit Patient' : 'Add Allotment' }}</strong>
+    </nav>
 
-        <section class="allotment-card recommendation-summary" *ngIf="recommendationSummary as rec" data-testid="ward-admit-review">
-            <div class="allotment-card__head">
-                <h2>Doctor Admission Recommendation (Read Only)</h2>
+    <header class="allotment-header">
+      <h1>{{ recommendationReadOnly ? 'Review & Admit Patient' : 'Add Room Allotment' }}</h1>
+      <p>
+        {{
+          recommendationReadOnly
+            ? 'Doctor admission order is read-only. Complete ward/bed allocation below.'
+            : 'Admit patient to a room and capture advance or security if needed.'
+        }}
+      </p>
+    </header>
+
+    <section class="allotment-card recommendation-summary" *ngIf="recommendationSummary as rec" data-testid="ward-admit-review">
+      <div class="allotment-card__head allotment-card__head--soft">
+        <div class="allotment-card__title">
+          <span class="allotment-card__icon"><i class="fa fa-file-text-o" aria-hidden="true"></i></span>
+          <h2>Doctor Admission Recommendation</h2>
+        </div>
+        <span class="readonly-pill"><i class="fa fa-lock" aria-hidden="true"></i> Read Only</span>
+      </div>
+      <div class="recommendation-grid">
+        <article class="recommendation-item">
+          <span class="recommendation-item__icon"><i class="fa fa-file-text-o"></i></span>
+          <div>
+            <small>Order ID</small>
+            <strong>{{ rec['orderNo'] || '—' }}</strong>
+          </div>
+        </article>
+        <article class="recommendation-item">
+          <span class="recommendation-item__icon"><i class="fa fa-user-md"></i></span>
+          <div>
+            <small>Recommending Doctor</small>
+            <strong>{{ doctorDisplayName(rec['recommendedByDoctorId']) }}</strong>
+          </div>
+        </article>
+        <article class="recommendation-item">
+          <span class="recommendation-item__icon"><i class="fa fa-list-ul"></i></span>
+          <div>
+            <small>Reason</small>
+            <strong>{{ rec['reason'] || '—' }}</strong>
+          </div>
+        </article>
+        <article class="recommendation-item">
+          <span class="recommendation-item__icon"><i class="fa fa-stethoscope"></i></span>
+          <div>
+            <small>Diagnosis</small>
+            <strong>{{ rec['initialDiagnosis'] || '—' }}</strong>
+          </div>
+        </article>
+        <article class="recommendation-item">
+          <span class="recommendation-item__icon" [class.is-urgent]="isUrgentPriority(rec['priority'])">
+            <i class="fa" [ngClass]="isUrgentPriority(rec['priority']) ? 'fa-exclamation-circle' : 'fa-flag'"></i>
+          </span>
+          <div>
+            <small>Priority</small>
+            <strong [class.is-urgent]="isUrgentPriority(rec['priority'])">{{ priorityLabel(rec['priority']) }}</strong>
+          </div>
+        </article>
+        <article class="recommendation-item">
+          <span class="recommendation-item__icon"><i class="fa fa-medkit"></i></span>
+          <div>
+            <small>Recommended Treatment</small>
+            <strong>{{ treatmentDisplayName(rec) }}</strong>
+          </div>
+        </article>
+        <article class="recommendation-item">
+          <span class="recommendation-item__icon"><i class="fa fa-money"></i></span>
+          <div>
+            <small>Standard Package Rate</small>
+            <strong>Rs. {{ packageRateFromRecommendation(rec) | number:'1.0-0' }}</strong>
+          </div>
+        </article>
+        <article class="recommendation-item">
+          <span class="recommendation-item__icon"><i class="fa fa-percent"></i></span>
+          <div>
+            <small>Doctor Room Discount</small>
+            <strong>{{ recommendedRoomDiscountLabel }}</strong>
+          </div>
+        </article>
+        <article class="recommendation-item">
+          <span class="recommendation-item__icon"><i class="fa fa-percent"></i></span>
+          <div>
+            <small>Doctor Operation Discount</small>
+            <strong>{{ recommendedProcedureDiscountLabel }}</strong>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <div class="allotment-layout">
+      <section class="allotment-card allotment-form-card">
+        <div class="allotment-card__head allotment-card__head--soft">
+          <div class="allotment-card__title">
+            <span class="allotment-card__icon"><i class="fa fa-file-text-o" aria-hidden="true"></i></span>
+            <h2>Allotment Information</h2>
+          </div>
+          <button class="clear-form-btn" type="button" (click)="clearForm()">
+            <i class="fa fa-refresh" aria-hidden="true"></i>
+            Clear Form
+          </button>
+        </div>
+
+        <form class="allotment-form" [formGroup]="allotmentForm" (ngSubmit)="submitAllotment()">
+          <div class="allotment-field">
+            <label for="patientSearch">Search Patient</label>
+            <div class="patient-search">
+              <span class="field-leading-icon"><i class="fa fa-search" aria-hidden="true"></i></span>
+              <input
+                id="patientSearch"
+                class="allotment-input"
+                type="text"
+                [(ngModel)]="patientSearchQuery"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Name, patient number, or phone number"
+                [disabled]="recommendationReadOnly && !!selectedPatient"
+                (keydown.enter)="$event.preventDefault(); lookupPatients()"
+              />
+              <button
+                class="allotment-btn allotment-btn--primary patient-search__btn"
+                type="button"
+                [disabled]="!canSearchPatients() || (recommendationReadOnly && !!selectedPatient)"
+                (click)="lookupPatients()"
+              >
+                {{ patientLookupLoading ? 'Searching...' : 'Search' }}
+              </button>
             </div>
-            <p><strong>Order:</strong> {{ rec['orderNo'] || '—' }}</p>
-            <p><strong>Reason:</strong> {{ rec['reason'] || '—' }}</p>
-            <p><strong>Diagnosis:</strong> {{ rec['initialDiagnosis'] || '—' }}</p>
-            <p><strong>Priority:</strong> {{ rec['priority'] || 'routine' }}</p>
+            <small class="field-hint">Search by patient name, patient number, or phone number.</small>
+          </div>
+
+          <div class="patient-lookup-panel" *ngIf="patientLookupPerformed && !selectedPatient">
+            <div class="lookup-empty" *ngIf="matchedPatients.length === 0">
+              <strong>No patient found</strong>
+              <span>Try another name, patient number, or phone.</span>
+              <a class="allotment-btn allotment-btn--ghost" [routerLink]="['/patients/add-patient']" [queryParams]="addPatientQueryParams">
+                Add New Patient
+              </a>
+            </div>
+
+            <div class="patient-results" *ngIf="matchedPatients.length > 0">
+              <button type="button" class="patient-result-card" *ngFor="let patient of matchedPatients" (click)="selectPatient(patient)">
+                <div class="patient-result-main">
+                  <strong>{{ patientName(patient) }}</strong>
+                  <small>{{ patientSummary(patient) || 'No patient number or phone' }}</small>
+                </div>
+                <span class="patient-select-badge">Select</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="selected-patient" *ngIf="selectedPatient">
+            <div class="selected-patient__avatar">
+              <i class="fa fa-user" aria-hidden="true"></i>
+            </div>
+            <div class="selected-patient__copy">
+              <strong>{{ patientName(selectedPatient) }}</strong>
+              <small>{{ patientSummary(selectedPatient) }}</small>
+            </div>
+            <button
+              class="allotment-btn allotment-btn--ghost"
+              type="button"
+              (click)="clearSelectedPatient()"
+              [disabled]="recommendationReadOnly"
+            >
+              <i class="fa fa-refresh" aria-hidden="true"></i>
+              Change
+            </button>
+          </div>
+
+          <div class="mobile-room-card" *ngIf="selectedRoom">
+            <div class="mobile-room-card__head">
+              <div class="allotment-card__title">
+                <span class="allotment-card__icon"><i class="fa fa-hospital-o"></i></span>
+                <h3>Room Details</h3>
+              </div>
+              <button type="button" class="view-link" (click)="scrollToRoomField()">View <i class="fa fa-angle-right"></i></button>
+            </div>
+            <div class="mobile-room-card__grid">
+              <div><span>Room No</span><strong>{{ selectedRoom.roomNo }}</strong></div>
+              <div><span>Ward</span><strong>{{ roomWardName(selectedRoom) }}</strong></div>
+              <div><span>Floor</span><strong>{{ roomFloorLabel(selectedRoom) }}</strong></div>
+              <div><span>Room Type</span><strong>{{ roomTypeLabel(selectedRoom.roomType) }}</strong></div>
+              <div>
+                <span>Status</span>
+                <span class="room-status-badge" [class.is-available]="selectedRoom.status === 'available'">
+                  <i class="fa fa-circle"></i> {{ roomStatusLabel(selectedRoom.status) }}
+                </span>
+              </div>
+              <div><span>Charges / Day</span><strong>Rs. {{ selectedRoom.chargesPerDay | number:'1.0-0' }}</strong></div>
+              <div *ngIf="allotmentForm.get('bedLabel')?.value"><span>Bed Label</span><strong>{{ allotmentForm.get('bedLabel')?.value }}</strong></div>
+            </div>
+          </div>
+
+          <div class="allotment-grid-2">
+            <div class="allotment-field" id="room-field">
+              <label for="roomId">Room <em>*</em></label>
+              <div class="select-field">
+                <span class="field-leading-icon"><i class="fa fa-bed" aria-hidden="true"></i></span>
+                <select
+                  id="roomId"
+                  class="allotment-input allotment-select"
+                  formControlName="roomId"
+                  data-testid="ward-select-room"
+                  (change)="onRoomChange($any($event.target).value)"
+                >
+                  <option value="">Select room</option>
+                  <option *ngFor="let room of selectableRooms" [value]="room._id">{{ roomOptionLabel(room) }}</option>
+                </select>
+                <span class="field-trailing-icon"><i class="fa fa-chevron-down" aria-hidden="true"></i></span>
+              </div>
+              <small class="field-hint" *ngIf="roomsLoading">Loading rooms...</small>
+              <small class="field-warning" *ngIf="!roomsLoading && rooms.length === 0">
+                No rooms found. Please add rooms first from Room Allotment &gt; Rooms.
+              </small>
+            </div>
+
+            <div class="allotment-field">
+              <label for="bedLabel">Bed / Room Label <em>*</em></label>
+              <input
+                id="bedLabel"
+                class="allotment-input"
+                type="text"
+                formControlName="bedLabel"
+                data-testid="ward-select-bed"
+                placeholder="Bed number or room label"
+              />
+            </div>
+
+            <div class="allotment-field">
+              <label for="admissionReason">Admission Reason <em>*</em></label>
+              <input id="admissionReason" class="allotment-input" type="text" formControlName="admissionReason" placeholder="Reason for admission" />
+            </div>
+
+            <div class="allotment-field">
+              <label for="treatmentCatalogId">Treatment / Operation Package</label>
+              <div class="select-field">
+                <span class="field-leading-icon"><i class="fa fa-medkit" aria-hidden="true"></i></span>
+                <select id="treatmentCatalogId" class="allotment-input allotment-select" formControlName="treatmentCatalogId">
+                  <option value="">Select package</option>
+                  <option *ngFor="let item of treatmentCatalog" [value]="item._id">
+                    {{ item.code }} — {{ item.name }} (PKR {{ item.baseRate | number:'1.0-0' }})
+                  </option>
+                </select>
+                <span class="field-trailing-icon"><i class="fa fa-chevron-down" aria-hidden="true"></i></span>
+              </div>
+              <small class="field-hint" *ngIf="recommendationReadOnly && allotmentForm.get('treatmentCatalogId')?.value">Doctor Recommended</small>
+            </div>
+          </div>
+
+          <div class="allotment-grid-2">
+            <div class="allotment-field">
+              <label>Room Discount (Approved)</label>
+              <div class="discount-pair">
+                <small>Doctor recommended: {{ recommendedRoomDiscountLabel }}</small>
+                <select class="allotment-input" formControlName="roomDiscountType" [disabled]="!canApproveDiscounts && recommendationReadOnly">
+                  <option value="none">None</option>
+                  <option value="percentage">Percentage</option>
+                  <option value="fixed">Fixed</option>
+                </select>
+                <input class="allotment-input" type="number" min="0" formControlName="roomDiscountValue" [readOnly]="!canApproveDiscounts && recommendationReadOnly" />
+                <input class="allotment-input" formControlName="roomDiscountReason" placeholder="Approval reason" [readOnly]="!canApproveDiscounts && recommendationReadOnly" />
+              </div>
+            </div>
+            <div class="allotment-field">
+              <label>Operation Discount (Approved)</label>
+              <div class="discount-pair">
+                <small>Doctor recommended: {{ recommendedProcedureDiscountLabel }}</small>
+                <select class="allotment-input" formControlName="procedureDiscountType" [disabled]="!canApproveDiscounts && recommendationReadOnly">
+                  <option value="none">None</option>
+                  <option value="percentage">Percentage</option>
+                  <option value="fixed">Fixed</option>
+                </select>
+                <input class="allotment-input" type="number" min="0" formControlName="procedureDiscountValue" [readOnly]="!canApproveDiscounts && recommendationReadOnly" />
+                <input class="allotment-input" formControlName="procedureDiscountReason" placeholder="Approval reason" [readOnly]="!canApproveDiscounts && recommendationReadOnly" />
+              </div>
+            </div>
+          </div>
+
+          <div class="allotment-grid-2">
+            <div class="allotment-field">
+              <label for="advanceAmount">Admission Advance (Rs.)</label>
+              <div class="input-with-icon">
+                <span class="field-leading-icon"><i class="fa fa-money" aria-hidden="true"></i></span>
+                <input
+                  id="advanceAmount"
+                  class="allotment-input has-leading-icon"
+                  type="number"
+                  formControlName="advanceAmount"
+                  min="0"
+                  data-testid="ward-advance"
+                  placeholder="Enter advance amount"
+                />
+              </div>
+            </div>
+
+            <div class="allotment-field">
+              <label for="advanceMethod">Advance Method</label>
+              <div class="select-field">
+                <span class="field-leading-icon"><i class="fa fa-money" aria-hidden="true"></i></span>
+                <select id="advanceMethod" class="allotment-input allotment-select" formControlName="advanceMethod">
+                  <option value="cash">Cash</option>
+                  <option value="bank">Bank</option>
+                  <option value="card">Card</option>
+                </select>
+                <span class="field-trailing-icon"><i class="fa fa-chevron-down" aria-hidden="true"></i></span>
+              </div>
+            </div>
+
+            <div class="allotment-field">
+              <label for="securityAmount">Security / Deposit (Rs.)</label>
+              <div class="input-with-icon">
+                <span class="field-leading-icon"><i class="fa fa-money" aria-hidden="true"></i></span>
+                <input
+                  id="securityAmount"
+                  class="allotment-input has-leading-icon"
+                  type="number"
+                  formControlName="securityAmount"
+                  min="0"
+                  data-testid="ward-security"
+                  placeholder="Enter security amount"
+                />
+              </div>
+            </div>
+
+            <div class="allotment-field">
+              <label for="securityMethod">Security Method</label>
+              <div class="select-field">
+                <span class="field-leading-icon"><i class="fa fa-money" aria-hidden="true"></i></span>
+                <select id="securityMethod" class="allotment-input allotment-select" formControlName="securityMethod">
+                  <option value="cash">Cash</option>
+                  <option value="bank">Bank</option>
+                  <option value="card">Card</option>
+                </select>
+                <span class="field-trailing-icon"><i class="fa fa-chevron-down" aria-hidden="true"></i></span>
+              </div>
+            </div>
+
+            <div class="allotment-field">
+              <label for="admittedAt">Admitted At <em>*</em></label>
+              <div class="input-with-icon">
+                <span class="field-leading-icon"><i class="fa fa-calendar" aria-hidden="true"></i></span>
+                <input
+                  id="admittedAt"
+                  class="allotment-input allotment-input--datetime has-leading-icon"
+                  type="datetime-local"
+                  formControlName="admittedAt"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="allotment-field">
+            <label for="notes">Notes</label>
+            <textarea
+              id="notes"
+              class="allotment-input allotment-textarea"
+              formControlName="notes"
+              rows="4"
+              maxlength="500"
+              placeholder="Enter any additional notes..."
+            ></textarea>
+            <small class="notes-counter">{{ notesCount }}/500</small>
+          </div>
+
+          <div class="mobile-billing-card">
+            <h3>Admission Pricing Summary</h3>
+            <div class="billing-row"><span>Room Effective / Day</span><strong>Rs. {{ effectiveRoomRate | number:'1.0-0' }}</strong></div>
+            <div class="billing-row"><span>Package Effective</span><strong>Rs. {{ effectivePackageRate | number:'1.0-0' }}</strong></div>
+            <div class="billing-row"><span>Estimated Charges</span><strong>Rs. {{ estimatedChargesTotal | number:'1.0-0' }}</strong></div>
+            <div class="billing-row"><span>Advance (Collected)</span><strong>Rs. {{ advanceCharge | number:'1.0-0' }}</strong></div>
+            <div class="billing-row"><span>Security Deposit</span><strong>Rs. {{ securityCharge | number:'1.0-0' }}</strong></div>
+            <div class="billing-total">
+              <span>Money Collected Today</span>
+              <strong>Rs. {{ totalPayableToday | number:'1.0-0' }}</strong>
+            </div>
+          </div>
+
+          <div class="allotment-actions">
+            <button class="allotment-btn allotment-btn--ghost allotment-btn--cancel" type="button" (click)="backToAdmissions()">Cancel</button>
+            <button
+              class="allotment-btn allotment-btn--primary allotment-btn--save"
+              type="submit"
+              data-testid="ward-save-allotment"
+              [disabled]="saving || roomsLoading"
+            >
+              <i class="fa fa-save" aria-hidden="true"></i>
+              {{ saving ? 'Saving...' : 'Save Allotment' }}
+            </button>
+          </div>
+
+          <div class="ward-admission-success" *ngIf="admissionSuccess as success" data-testid="ward-admission-success">
+            <header>
+              <strong>Patient Admitted Successfully</strong>
+            </header>
+            <dl class="ward-admission-success__grid">
+              <div><dt>Admission No</dt><dd>{{ success.admissionNo }}</dd></div>
+              <div><dt>Encounter No</dt><dd>{{ success.encounterNo || success.encounterId }}</dd></div>
+              <div><dt>Ward</dt><dd>{{ success.wardName }}</dd></div>
+              <div><dt>Room</dt><dd>{{ success.roomNo }}</dd></div>
+              <div><dt>Bed</dt><dd>{{ success.bedLabel }}</dd></div>
+              <div><dt>Consultant</dt><dd>{{ success.consultantName }}</dd></div>
+              <div><dt>Assigned Nurse</dt><dd>{{ success.nurseName || '—' }}</dd></div>
+            </dl>
+            <article class="ward-admission-success__next">
+              <h4>WHAT HAPPENS NEXT?</h4>
+              <p>Continue patient care from the Ward Patient Control Panel.</p>
+              <div class="ward-admission-success__actions">
+                <button type="button" class="allotment-btn allotment-btn--primary" (click)="openPatientControlPanel()" data-testid="ward-open-control-panel">
+                  Open Patient Control Panel
+                </button>
+                <button type="button" class="allotment-btn allotment-btn--ghost" (click)="backToAdmissions()">Back to Admissions</button>
+              </div>
+            </article>
+          </div>
+        </form>
+      </section>
+
+      <aside class="allotment-sidebar">
+        <section class="allotment-card allotment-details-card">
+          <div class="allotment-card__head allotment-card__head--soft">
+            <div class="allotment-card__title">
+              <span class="allotment-card__icon"><i class="fa fa-hospital-o" aria-hidden="true"></i></span>
+              <h2>Room Details</h2>
+            </div>
+          </div>
+
+          <div class="allotment-card__body">
+            <ng-container *ngIf="selectedRoom; else noRoomSelected">
+              <div class="room-detail-row">
+                <span>Room No</span>
+                <strong>{{ selectedRoom.roomNo }}</strong>
+              </div>
+              <div class="room-detail-row">
+                <span>Ward</span>
+                <strong>{{ roomWardName(selectedRoom) }}</strong>
+              </div>
+              <div class="room-detail-row">
+                <span>Floor</span>
+                <strong>{{ roomFloorLabel(selectedRoom) }}</strong>
+              </div>
+              <div class="room-detail-row">
+                <span>Room Type</span>
+                <strong>{{ roomTypeLabel(selectedRoom.roomType) }}</strong>
+              </div>
+              <div class="room-detail-row">
+                <span>Status</span>
+                <span
+                  class="room-status-badge"
+                  [class.is-available]="selectedRoom.status === 'available'"
+                  [class.is-occupied]="selectedRoom.status === 'occupied'"
+                  [class.is-maintenance]="selectedRoom.status === 'maintenance'"
+                >
+                  <i class="fa fa-circle"></i> {{ roomStatusLabel(selectedRoom.status) }}
+                </span>
+              </div>
+              <div class="room-detail-row">
+                <span>Charges / Day</span>
+                <strong>{{ selectedRoom.chargesPerDay | number:'1.0-0' }}</strong>
+              </div>
+              <div class="room-detail-row" *ngIf="allotmentForm.get('bedLabel')?.value">
+                <span>Bed Label</span>
+                <strong>{{ allotmentForm.get('bedLabel')?.value }}</strong>
+              </div>
+              <div class="room-warning" *ngIf="selectedRoom.status !== 'available'">
+                This room is {{ roomStatusLabel(selectedRoom.status) }}. Choose another available room before saving.
+              </div>
+            </ng-container>
+
+            <ng-template #noRoomSelected>
+              <div class="room-empty-state">
+                <span class="room-empty-state__icon"><i class="fa fa-bed" aria-hidden="true"></i></span>
+                <strong>No room selected</strong>
+                <span>Select a room from the form to view ward, floor, type, and charges.</span>
+              </div>
+            </ng-template>
+          </div>
         </section>
 
-        <div class="allotment-layout">
-            <section class="allotment-card allotment-form-card">
-                <div class="allotment-card__head">
-                    <span class="allotment-card__icon"><i class="fa fa-file-text-o" aria-hidden="true"></i></span>
-                    <h2>Allotment Information</h2>
-                </div>
-
-                <form class="allotment-form" [formGroup]="allotmentForm" (ngSubmit)="submitAllotment()">
-                    <div class="allotment-field">
-                        <label for="patientSearch">Search Patient</label>
-                        <div class="patient-search">
-                            <span class="field-leading-icon"><i class="fa fa-search" aria-hidden="true"></i></span>
-                            <input id="patientSearch" class="allotment-input" type="text"
-                                [(ngModel)]="patientSearchQuery" [ngModelOptions]="{ standalone: true }"
-                                placeholder="Name, patient number, or phone"
-                                (keydown.enter)="$event.preventDefault(); lookupPatients()" />
-                            <button class="allotment-btn allotment-btn--primary" type="button"
-                                [disabled]="!canSearchPatients()" (click)="lookupPatients()">
-                                {{ patientLookupLoading ? 'Searching...' : 'Search' }}
-                            </button>
-                        </div>
-                        <small class="field-hint">Search by patient name, patient number, or phone number.</small>
-                    </div>
-
-                    <div class="patient-lookup-panel" *ngIf="patientLookupPerformed && !selectedPatient">
-                        <div class="lookup-empty" *ngIf="matchedPatients.length === 0">
-                            <strong>No patient found</strong>
-                            <span>Try another name, patient number, or phone.</span>
-                            <a class="allotment-btn allotment-btn--ghost" [routerLink]="['/patients/add-patient']"
-                                [queryParams]="addPatientQueryParams">
-                                Add New Patient
-                            </a>
-                        </div>
-
-                        <div class="patient-results" *ngIf="matchedPatients.length > 0">
-                            <button type="button" class="patient-result-card" *ngFor="let patient of matchedPatients"
-                                (click)="selectPatient(patient)">
-                                <div class="patient-result-main">
-                                    <strong>{{ patientName(patient) }}</strong>
-                                    <small>{{ patientSummary(patient) || 'No patient number or phone' }}</small>
-                                </div>
-                                <span class="patient-select-badge">Select</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="selected-patient" *ngIf="selectedPatient">
-                        <div class="selected-patient__avatar">
-                            <i class="fa fa-user" aria-hidden="true"></i>
-                        </div>
-                        <div class="selected-patient__copy">
-                            <span>Selected Patient</span>
-                            <strong>{{ patientName(selectedPatient) }}</strong>
-                            <small>{{ patientSummary(selectedPatient) }}</small>
-                        </div>
-                        <button class="allotment-btn allotment-btn--ghost" type="button"
-                            (click)="clearSelectedPatient()">
-                            Change
-                        </button>
-                    </div>
-
-                    <div class="allotment-field">
-                        <label for="roomId">Room</label>
-                        <div class="select-field">
-                            <span class="field-leading-icon"><i class="fa fa-bed" aria-hidden="true"></i></span>
-                            <select id="roomId" class="allotment-input allotment-select" formControlName="roomId"
-                                data-testid="ward-select-room"
-                                (change)="onRoomChange($any($event.target).value)">
-                                <option value="">Select room</option>
-                                <option *ngFor="let room of selectableRooms" [value]="room._id">
-                                    {{ roomOptionLabel(room) }}
-                                </option>
-                            </select>
-                            <span class="field-trailing-icon"><i class="fa fa-chevron-down" aria-hidden="true"></i></span>
-                        </div>
-                        <small class="field-hint" *ngIf="roomsLoading">Loading rooms...</small>
-                        <small class="field-warning" *ngIf="!roomsLoading && rooms.length === 0">
-                            No rooms found. Please add rooms first from Room Allotment &gt; Rooms.
-                        </small>
-                    </div>
-
-                    <div class="allotment-field">
-                        <label for="bedLabel">Bed / Room Label</label>
-                        <input id="bedLabel" class="allotment-input" type="text" formControlName="bedLabel"
-                            data-testid="ward-select-bed"
-                            placeholder="Bed number or room label" />
-                    </div>
-
-                    <div class="allotment-field">
-                        <label for="admissionReason">Admission Reason</label>
-                        <input id="admissionReason" class="allotment-input" type="text" formControlName="admissionReason" />
-                    </div>
-
-                    <div class="allotment-grid-2">
-                        <div class="allotment-field">
-                            <label for="advanceAmount">Admission Advance</label>
-                            <input id="advanceAmount" class="allotment-input" type="number" formControlName="advanceAmount" min="0"
-                                data-testid="ward-advance" />
-                        </div>
-                        <div class="allotment-field">
-                            <label for="advanceMethod">Advance Method</label>
-                            <select id="advanceMethod" class="allotment-input allotment-select" formControlName="advanceMethod">
-                                <option value="cash">Cash</option>
-                                <option value="bank">Bank</option>
-                                <option value="card">Card</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="allotment-grid-2">
-                        <div class="allotment-field">
-                            <label for="securityAmount">Security / Deposit</label>
-                            <input id="securityAmount" class="allotment-input" type="number" formControlName="securityAmount" min="0"
-                                data-testid="ward-security" />
-                        </div>
-                        <div class="allotment-field">
-                            <label for="securityMethod">Security Method</label>
-                            <select id="securityMethod" class="allotment-input allotment-select" formControlName="securityMethod">
-                                <option value="cash">Cash</option>
-                                <option value="bank">Bank</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="allotment-field">
-                        <label for="admittedAt">Admitted At</label>
-                        <input id="admittedAt" class="allotment-input allotment-input--datetime" type="datetime-local"
-                            formControlName="admittedAt" />
-                    </div>
-
-                    <div class="allotment-field">
-                        <label for="notes">Notes</label>
-                        <textarea id="notes" class="allotment-input allotment-textarea" formControlName="notes"
-                            rows="4" placeholder="Enter any additional notes..."></textarea>
-                    </div>
-
-                    <div class="allotment-actions">
-                        <button class="allotment-btn allotment-btn--primary allotment-btn--save" type="submit"
-                            data-testid="ward-save-allotment"
-                            [disabled]="saving || roomsLoading">
-                            <i class="fa fa-save" aria-hidden="true"></i>
-                            {{ saving ? 'Saving...' : 'Save Allotment' }}
-                        </button>
-                    </div>
-
-                    <div class="ward-admission-success" *ngIf="admissionSuccess as success" data-testid="ward-admission-success">
-                        <header>
-                            <strong>Patient Admitted Successfully</strong>
-                        </header>
-                        <dl class="ward-admission-success__grid">
-                            <div><dt>Admission No</dt><dd>{{ success.admissionNo }}</dd></div>
-                            <div><dt>Encounter No</dt><dd>{{ success.encounterNo || success.encounterId }}</dd></div>
-                            <div><dt>Ward</dt><dd>{{ success.wardName }}</dd></div>
-                            <div><dt>Room</dt><dd>{{ success.roomNo }}</dd></div>
-                            <div><dt>Bed</dt><dd>{{ success.bedLabel }}</dd></div>
-                            <div><dt>Consultant</dt><dd>{{ success.consultantName }}</dd></div>
-                            <div><dt>Assigned Nurse</dt><dd>{{ success.nurseName || '—' }}</dd></div>
-                        </dl>
-                        <article class="ward-admission-success__next">
-                            <h4>WHAT HAPPENS NEXT?</h4>
-                            <p>Continue patient care from the Ward Patient Control Panel.</p>
-                            <div class="ward-admission-success__actions">
-                                <button type="button" class="allotment-btn allotment-btn--primary" (click)="openPatientControlPanel()" data-testid="ward-open-control-panel">Open Patient Control Panel</button>
-                                <button type="button" class="allotment-btn allotment-btn--ghost" (click)="backToAdmissions()">Back to Admissions</button>
-                            </div>
-                        </article>
-                    </div>
-                </form>
-            </section>
-
-            <aside class="allotment-card allotment-details-card">
-                <div class="allotment-card__head">
-                    <span class="allotment-card__icon"><i class="fa fa-hospital-o" aria-hidden="true"></i></span>
-                    <h2>Room Details</h2>
-                </div>
-
-                <div class="allotment-card__body">
-                    <ng-container *ngIf="selectedRoom; else noRoomSelected">
-                        <div class="room-detail-row">
-                            <span>Room No</span>
-                            <strong>{{ selectedRoom.roomNo }}</strong>
-                        </div>
-                        <div class="room-detail-row">
-                            <span>Ward</span>
-                            <strong>{{ roomWardName(selectedRoom) }}</strong>
-                        </div>
-                        <div class="room-detail-row">
-                            <span>Floor</span>
-                            <strong>{{ roomFloorLabel(selectedRoom) }}</strong>
-                        </div>
-                        <div class="room-detail-row">
-                            <span>Room Type</span>
-                            <strong>{{ roomTypeLabel(selectedRoom.roomType) }}</strong>
-                        </div>
-                        <div class="room-detail-row">
-                            <span>Status</span>
-                            <span class="room-status-badge" [class.is-available]="selectedRoom.status === 'available'"
-                                [class.is-occupied]="selectedRoom.status === 'occupied'"
-                                [class.is-maintenance]="selectedRoom.status === 'maintenance'">
-                                {{ roomStatusLabel(selectedRoom.status) }}
-                            </span>
-                        </div>
-                        <div class="room-detail-row">
-                            <span>Charges / Day</span>
-                            <strong>{{ selectedRoom.chargesPerDay | number:'1.0-0' }}</strong>
-                        </div>
-                        <div class="room-detail-row" *ngIf="allotmentForm.get('bedLabel')?.value">
-                            <span>Bed Label</span>
-                            <strong>{{ allotmentForm.get('bedLabel')?.value }}</strong>
-                        </div>
-                        <div class="room-warning" *ngIf="selectedRoom.status !== 'available'">
-                            This room is {{ roomStatusLabel(selectedRoom.status) }}. Choose another available room before saving.
-                        </div>
-                    </ng-container>
-
-                    <ng-template #noRoomSelected>
-                        <div class="room-empty-state">
-                            <span class="room-empty-state__icon"><i class="fa fa-bed" aria-hidden="true"></i></span>
-                            <strong>No room selected</strong>
-                            <span>Select a room from the form to view ward, floor, type, and charges.</span>
-                        </div>
-                    </ng-template>
-                </div>
-            </aside>
-        </div>
+        <section class="allotment-card billing-summary-card">
+          <div class="allotment-card__head allotment-card__head--soft">
+            <div class="allotment-card__title">
+              <span class="allotment-card__icon"><i class="fa fa-calculator" aria-hidden="true"></i></span>
+              <h2>Admission Pricing Summary</h2>
+            </div>
+          </div>
+          <div class="allotment-card__body billing-body">
+            <div class="billing-row"><span>Room Standard/day</span><strong>Rs. {{ roomCharge | number:'1.0-0' }}</strong></div>
+            <div class="billing-row"><span>Room Recommended Discount</span><strong>{{ recommendedRoomDiscountLabel }}</strong></div>
+            <div class="billing-row"><span>Room Effective/day</span><strong>Rs. {{ effectiveRoomRate | number:'1.0-0' }}</strong></div>
+            <div class="billing-row"><span>Package Standard</span><strong>Rs. {{ packageRate | number:'1.0-0' }}</strong></div>
+            <div class="billing-row"><span>Operation Recommended Discount</span><strong>{{ recommendedProcedureDiscountLabel }}</strong></div>
+            <div class="billing-row"><span>Package Effective</span><strong>Rs. {{ effectivePackageRate | number:'1.0-0' }}</strong></div>
+            <div class="billing-row"><span>Estimated Charges</span><strong>Rs. {{ estimatedChargesTotal | number:'1.0-0' }}</strong></div>
+            <div class="billing-row"><span>Advance (Collected)</span><strong>Rs. {{ advanceCharge | number:'1.0-0' }}</strong></div>
+            <div class="billing-row"><span>Security Deposit</span><strong>Rs. {{ securityCharge | number:'1.0-0' }}</strong></div>
+            <div class="billing-total">
+              <span>Money Collected Today</span>
+              <strong>Rs. {{ totalPayableToday | number:'1.0-0' }}</strong>
+            </div>
+            <div class="billing-note">
+              <i class="fa fa-info-circle" aria-hidden="true"></i>
+              <span>Estimated charges are not collected as revenue yet. Advance/deposit are money collected. Operation posts on completion; room posts on discharge.</span>
+            </div>
+          </div>
+        </section>
+      </aside>
     </div>
+  </div>
 </div>

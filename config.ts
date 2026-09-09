@@ -35,6 +35,8 @@ export const CONFIG = {
   hospitals: API_BASE_URL + '/hospitals',
   companies: API_BASE_URL + '/companies',
   departments: API_BASE_URL + '/departments',
+  treatmentCatalog: API_BASE_URL + '/treatment-catalog',
+  operationSchedules: API_BASE_URL + '/operation-schedules',
   doctors: API_BASE_URL + '/doctors',
   patients: API_BASE_URL + '/patients',
   patientHistory: API_BASE_URL + '/patient-history',

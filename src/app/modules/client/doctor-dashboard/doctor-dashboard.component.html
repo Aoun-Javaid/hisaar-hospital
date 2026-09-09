@@ -144,6 +144,26 @@
           </div>
         </div>
       </div>
+      <div class="col-lg-4 col-md-12" *ngIf="canOpenOperations">
+        <div class="card">
+          <div class="header">
+            <h2>My Operations <small>Assigned / department-scoped</small></h2>
+          </div>
+          <div class="body">
+            <div class="row mb-3">
+              <div class="col-4"><small class="text-muted">Today</small><h5>{{ operationKpis.today }}</h5></div>
+              <div class="col-4"><small class="text-muted">Upcoming</small><h5>{{ operationKpis.upcoming }}</h5></div>
+              <div class="col-4"><small class="text-muted">Pending</small><h5>{{ operationKpis.pending }}</h5></div>
+            </div>
+            <div *ngFor="let item of myOperations" class="mb-2">
+              <strong>{{ operationProcedureName(item) }}</strong>
+              <div class="text-muted">{{ operationPatientName(item) }} · {{ item.status }}</div>
+            </div>
+            <p class="text-muted mb-2" *ngIf="!myOperations.length">No operations in the selected window.</p>
+            <a routerLink="/operations" class="btn btn-default btn-block">View Operation Calendar</a>
+          </div>
+        </div>
+      </div>
       <div class="col-lg-4 col-md-12">
         <div class="card">
           <div class="header">

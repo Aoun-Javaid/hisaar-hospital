@@ -6,7 +6,7 @@ import { finalize } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { BackendService } from '../../../core/services/backend.service';
 import { initialsFromName, resolveAssetUrl } from '../../../core/utils/asset.util';
-import { Appointment, Department, Doctor, Hospital, HospitalWard, Patient } from '../../../shared/models/hospital.model';
+import { Appointment, Department, Doctor, Hospital, HospitalWard, Patient, TreatmentCatalogItem } from '../../../shared/models/hospital.model';
 import {
   ACTIVITY_OPTIONS,
   ADMISSION_LEVEL_OPTIONS,
@@ -82,6 +82,7 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
 
   departments: Department[] = [];
   wards: HospitalWard[] = [];
+  treatmentCatalog: TreatmentCatalogItem[] = [];
   private lookupsLoaded = false;
   private cachedDoctors: Doctor[] = [];
   private lastAdmissionContextKey = '';
@@ -183,6 +184,8 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
       this.validationErrors = [];
       this.recommendationSuccess = null;
       this.wardHintDismissed = false;
+      // Always re-fetch lookups on open so a prior empty/denied cache cannot stick.
+      this.lookupsLoaded = false;
       this.loadLookupsIfNeeded();
       this.resetForm();
     } else if (this.open && changes['doctors']?.currentValue?.length) {
@@ -521,8 +524,13 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
           this.departments = result.departments || [];
           this.wards = result.wards || [];
           this.lookupsLoaded = true;
+          this.loadTreatmentCatalog();
           this.applyContextDefaults();
-          if (!this.wards.length) {
+          if (!this.departments.length && !this.wards.length) {
+            this.lookupsError =
+              'Unable to load departments and wards for admission. Check admission permissions or Hospital Setup.';
+            this.lookupsWarning = '';
+          } else if (!this.wards.length) {
             this.lookupsWarning = 'No active wards configured. Recommended ward selection is optional.';
           }
           if (!this.readOnly) {
@@ -536,6 +544,24 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
           }
         },
       });
+  }
+
+  private loadTreatmentCatalog(): void {
+    this.backend.getTreatmentCatalog({ limit: 100, isActive: true }).subscribe({
+      next: (result) => {
+        this.treatmentCatalog = result.items || [];
+      },
+      error: () => {
+        this.treatmentCatalog = [];
+      },
+    });
+  }
+
+  get selectedTreatmentRate(): number | null {
+    const id = String(this.form.get('treatmentCatalogId')?.value || '').trim();
+    if (!id) return null;
+    const item = this.treatmentCatalog.find((entry) => entry._id === id);
+    return item ? Number(item.baseRate || 0) : null;
   }
 
   private admissionContextKey(): string {
