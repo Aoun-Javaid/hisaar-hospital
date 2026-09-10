@@ -8,10 +8,11 @@ import {
   OnInit,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { hasRouteAccess, readStoredPermissions } from '../../auth/access-control';
 import { User } from '../../../shared/models/hospital.model';
 import {
   PatientStatus,
@@ -27,7 +28,7 @@ import { HmsActionMenuComponent, HmsActionMenuItem } from '../../../shared/compo
 
 @Component({
   selector: 'app-ward-patient-list',
-  imports: [CommonModule, FormsModule, HmsActionMenuComponent],
+  imports: [CommonModule, FormsModule, RouterLink, HmsActionMenuComponent],
   templateUrl: './ward-patient-list.component.html',
   styleUrl: './ward-patient-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -57,8 +58,13 @@ export class WardPatientListComponent implements OnInit, OnDestroy {
   private nurseCache: User[] | null = null;
   private previousBodyOverflow = '';
   isMobileView = false;
+  mobileFiltersOpen = false;
   pageSize = 10;
   currentPage = 1;
+  readonly canAddPatient = hasRouteAccess(
+    ['patients.create', 'patients.update'],
+    readStoredPermissions()
+  );
 
   wardOptions: string[] = [];
   readonly shiftOptions = WARD_PATIENT_SHIFT_OPTIONS;
@@ -243,6 +249,7 @@ export class WardPatientListComponent implements OnInit, OnDestroy {
       unassignedNurseOnly: false,
     };
     this.currentPage = 1;
+    this.mobileFiltersOpen = false;
     this.recomputeViewState();
   }
 
@@ -250,6 +257,46 @@ export class WardPatientListComponent implements OnInit, OnDestroy {
     this.filters.unassignedNurseOnly = false;
     this.currentPage = 1;
     this.recomputeViewState();
+  }
+
+  toggleMobileFilters(): void {
+    this.mobileFiltersOpen = !this.mobileFiltersOpen;
+    this.cdr.markForCheck();
+  }
+
+  applyMobileFilters(): void {
+    this.mobileFiltersOpen = false;
+    this.onFilterChange();
+  }
+
+  get activeFilterCount(): number {
+    let count = 0;
+    if (this.filters.ward) count += 1;
+    if (this.filters.doctor) count += 1;
+    if (this.filters.nurse) count += 1;
+    if (this.filters.room) count += 1;
+    if (this.filters.shift && this.filters.shift !== 'Day Shift') count += 1;
+    if (this.filters.unassignedNurseOnly) count += 1;
+    return count;
+  }
+
+  rowNumber(index: number): number {
+    return (this.currentPage - 1) * this.pageSize + index + 1;
+  }
+
+  patientInitials(name: string): string {
+    const parts = String(name || 'P')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    return ((parts[0]?.[0] || 'P') + (parts[1]?.[0] || '')).toUpperCase();
+  }
+
+  addPatient(): void {
+    if (!this.canAddPatient) {
+      return;
+    }
+    void this.router.navigate(['/patients/add-patient']);
   }
 
   goToPage(page: number): void {
@@ -277,7 +324,8 @@ export class WardPatientListComponent implements OnInit, OnDestroy {
   }
 
   ageSex(patient: WardPatient): string {
-    return `${patient.age} Y / ${patient.sex}`;
+    const agePart = patient.age > 0 ? `${patient.age} Y` : '—';
+    return `${agePart} / ${patient.sex || '—'}`;
   }
 
   formatDate(value: string): string {
@@ -293,7 +341,14 @@ export class WardPatientListComponent implements OnInit, OnDestroy {
     if (Number.isNaN(date.getTime())) {
       return value;
     }
-    return `${this.formatDate(value)} · 09:30`;
+    return date.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
   }
 
   displayValue(value?: string): string {
@@ -482,6 +537,9 @@ export class WardPatientListComponent implements OnInit, OnDestroy {
 
   private syncViewportMode(): void {
     this.isMobileView = window.innerWidth <= 768;
+    if (!this.isMobileView) {
+      this.mobileFiltersOpen = false;
+    }
     this.cdr.markForCheck();
   }
 
@@ -551,6 +609,7 @@ export class WardPatientListComponent implements OnInit, OnDestroy {
       {
         key: 'total',
         label: 'Total Patients',
+        description: 'All admitted patients',
         count: list.length,
         icon: 'fa-users',
         tone: 'blue',
@@ -559,6 +618,7 @@ export class WardPatientListComponent implements OnInit, OnDestroy {
       {
         key: 'stable',
         label: 'Stable',
+        description: 'Condition normal',
         count: list.filter((patient) => patient.status === 'stable').length,
         icon: 'fa-check-circle',
         tone: 'green',
@@ -567,6 +627,7 @@ export class WardPatientListComponent implements OnInit, OnDestroy {
       {
         key: 'watch',
         label: 'Watch',
+        description: 'Needs close monitoring',
         count: list.filter((patient) => patient.status === 'watch').length,
         icon: 'fa-exclamation-circle',
         tone: 'orange',
@@ -575,6 +636,7 @@ export class WardPatientListComponent implements OnInit, OnDestroy {
       {
         key: 'critical',
         label: 'Critical',
+        description: 'Requires urgent care',
         count: list.filter((patient) => patient.status === 'critical').length,
         icon: 'fa-heartbeat',
         tone: 'red',
@@ -583,6 +645,7 @@ export class WardPatientListComponent implements OnInit, OnDestroy {
       {
         key: 'discharge',
         label: 'Discharge Planned',
+        description: 'Planned for discharge',
         count: list.filter((patient) => patient.status === 'dischargePlanned').length,
         icon: 'fa-sign-out',
         tone: 'purple',
@@ -591,6 +654,7 @@ export class WardPatientListComponent implements OnInit, OnDestroy {
       {
         key: 'unassigned',
         label: 'Unassigned Nurse',
+        description: 'No nurse assigned',
         count: list.filter((patient) => !patient.nurseName).length,
         icon: 'fa-user-times',
         tone: 'amber',

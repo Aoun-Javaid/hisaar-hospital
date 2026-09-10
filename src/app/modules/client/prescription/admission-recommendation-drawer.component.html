@@ -650,7 +650,9 @@
         Cancel Order
       </button>
       <button type="button" class="btn-light" (click)="saveDraft()" [disabled]="saving || readOnly || !canRecommend || lookupsLoading" data-testid="admission-save-draft">Save Draft</button>
-      <button type="button" class="btn-primary" (click)="recommendAdmission()" [disabled]="!canSubmitRecommend" data-testid="admission-recommend-submit">Recommend Admission</button>
+      <button type="button" class="btn-primary" (click)="recommendAdmission()" [disabled]="!canSubmitRecommend" data-testid="admission-recommend-submit">
+        {{ record?.status === 'pending' || record?.status === 'acknowledged' ? 'Update Recommendation' : 'Recommend Admission' }}
+      </button>
     </footer>
 
     <footer class="admission-modal__footer" *ngIf="recommendationSuccess">

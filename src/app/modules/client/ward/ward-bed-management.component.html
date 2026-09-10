@@ -1,67 +1,124 @@
 <div id="main-content" class="modern-dashboard hms-page ward-page-shell ward-bed-page">
   <div class="container-fluid ward-page-container">
-    <div class="ward-page-header ward-page-header--compact">
+    <nav class="bed-mgmt-breadcrumb" aria-label="Breadcrumb">
+      <a routerLink="/dashboard">Home</a>
+      <span>/</span>
+      <a routerLink="/ward/dashboard">Ward &amp; Nursing</a>
+      <span>/</span>
+      <strong>Bed Management</strong>
+    </nav>
+
+    <header class="ward-page-header ward-page-header--compact bed-mgmt-header">
       <div class="ward-page-header__copy">
         <h1>Bed Management</h1>
-        <p>Manage ward rooms, beds, occupancy and availability</p>
+        <p>Manage ward rooms, beds, occupancy and availability across your hospital.</p>
       </div>
-      <div class="ward-page-header__actions">
-        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="openAddWard()">
-          <i class="fa fa-hospital-o"></i> Add Ward
+      <div class="ward-page-header__actions bed-mgmt-actions">
+        <button type="button" class="bed-action-btn bed-action-btn--outline" (click)="openAddWard()">
+          <i class="fa fa-hospital-o" aria-hidden="true"></i> Add Ward
         </button>
-        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="openAddFloor()" [disabled]="!canAddFloor">
-          <i class="fa fa-building-o"></i> Add Floor
+        <button type="button" class="bed-action-btn bed-action-btn--outline" (click)="openAddFloor()" [disabled]="!canAddFloor">
+          <i class="fa fa-building-o" aria-hidden="true"></i> Add Floor
         </button>
-        <button type="button" class="btn btn-sm btn-outline-primary" (click)="openAddRoom()" [disabled]="!canAddRoom">
-          <i class="fa fa-plus"></i> Add Room
+        <button type="button" class="bed-action-btn bed-action-btn--outline-teal" (click)="openAddRoom()" [disabled]="!canAddRoom">
+          <i class="fa fa-plus" aria-hidden="true"></i> Add Room
         </button>
-        <button type="button" class="btn btn-sm btn-primary" (click)="openAddBed()" [disabled]="!rooms.length">
-          <i class="fa fa-plus"></i> Add Bed
+        <button type="button" class="bed-action-btn bed-action-btn--primary" (click)="openAddBed()" [disabled]="!rooms.length">
+          <i class="fa fa-plus" aria-hidden="true"></i> Add Bed
         </button>
       </div>
-    </div>
+    </header>
 
-    <section class="ward-filter-toolbar">
-      <label class="ward-filter ward-filter--compact">
-        <span>Ward</span>
-        <select [(ngModel)]="filters.ward" (ngModelChange)="onWardFilterChange()">
-          <option value="" *ngIf="!wardOptions.length">No wards yet</option>
-          <option *ngFor="let ward of wardOptions" [value]="ward">{{ ward }}</option>
-        </select>
-      </label>
-      <label class="ward-filter ward-filter--compact">
-        <span>Floor</span>
-        <select [(ngModel)]="filters.gallery" (ngModelChange)="selectedRoomId = filteredRooms.length ? filteredRooms[0].id : ''">
-          <option value="" *ngIf="!galleryOptions.length">No floors yet</option>
-          <option *ngFor="let gallery of galleryOptions" [value]="gallery.id">{{ gallery.label }}</option>
-        </select>
-      </label>
-      <label class="ward-filter ward-filter--compact">
-        <span>Room Type</span>
-        <select [(ngModel)]="filters.roomType" (ngModelChange)="onRoomTypeFilterChange()">
-          <option *ngFor="let type of roomTypeOptions" [value]="type.value">{{ type.label }}</option>
-        </select>
-      </label>
-      <label class="ward-filter ward-filter--compact">
-        <span>Bed Status</span>
-        <select [(ngModel)]="filters.bedStatus">
-          <option *ngFor="let status of bedStatusOptions" [value]="status.value">{{ status.label }}</option>
-        </select>
-      </label>
-      <label class="ward-filter ward-filter--compact ward-filter--grow">
-        <span>Search</span>
-        <input type="search" [(ngModel)]="filters.search" placeholder="Room, bed, patient..." />
-      </label>
-      <label class="ward-filter ward-filter--compact ward-filter--date">
-        <span>Date</span>
-        <input type="date" [(ngModel)]="filters.date" />
-      </label>
-      <div class="ward-filter-toolbar__actions">
-        <span class="ward-filter-toolbar__actions-label" aria-hidden="true">Actions</span>
-        <div class="ward-filter-toolbar__actions-row">
-          <button type="button" class="btn btn-sm btn-primary ward-refresh-btn" (click)="refresh()">
-            <i class="fa fa-refresh"></i>
-          </button>
+    <section class="bed-kpi-grid" *ngIf="hasWardSetup">
+      <article class="bed-kpi bed-kpi--total">
+        <span class="bed-kpi__icon"><i class="fa fa-bed" aria-hidden="true"></i></span>
+        <span class="bed-kpi__copy">
+          <small>Total Beds</small>
+          <strong>{{ bedKpis.total }}</strong>
+        </span>
+      </article>
+      <article class="bed-kpi bed-kpi--available">
+        <span class="bed-kpi__icon"><i class="fa fa-check-circle" aria-hidden="true"></i></span>
+        <span class="bed-kpi__copy">
+          <small>Available</small>
+          <strong>{{ bedKpis.available }}</strong>
+        </span>
+        <span class="bed-kpi__pct">{{ bedKpis.availablePct }}%</span>
+      </article>
+      <article class="bed-kpi bed-kpi--occupied">
+        <span class="bed-kpi__icon"><i class="fa fa-user" aria-hidden="true"></i></span>
+        <span class="bed-kpi__copy">
+          <small>Occupied</small>
+          <strong>{{ bedKpis.occupied }}</strong>
+        </span>
+        <span class="bed-kpi__pct">{{ bedKpis.occupiedPct }}%</span>
+      </article>
+      <article class="bed-kpi bed-kpi--cleaning">
+        <span class="bed-kpi__icon"><i class="fa fa-shower" aria-hidden="true"></i></span>
+        <span class="bed-kpi__copy">
+          <small>Cleaning</small>
+          <strong>{{ bedKpis.cleaning }}</strong>
+        </span>
+        <span class="bed-kpi__pct">{{ bedKpis.cleaningPct }}%</span>
+      </article>
+      <article class="bed-kpi bed-kpi--oos">
+        <span class="bed-kpi__icon"><i class="fa fa-ban" aria-hidden="true"></i></span>
+        <span class="bed-kpi__copy">
+          <small>Out of Service</small>
+          <strong>{{ bedKpis.outOfService }}</strong>
+        </span>
+        <span class="bed-kpi__pct">{{ bedKpis.outOfServicePct }}%</span>
+      </article>
+    </section>
+
+    <section class="bed-filter-panel" [class.is-open]="filtersExpanded">
+      <button type="button" class="bed-filter-panel__toggle" (click)="toggleFilters()">
+        <span><i class="fa fa-filter" aria-hidden="true"></i> Filters</span>
+        <i class="fa" [ngClass]="filtersExpanded ? 'fa-chevron-up' : 'fa-chevron-down'" aria-hidden="true"></i>
+      </button>
+      <div class="ward-filter-toolbar bed-filter-toolbar">
+        <label class="ward-filter ward-filter--compact">
+          <span>Ward</span>
+          <select [(ngModel)]="filters.ward" (ngModelChange)="onWardFilterChange()">
+            <option value="">All Wards</option>
+            <option *ngFor="let ward of wardOptions" [value]="ward">{{ ward }}</option>
+          </select>
+        </label>
+        <label class="ward-filter ward-filter--compact">
+          <span>Floor</span>
+          <select [(ngModel)]="filters.gallery" (ngModelChange)="selectedRoomId = filteredRooms.length ? filteredRooms[0].id : ''">
+            <option value="">All Floors</option>
+            <option *ngFor="let gallery of galleryOptions" [value]="gallery.id">{{ gallery.label }}</option>
+          </select>
+        </label>
+        <label class="ward-filter ward-filter--compact">
+          <span>Room Type</span>
+          <select [(ngModel)]="filters.roomType" (ngModelChange)="onRoomTypeFilterChange()">
+            <option *ngFor="let type of roomTypeOptions" [value]="type.value">{{ type.label }}</option>
+          </select>
+        </label>
+        <label class="ward-filter ward-filter--compact">
+          <span>Bed Status</span>
+          <select [(ngModel)]="filters.bedStatus">
+            <option *ngFor="let status of bedStatusOptions" [value]="status.value">{{ status.label === 'All Bed Status' ? 'All Status' : status.label }}</option>
+          </select>
+        </label>
+        <label class="ward-filter ward-filter--compact ward-filter--grow bed-filter-search">
+          <span>Search</span>
+          <div class="bed-input-icon">
+            <i class="fa fa-search" aria-hidden="true"></i>
+            <input type="search" [(ngModel)]="filters.search" placeholder="Search room, bed, patient..." />
+          </div>
+        </label>
+        <label class="ward-filter ward-filter--compact ward-filter--date">
+          <span>Date</span>
+          <input type="date" [(ngModel)]="filters.date" />
+        </label>
+        <div class="ward-filter-toolbar__actions">
+          <span class="ward-filter-toolbar__actions-label" aria-hidden="true">Actions</span>
+          <div class="ward-filter-toolbar__actions-row">
+            <button type="button" class="bed-action-btn bed-action-btn--primary bed-apply-btn" (click)="applyFilters()">Apply</button>
+          </div>
         </div>
       </div>
     </section>
@@ -71,145 +128,291 @@
       <span>Click Add Ward to create a ward, then Add Floor, Add Room, and Add Bed.</span>
     </div>
 
-    <div class="ward-bed-layout" *ngIf="hasWardSetup">
-      <div class="ward-bed-left">
-        <section class="ward-panel ward-panel--rooms">
-          <div class="ward-panel__head">
-            <h2>Room List</h2>
-            <span>{{ filteredRooms.length }} rooms</span>
+    <div class="bed-mgmt-layout" *ngIf="hasWardSetup">
+      <aside class="ward-panel bed-ward-list-panel">
+        <div class="ward-panel__head">
+          <h2>Wards &amp; Floors</h2>
+          <span>{{ wardSummaries.length }}</span>
+        </div>
+        <div class="bed-ward-list">
+          <button
+            type="button"
+            class="bed-ward-card"
+            *ngFor="let ward of wardSummaries"
+            [class.is-selected]="selectedWardSummary?.name === ward.name"
+            (click)="selectWard(ward)"
+          >
+            <div class="bed-ward-card__top">
+              <span class="bed-ward-card__icon"><i class="fa fa-hospital-o" aria-hidden="true"></i></span>
+              <span class="bed-ward-card__copy">
+                <strong>{{ ward.name }}</strong>
+                <small>{{ ward.totalBeds }} beds</small>
+              </span>
+              <i class="fa fa-chevron-right bed-ward-card__chevron" aria-hidden="true"></i>
+            </div>
+            <div class="bed-progress">
+              <div class="bed-progress__bar" [style.width.%]="ward.occupancyPercent"></div>
+            </div>
+          </button>
+          <p class="empty-copy" *ngIf="!wardSummaries.length">No wards yet.</p>
+        </div>
+      </aside>
+
+      <section class="ward-panel bed-ward-detail-panel" *ngIf="selectedWardSummary as ward">
+        <div class="bed-ward-detail__header">
+          <div class="bed-ward-detail__title">
+            <span class="bed-ward-detail__icon"><i class="fa fa-building" aria-hidden="true"></i></span>
+            <div>
+              <h2>{{ ward.name }}</h2>
+              <p>{{ ward.floorCount }} floors • {{ ward.roomCount }} rooms • {{ ward.totalBeds }} beds</p>
+            </div>
           </div>
-          <div class="room-list">
+        </div>
+
+        <div class="bed-occupancy-row">
+          <div class="bed-gauge-wrap">
+            <div class="bed-gauge" [style.--pct]="ward.occupancyPercent">
+              <div class="bed-gauge__inner">
+                <strong>{{ ward.occupancyPercent }}%</strong>
+              </div>
+            </div>
+            <div class="bed-gauge__caption">
+              <span>Occupancy</span>
+              <strong>{{ ward.occupiedBeds }} / {{ ward.totalBeds }} beds</strong>
+            </div>
+          </div>
+          <ul class="bed-legend">
+            <li><span class="status-dot status-dot--available"></span> Available <strong>{{ ward.availableBeds }}</strong></li>
+            <li><span class="status-dot status-dot--occupied"></span> Occupied <strong>{{ ward.occupiedBeds }}</strong></li>
+            <li><span class="status-dot status-dot--cleaning"></span> Cleaning <strong>{{ ward.cleaningBeds }}</strong></li>
+            <li><span class="status-dot status-dot--oos"></span> Out of Service <strong>{{ ward.outOfServiceBeds }}</strong></li>
+          </ul>
+        </div>
+
+        <div class="bed-detail-tabs" role="tablist">
+          <button type="button" role="tab" [class.is-active]="detailTab === 'rooms'" (click)="setDetailTab('rooms')">
+            Rooms ({{ ward.roomCount }})
+          </button>
+          <button type="button" role="tab" [class.is-active]="detailTab === 'beds'" (click)="setDetailTab('beds')">
+            Beds ({{ ward.totalBeds }})
+          </button>
+          <button type="button" role="tab" [class.is-active]="detailTab === 'occupancy'" (click)="setDetailTab('occupancy')">
+            Occupancy
+          </button>
+          <button type="button" role="tab" [class.is-active]="detailTab === 'analytics'" (click)="setDetailTab('analytics')">
+            Analytics
+          </button>
+        </div>
+
+        <div class="bed-detail-tab-body" *ngIf="detailTab === 'rooms'">
+          <div class="bed-room-grid">
             <button
               type="button"
-              class="room-card"
-              *ngFor="let room of filteredRooms"
-              [ngClass]="roomCardClass(room)"
-              (click)="selectRoom(room.id)"
+              class="bed-room-card"
+              *ngFor="let room of selectedWardRooms"
+              [class.is-selected]="room.id === selectedRoomId"
+              (click)="openRoomFromCard(room.id)"
             >
-              <div class="room-card__icon"><i class="fa fa-hospital-o"></i></div>
-              <div class="room-card__body">
-                <div class="room-card__title">
+              <div class="bed-room-card__top">
+                <div>
                   <strong>{{ room.roomName }}</strong>
-                  <span class="room-card__capacity">{{ room.capacity }} beds</span>
+                  <small>{{ roomTypeLabel(room.roomType) }}</small>
                 </div>
-                <div class="room-card__stats">
-                  <span class="stat-pill stat-pill--green">{{ room.occupiedBeds }} occ</span>
-                  <span class="stat-pill stat-pill--blue">{{ room.availableBeds }} avail</span>
-                  <span class="stat-pill stat-pill--amber" *ngIf="room.onHoldBeds">{{ room.onHoldBeds }} hold</span>
-                  <span class="stat-pill stat-pill--purple" *ngIf="room.cleaningBeds">{{ room.cleaningBeds }} clean</span>
-                  <span class="stat-pill stat-pill--red" *ngIf="room.maintenanceBeds">{{ room.maintenanceBeds }} maint</span>
+                <div class="bed-room-card__meta">
+                  <span>{{ room.capacity }} beds</span>
+                  <i class="fa fa-chevron-right" aria-hidden="true"></i>
                 </div>
               </div>
+              <div class="bed-progress bed-progress--room">
+                <div class="bed-progress__bar" [style.width.%]="roomOccupancyPercent(room)"></div>
+              </div>
+              <div class="bed-room-card__pills">
+                <span class="stat-pill stat-pill--green">{{ room.availableBeds }} Available</span>
+                <span class="stat-pill stat-pill--blue">{{ room.occupiedBeds }} Occupied</span>
+                <span class="stat-pill stat-pill--amber">{{ room.cleaningBeds }} Cleaning</span>
+              </div>
             </button>
-            <p class="empty-copy" *ngIf="!filteredRooms.length">No rooms match the selected filters.</p>
           </div>
-        </section>
+          <p class="empty-copy" *ngIf="!selectedWardRooms.length">No rooms match the selected filters.</p>
+          <div class="bed-room-actions" *ngIf="selectedRoom as room">
+            <button type="button" class="btn btn-sm btn-outline-primary" (click)="openEditRoom()">
+              <i class="fa fa-pencil" aria-hidden="true"></i> Edit Room
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="!canDeleteSelectedRoom" (click)="deleteRoom()">
+              <i class="fa fa-trash" aria-hidden="true"></i> Delete Room
+            </button>
+          </div>
+        </div>
 
-        <section class="ward-panel" *ngIf="selectedRoom as room">
-          <div class="ward-panel__head">
-            <h2>Room Details</h2>
-            <span>{{ room.roomName }}</span>
+        <div class="bed-detail-tab-body" *ngIf="detailTab === 'beds'">
+          <div class="table-responsive">
+            <table class="table table-hover table-custom spacing5 mb-0 ward-beds-table">
+              <thead>
+                <tr>
+                  <th>Bed</th>
+                  <th>Status</th>
+                  <th>Patient</th>
+                  <th>Age/Sex</th>
+                  <th>Nurse</th>
+                  <th>Since</th>
+                  <th>Charge</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let bed of selectedWardBeds">
+                  <td><strong>{{ bed.bedNo }}</strong></td>
+                  <td><span class="bed-badge" [ngClass]="bedStatusClass(bed.status)">{{ bedStatusLabel(bed.status) }}</span></td>
+                  <td class="cell-patient">{{ displayValue(bed.patientName) }}</td>
+                  <td>{{ bed.age ? bed.age + '/' + bed.sex : '—' }}</td>
+                  <td>{{ displayValue(bed.nurseName) }}</td>
+                  <td>{{ formatDate(bed.occupiedSince) }}</td>
+                  <td class="cell-charge">{{ formatCurrency(bed.dailyCharge) }}</td>
+                  <td>
+                    <div class="table-actions">
+                      <button type="button" title="View" (click)="openViewBed(bed)"><i class="fa fa-eye"></i></button>
+                      <button type="button" title="Edit" (click)="openEditBed(bed)"><i class="fa fa-pencil"></i></button>
+                      <button type="button" title="Status" (click)="openChangeStatus(bed)"><i class="fa fa-exchange"></i></button>
+                      <button type="button" title="Transfer" *ngIf="bed.status === 'occupied'" (click)="transferPatient(bed)"><i class="fa fa-random"></i></button>
+                      <button type="button" title="Assign" *ngIf="bed.status === 'available'" (click)="assignPatient(bed)"><i class="fa fa-user-plus"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <dl class="room-details-grid">
-            <div><dt>Capacity</dt><dd>{{ room.capacity }} beds</dd></div>
+          <p class="empty-copy" *ngIf="!selectedWardBeds.length">No beds match the selected filters.</p>
+        </div>
+
+        <div class="bed-detail-tab-body" *ngIf="detailTab === 'occupancy'">
+          <dl class="room-details-grid" *ngIf="selectedRoom as room; else occupancyEmpty">
+            <div><dt>Selected Room</dt><dd>{{ room.roomName }}</dd></div>
             <div><dt>Type</dt><dd>{{ roomTypeLabel(room.roomType) }}</dd></div>
+            <div><dt>Capacity</dt><dd>{{ room.capacity }} beds</dd></div>
             <div><dt>Charge</dt><dd>{{ formatCurrency(room.dailyCharge) }}</dd></div>
             <div><dt>Occupied</dt><dd>{{ room.occupiedBeds }}</dd></div>
             <div><dt>Available</dt><dd>{{ room.availableBeds }}</dd></div>
             <div><dt>Cleaning</dt><dd>{{ room.cleaningBeds }}</dd></div>
-            <div><dt>Maintenance</dt><dd>{{ room.maintenanceBeds }}</dd></div>
-            <div><dt>On Hold</dt><dd>{{ room.onHoldBeds }}</dd></div>
+            <div><dt>Out of Service</dt><dd>{{ room.maintenanceBeds }}</dd></div>
           </dl>
-          <div class="room-details__actions">
-            <button type="button" class="btn btn-sm btn-outline-primary" (click)="openEditRoom()">
-              <i class="fa fa-pencil"></i> Edit
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="!canDeleteSelectedRoom" (click)="deleteRoom()">
-              <i class="fa fa-trash"></i> Delete
-            </button>
-          </div>
-        </section>
-      </div>
-
-      <section class="ward-panel ward-bed-table-panel" *ngIf="selectedRoom as room">
-        <div class="ward-panel__head">
-          <div>
-            <h2>Beds in {{ room.roomName }}</h2>
-            <p>{{ roomBeds.length }} beds shown</p>
-          </div>
+          <ng-template #occupancyEmpty>
+            <p class="empty-copy">Select a room from the Rooms tab to view occupancy details.</p>
+          </ng-template>
         </div>
-        <div class="table-responsive">
-          <table class="table table-hover table-custom spacing5 mb-0 ward-beds-table">
-            <thead>
-              <tr>
-                <th>Bed</th>
-                <th>Status</th>
-                <th>Patient</th>
-                <th>Age/Sex</th>
-                <th>Nurse</th>
-                <th>Since</th>
-                <th>Charge</th>
-                <th class="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let bed of roomBeds">
-                <td><strong>{{ bed.bedNo }}</strong></td>
-                <td><span class="bed-badge" [ngClass]="bedStatusClass(bed.status)">{{ bedStatusLabel(bed.status) }}</span></td>
-                <td class="cell-patient">{{ displayValue(bed.patientName) }}</td>
-                <td>{{ bed.age ? bed.age + '/' + bed.sex : '—' }}</td>
-                <td>{{ displayValue(bed.nurseName) }}</td>
-                <td>{{ formatDate(bed.occupiedSince) }}</td>
-                <td class="cell-charge">{{ formatCurrency(bed.dailyCharge) }}</td>
-                <td>
-                  <div class="table-actions">
-                    <button type="button" title="View" (click)="openViewBed(bed)"><i class="fa fa-eye"></i></button>
-                    <button type="button" title="Edit" (click)="openEditBed(bed)"><i class="fa fa-pencil"></i></button>
-                    <button type="button" title="Status" (click)="openChangeStatus(bed)"><i class="fa fa-exchange"></i></button>
-                    <button type="button" title="Transfer" *ngIf="bed.status === 'occupied'" (click)="transferPatient(bed)"><i class="fa fa-random"></i></button>
-                    <button type="button" title="Assign" *ngIf="bed.status === 'available'" (click)="assignPatient(bed)"><i class="fa fa-user-plus"></i></button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+
+        <div class="bed-detail-tab-body" *ngIf="detailTab === 'analytics'">
+          <div class="bed-analytics-grid">
+            <article>
+              <small>Occupancy Rate</small>
+              <strong>{{ ward.occupancyPercent }}%</strong>
+            </article>
+            <article>
+              <small>Available Rate</small>
+              <strong>{{ ward.totalBeds ? (ward.availableBeds / ward.totalBeds * 100 | number:'1.0-0') : 0 }}%</strong>
+            </article>
+            <article>
+              <small>Rooms</small>
+              <strong>{{ ward.roomCount }}</strong>
+            </article>
+            <article>
+              <small>Floors</small>
+              <strong>{{ ward.floorCount }}</strong>
+            </article>
+          </div>
         </div>
       </section>
     </div>
+
+    <section class="ward-panel bed-activity-panel" *ngIf="hasWardSetup">
+      <div class="ward-panel__head">
+        <div class="bed-activity-panel__title">
+          <i class="fa fa-clock-o" aria-hidden="true"></i>
+          <h2>Recent Bed Activity</h2>
+        </div>
+        <button type="button" class="bed-view-all" (click)="toggleShowAllActivity()" *ngIf="recentBedActivity.length">
+          {{ showAllActivity ? 'Show Less' : 'View All' }}
+        </button>
+      </div>
+      <div class="table-responsive" *ngIf="recentBedActivity.length; else activityEmpty">
+        <table class="table table-hover mb-0 bed-activity-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Bed</th>
+              <th>Patient</th>
+              <th>Status</th>
+              <th>Details</th>
+              <th>Staff</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of recentBedActivity">
+              <td>{{ row.time }}</td>
+              <td><strong>{{ row.bedNo }}</strong></td>
+              <td>{{ row.patientName }}</td>
+              <td><span class="activity-badge" [ngClass]="activityStatusClass(row.status)">{{ activityStatusLabel(row.status) }}</span></td>
+              <td>{{ row.details }}</td>
+              <td>{{ row.staff }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #activityEmpty>
+        <p class="empty-copy">No recent bed activity to show.</p>
+      </ng-template>
+    </section>
   </div>
 </div>
 
 <!-- Ward Modal -->
 <div class="ward-simple-modal" *ngIf="activeModal === 'ward'" role="dialog" aria-modal="true">
   <div class="ward-simple-modal__backdrop" (click)="closeModal()"></div>
-  <div class="ward-simple-modal__dialog">
-    <div class="ward-simple-modal__head">
-      <h3>Add Ward</h3>
+  <div class="ward-simple-modal__dialog ward-simple-modal__dialog--sm">
+    <div class="ward-simple-modal__head ward-simple-modal__head--rich">
+      <div class="ward-simple-modal__head-main">
+        <span class="ward-simple-modal__icon"><i class="fa fa-building" aria-hidden="true"></i></span>
+        <div>
+          <h3>Add Ward</h3>
+          <p>Create a new ward to organize hospital rooms.</p>
+        </div>
+      </div>
       <button type="button" class="ward-simple-modal__close" (click)="closeModal()" aria-label="Close">
         <i class="fa fa-times"></i>
       </button>
     </div>
     <form class="ward-simple-modal__form" [formGroup]="wardForm" (ngSubmit)="saveWard()">
       <div class="ward-simple-modal__body">
-        <div class="ward-simple-modal__grid">
+        <div class="ward-simple-modal__grid ward-simple-modal__grid--single">
           <label class="ward-simple-field ward-simple-field--full" [class.is-invalid]="isFieldInvalid(wardForm, 'name')">
-            <span>Ward Name</span>
-            <input type="text" formControlName="name" placeholder="e.g. Peads Ward" />
+            <span>Ward Name <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-building-o" aria-hidden="true"></i>
+              <input type="text" formControlName="name" placeholder="e.g. General Ward" />
+            </div>
             <small>{{ fieldError(wardForm, 'name', 'Ward name') }}</small>
           </label>
-          <label class="ward-simple-field">
+          <label class="ward-simple-field ward-simple-field--full">
             <span>Code</span>
-            <input type="text" formControlName="code" placeholder="Optional" />
+            <div class="ward-field-control">
+              <i class="fa fa-tag" aria-hidden="true"></i>
+              <input type="text" formControlName="code" placeholder="e.g. GW" />
+            </div>
           </label>
           <label class="ward-simple-field ward-simple-field--full">
             <span>Description</span>
-            <textarea rows="2" formControlName="description" placeholder="Optional"></textarea>
+            <div class="ward-field-control ward-field-control--textarea">
+              <i class="fa fa-file-text-o" aria-hidden="true"></i>
+              <textarea rows="3" maxlength="300" formControlName="description" placeholder="Enter ward description (optional)"></textarea>
+            </div>
+            <span class="ward-char-count">{{ wardDescriptionLength }}/300</span>
           </label>
         </div>
       </div>
       <div class="ward-simple-modal__foot">
-        <button type="button" class="btn btn-sm btn-default" (click)="closeModal()">Cancel</button>
-        <button type="submit" class="btn btn-sm btn-primary">Save Ward</button>
+        <button type="button" class="bed-action-btn bed-action-btn--ghost" (click)="closeModal()">Cancel</button>
+        <button type="submit" class="bed-action-btn bed-action-btn--primary">
+          <i class="fa fa-save" aria-hidden="true"></i> Save Ward
+        </button>
       </div>
     </form>
   </div>
@@ -218,39 +421,57 @@
 <!-- Floor Modal -->
 <div class="ward-simple-modal" *ngIf="activeModal === 'floor'" role="dialog" aria-modal="true">
   <div class="ward-simple-modal__backdrop" (click)="closeModal()"></div>
-  <div class="ward-simple-modal__dialog">
-    <div class="ward-simple-modal__head">
-      <h3>Add Floor</h3>
+  <div class="ward-simple-modal__dialog ward-simple-modal__dialog--sm">
+    <div class="ward-simple-modal__head ward-simple-modal__head--rich">
+      <div class="ward-simple-modal__head-main">
+        <span class="ward-simple-modal__icon"><i class="fa fa-bars" aria-hidden="true"></i></span>
+        <div>
+          <h3>Add Floor</h3>
+          <p>Add a new floor within a selected ward.</p>
+        </div>
+      </div>
       <button type="button" class="ward-simple-modal__close" (click)="closeModal()" aria-label="Close">
         <i class="fa fa-times"></i>
       </button>
     </div>
     <form class="ward-simple-modal__form" [formGroup]="floorForm" (ngSubmit)="saveFloor()">
       <div class="ward-simple-modal__body">
-        <div class="ward-simple-modal__grid">
+        <div class="ward-simple-modal__grid ward-simple-modal__grid--single">
           <label class="ward-simple-field ward-simple-field--full" [class.is-invalid]="isFieldInvalid(floorForm, 'wardId')">
-            <span>Ward</span>
-            <select formControlName="wardId">
-              <option *ngIf="!hospitalWards.length && selectedWardId" [value]="selectedWardId">
-                {{ filters.ward || 'Selected ward' }}
-              </option>
-              <option *ngFor="let ward of hospitalWards" [value]="ward._id">{{ ward.name }}</option>
-            </select>
+            <span>Ward <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-building-o" aria-hidden="true"></i>
+              <select formControlName="wardId">
+                <option value="" disabled>Select Ward</option>
+                <option *ngIf="!hospitalWards.length && selectedWardId" [value]="selectedWardId">
+                  {{ filters.ward || 'Selected ward' }}
+                </option>
+                <option *ngFor="let ward of hospitalWards" [value]="ward._id">{{ ward.name }}</option>
+              </select>
+            </div>
           </label>
-          <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(floorForm, 'name')">
-            <span>Floor Name</span>
-            <input type="text" formControlName="name" placeholder="e.g. 2nd Floor" />
+          <label class="ward-simple-field ward-simple-field--full" [class.is-invalid]="isFieldInvalid(floorForm, 'name')">
+            <span>Floor Name <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-bars" aria-hidden="true"></i>
+              <input type="text" formControlName="name" placeholder="e.g. 2nd Floor" />
+            </div>
             <small>{{ fieldError(floorForm, 'name', 'Floor name') }}</small>
           </label>
-          <label class="ward-simple-field">
+          <label class="ward-simple-field ward-simple-field--full">
             <span>Display Label</span>
-            <input type="text" formControlName="label" placeholder="Optional" />
+            <div class="ward-field-control">
+              <i class="fa fa-font" aria-hidden="true"></i>
+              <input type="text" formControlName="label" placeholder="e.g. 2F (Optional)" />
+            </div>
           </label>
         </div>
       </div>
       <div class="ward-simple-modal__foot">
-        <button type="button" class="btn btn-sm btn-default" (click)="closeModal()">Cancel</button>
-        <button type="submit" class="btn btn-sm btn-primary">Save Floor</button>
+        <button type="button" class="bed-action-btn bed-action-btn--ghost" (click)="closeModal()">Cancel</button>
+        <button type="submit" class="bed-action-btn bed-action-btn--primary">
+          <i class="fa fa-save" aria-hidden="true"></i> Save Floor
+        </button>
       </div>
     </form>
   </div>
@@ -259,9 +480,15 @@
 <!-- Room Modal -->
 <div class="ward-simple-modal" *ngIf="activeModal === 'room'" role="dialog" aria-modal="true">
   <div class="ward-simple-modal__backdrop" (click)="closeModal()"></div>
-  <div class="ward-simple-modal__dialog">
-    <div class="ward-simple-modal__head">
-      <h3>{{ roomModalMode === 'add' ? 'Add Room' : 'Edit Room' }}</h3>
+  <div class="ward-simple-modal__dialog ward-simple-modal__dialog--md">
+    <div class="ward-simple-modal__head ward-simple-modal__head--rich">
+      <div class="ward-simple-modal__head-main">
+        <span class="ward-simple-modal__icon"><i class="fa fa-home" aria-hidden="true"></i></span>
+        <div>
+          <h3>{{ roomModalMode === 'add' ? 'Add Room' : 'Edit Room' }}</h3>
+          <p>Create a room within a floor.</p>
+        </div>
+      </div>
       <button type="button" class="ward-simple-modal__close" (click)="closeModal()" aria-label="Close">
         <i class="fa fa-times"></i>
       </button>
@@ -270,58 +497,83 @@
       <div class="ward-simple-modal__body">
         <div class="ward-simple-modal__grid">
           <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(roomForm, 'wardId')">
-            <span>Ward</span>
-            <select formControlName="wardId">
-              <option *ngIf="!hospitalWards.length && selectedWardId" [ngValue]="selectedWardId">
-                {{ filters.ward || 'Selected ward' }}
-              </option>
-              <option *ngFor="let ward of hospitalWards" [ngValue]="ward._id">{{ ward.name }}</option>
-            </select>
+            <span>Ward <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-building-o" aria-hidden="true"></i>
+              <select formControlName="wardId">
+                <option *ngIf="!hospitalWards.length && selectedWardId" [ngValue]="selectedWardId">
+                  {{ filters.ward || 'Selected ward' }}
+                </option>
+                <option *ngFor="let ward of hospitalWards" [ngValue]="ward._id">{{ ward.name }}</option>
+              </select>
+            </div>
             <small>{{ fieldError(roomForm, 'wardId', 'Ward') }}</small>
           </label>
           <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(roomForm, 'floorId')">
-            <span>Floor</span>
-            <select formControlName="floorId">
-              <option value="" disabled *ngIf="!roomFormFloors.length">No floors available for this ward</option>
-              <option *ngFor="let floor of roomFormFloors; trackBy: trackFloorById" [ngValue]="floor._id">{{ floor.label || floor.name }}</option>
-            </select>
+            <span>Floor <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-bars" aria-hidden="true"></i>
+              <select formControlName="floorId">
+                <option value="" disabled *ngIf="!roomFormFloors.length">No floors available for this ward</option>
+                <option *ngFor="let floor of roomFormFloors; trackBy: trackFloorById" [ngValue]="floor._id">{{ floor.label || floor.name }}</option>
+              </select>
+            </div>
             <small>{{ fieldError(roomForm, 'floorId', 'Floor') }}</small>
           </label>
-          <label class="ward-simple-field ward-simple-field--full" [class.is-invalid]="isFieldInvalid(roomForm, 'roomName')">
-            <span>Room Name</span>
-            <input type="text" formControlName="roomName" placeholder="Room 101" />
+          <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(roomForm, 'roomName')">
+            <span>Room Number / Name <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-sign-in" aria-hidden="true"></i>
+              <input type="text" formControlName="roomName" placeholder="e.g. 101, ICU-1" />
+            </div>
             <small>{{ fieldError(roomForm, 'roomName', 'Room name') }}</small>
           </label>
           <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(roomForm, 'roomType')">
-            <span>Room Type</span>
-            <select formControlName="roomType">
-              <option value="general">General Ward</option>
-              <option value="private">Private Room</option>
-              <option value="icu">ICU</option>
-              <option value="isolation">Isolation</option>
-              <option value="recovery">Recovery</option>
-            </select>
+            <span>Room Type <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-bed" aria-hidden="true"></i>
+              <select formControlName="roomType">
+                <option value="general">General Ward</option>
+                <option value="private">Private Room</option>
+                <option value="icu">ICU</option>
+                <option value="isolation">Isolation</option>
+                <option value="recovery">Recovery</option>
+              </select>
+            </div>
             <small>{{ fieldError(roomForm, 'roomType', 'Room type') }}</small>
           </label>
           <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(roomForm, 'capacity')">
-            <span>Capacity</span>
-            <input type="number" min="1" formControlName="capacity" placeholder="1" />
+            <span>Capacity <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-users" aria-hidden="true"></i>
+              <input type="number" min="1" formControlName="capacity" placeholder="e.g. 4" />
+            </div>
             <small>{{ fieldError(roomForm, 'capacity', 'Capacity') }}</small>
           </label>
           <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(roomForm, 'dailyCharge')">
             <span>Daily Charge (Rs.)</span>
-            <input type="number" min="0" formControlName="dailyCharge" placeholder="2500" />
+            <div class="ward-field-control">
+              <i class="fa fa-money" aria-hidden="true"></i>
+              <input type="number" min="0" formControlName="dailyCharge" placeholder="e.g. 2500" />
+            </div>
             <small>{{ fieldError(roomForm, 'dailyCharge', 'Daily charge') }}</small>
           </label>
           <label class="ward-simple-field ward-simple-field--full">
             <span>Notes</span>
-            <textarea rows="2" formControlName="description" placeholder="Optional"></textarea>
+            <div class="ward-field-control ward-field-control--textarea">
+              <i class="fa fa-file-text-o" aria-hidden="true"></i>
+              <textarea rows="3" maxlength="300" formControlName="description" placeholder="Enter room notes (optional)"></textarea>
+            </div>
+            <span class="ward-char-count">{{ roomNotesLength }}/300</span>
           </label>
         </div>
       </div>
       <div class="ward-simple-modal__foot">
-        <button type="button" class="btn btn-sm btn-default" (click)="closeModal()">Cancel</button>
-        <button type="submit" class="btn btn-sm btn-primary">{{ roomModalMode === 'add' ? 'Save' : 'Update' }}</button>
+        <button type="button" class="bed-action-btn bed-action-btn--ghost" (click)="closeModal()">Cancel</button>
+        <button type="submit" class="bed-action-btn bed-action-btn--primary">
+          <i class="fa fa-save" aria-hidden="true"></i>
+          {{ roomModalMode === 'add' ? 'Save Room' : 'Update Room' }}
+        </button>
       </div>
     </form>
   </div>
@@ -330,9 +582,15 @@
 <!-- Bed Modal -->
 <div class="ward-simple-modal" *ngIf="activeModal === 'bed'" role="dialog" aria-modal="true">
   <div class="ward-simple-modal__backdrop" (click)="closeModal()"></div>
-  <div class="ward-simple-modal__dialog">
-    <div class="ward-simple-modal__head">
-      <h3>{{ bedModalMode === 'add' ? 'Add Bed' : 'Edit Bed' }}</h3>
+  <div class="ward-simple-modal__dialog ward-simple-modal__dialog--md">
+    <div class="ward-simple-modal__head ward-simple-modal__head--rich">
+      <div class="ward-simple-modal__head-main">
+        <span class="ward-simple-modal__icon"><i class="fa fa-bed" aria-hidden="true"></i></span>
+        <div>
+          <h3>{{ bedModalMode === 'add' ? 'Add Bed' : 'Edit Bed' }}</h3>
+          <p>Add a bed to a specific room.</p>
+        </div>
+      </div>
       <button type="button" class="ward-simple-modal__close" (click)="closeModal()" aria-label="Close">
         <i class="fa fa-times"></i>
       </button>
@@ -341,63 +599,91 @@
       <div class="ward-simple-modal__body">
         <div class="ward-simple-modal__grid">
           <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(bedForm, 'wardId')">
-            <span>Ward</span>
-            <select formControlName="wardId">
-              <option *ngIf="!hospitalWards.length && selectedWardId" [value]="selectedWardId">
-                {{ filters.ward || 'Selected ward' }}
-              </option>
-              <option *ngFor="let ward of hospitalWards" [value]="ward._id">{{ ward.name }}</option>
-            </select>
+            <span>Ward <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-building-o" aria-hidden="true"></i>
+              <select formControlName="wardId">
+                <option *ngIf="!hospitalWards.length && selectedWardId" [value]="selectedWardId">
+                  {{ filters.ward || 'Selected ward' }}
+                </option>
+                <option *ngFor="let ward of hospitalWards" [value]="ward._id">{{ ward.name }}</option>
+              </select>
+            </div>
           </label>
           <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(bedForm, 'floorId')">
-            <span>Floor</span>
-            <select formControlName="floorId" (change)="onBedFormPlacementChange()">
-              <option value="" disabled *ngIf="!bedFormFloors.length">No floors available for this ward</option>
-              <option *ngFor="let floor of bedFormFloors; trackBy: trackFloorById" [ngValue]="floor._id">{{ floor.label || floor.name }}</option>
-            </select>
+            <span>Floor <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-bars" aria-hidden="true"></i>
+              <select formControlName="floorId" (change)="onBedFormPlacementChange()">
+                <option value="" disabled *ngIf="!bedFormFloors.length">No floors available for this ward</option>
+                <option *ngFor="let floor of bedFormFloors; trackBy: trackFloorById" [ngValue]="floor._id">{{ floor.label || floor.name }}</option>
+              </select>
+            </div>
           </label>
-          <label class="ward-simple-field ward-simple-field--full" [class.is-invalid]="isFieldInvalid(bedForm, 'roomId')">
-            <span>Room</span>
-            <select formControlName="roomId">
-              <option value="" disabled *ngIf="!bedFormRooms.length">No rooms in this gallery</option>
-              <option *ngFor="let room of bedFormRooms; trackBy: trackRoomById" [value]="room.id">{{ room.roomName }}</option>
-            </select>
+          <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(bedForm, 'roomId')">
+            <span>Room <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-sign-in" aria-hidden="true"></i>
+              <select formControlName="roomId">
+                <option value="" disabled *ngIf="!bedFormRooms.length">No rooms in this gallery</option>
+                <option *ngFor="let room of bedFormRooms; trackBy: trackRoomById" [value]="room.id">{{ room.roomName }}</option>
+              </select>
+            </div>
             <small>{{ fieldError(bedForm, 'roomId', 'Room') }}</small>
           </label>
           <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(bedForm, 'bedNo')">
-            <span>Bed No.</span>
-            <input type="text" formControlName="bedNo" placeholder="A-1" />
+            <span>Bed No. <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-ticket" aria-hidden="true"></i>
+              <input type="text" formControlName="bedNo" placeholder="e.g. A-1" />
+            </div>
             <small>{{ fieldError(bedForm, 'bedNo', 'Bed number') }}</small>
           </label>
           <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(bedForm, 'bedType')">
-            <span>Bed Type</span>
-            <select formControlName="bedType">
-              <option *ngFor="let type of bedTypeOptions" [value]="type">{{ type | titlecase }}</option>
-            </select>
+            <span>Bed Type <em>*</em></span>
+            <div class="ward-field-control">
+              <i class="fa fa-bed" aria-hidden="true"></i>
+              <select formControlName="bedType">
+                <option *ngFor="let type of bedTypeOptions" [value]="type">{{ type | titlecase }}</option>
+              </select>
+            </div>
             <small>{{ fieldError(bedForm, 'bedType', 'Bed type') }}</small>
           </label>
           <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(bedForm, 'status')">
-            <span>Status</span>
-            <select formControlName="status">
-              <option *ngFor="let status of changeStatusOptions" [value]="status">{{ bedStatusLabel(status) }}</option>
-              <option value="occupied" *ngIf="bedModalMode === 'edit' && selectedBed?.status === 'occupied'">Occupied</option>
-            </select>
+            <span>Status <em>*</em></span>
+            <div class="ward-field-control ward-field-control--status">
+              <span class="status-dot" [ngClass]="bedStatusDotClass" aria-hidden="true"></span>
+              <select formControlName="status">
+                <option *ngFor="let status of changeStatusOptions" [value]="status">{{ bedStatusLabel(status) }}</option>
+                <option value="occupied" *ngIf="bedModalMode === 'edit' && selectedBed?.status === 'occupied'">Occupied</option>
+              </select>
+            </div>
             <small>{{ fieldError(bedForm, 'status', 'Status') }}</small>
           </label>
-          <label class="ward-simple-field" [class.is-invalid]="isFieldInvalid(bedForm, 'dailyCharge')">
+          <label class="ward-simple-field ward-simple-field--full" [class.is-invalid]="isFieldInvalid(bedForm, 'dailyCharge')">
             <span>Daily Charge (Rs.)</span>
-            <input type="number" min="0" formControlName="dailyCharge" placeholder="2500" />
+            <div class="ward-field-control">
+              <i class="fa fa-money" aria-hidden="true"></i>
+              <input type="number" min="0" formControlName="dailyCharge" placeholder="e.g. 2500" />
+            </div>
             <small>{{ fieldError(bedForm, 'dailyCharge', 'Daily charge') }}</small>
           </label>
           <label class="ward-simple-field ward-simple-field--full">
             <span>Notes</span>
-            <textarea rows="2" formControlName="notes" placeholder="Optional"></textarea>
+            <div class="ward-field-control ward-field-control--textarea">
+              <i class="fa fa-file-text-o" aria-hidden="true"></i>
+              <textarea rows="3" maxlength="300" formControlName="notes" placeholder="Enter bed notes (optional)"></textarea>
+            </div>
+            <span class="ward-char-count">{{ bedNotesLength }}/300</span>
           </label>
         </div>
       </div>
       <div class="ward-simple-modal__foot">
-        <button type="button" class="btn btn-sm btn-default" (click)="closeModal()">Cancel</button>
-        <button type="submit" class="btn btn-sm btn-primary">{{ bedModalMode === 'add' ? 'Save' : 'Update' }}</button>
+        <button type="button" class="bed-action-btn bed-action-btn--ghost" (click)="closeModal()">Cancel</button>
+        <button type="submit" class="bed-action-btn bed-action-btn--primary">
+          <i class="fa fa-save" aria-hidden="true"></i>
+          {{ bedModalMode === 'add' ? 'Save Bed' : 'Update Bed' }}
+        </button>
       </div>
     </form>
   </div>

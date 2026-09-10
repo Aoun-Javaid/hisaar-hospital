@@ -69,6 +69,14 @@
         <span *ngIf="contextBedNo">Bed: <strong>{{ contextBedNo }}</strong></span>
       </div>
       <div class="ward-patient-context__actions">
+        <button
+          type="button"
+          class="btn btn-sm btn-primary"
+          *ngIf="contextAdmissionId"
+          (click)="backToPatientChart()"
+        >
+          <i class="fa fa-arrow-left"></i> Back to Patient Chart
+        </button>
         <button type="button" class="btn btn-sm btn-outline-primary" *ngIf="contextAdmissionId" (click)="transferCurrentPatient()">
           <i class="fa fa-random"></i> Transfer Bed
         </button>

@@ -1,93 +1,204 @@
-<div id="main-content">
-  <div class="container-fluid">
-    <div class="block-header">
-      <div class="row clearfix">
-        <div class="col-lg-8 col-md-12">
-          <h1>Doctor Schedule</h1>
-          <span>Set working hours day by day, mark leave dates, and review booked appointments.</span>
-        </div>
-        <div class="col-lg-4 col-md-12 text-md-right">
-          <a class="btn btn-default" *ngIf="showAllDoctorsLink" [routerLink]="['/all-doctors']">All Doctors</a>
-          <a class="btn btn-primary ml-1" [routerLink]="['/appointments']">Appointments</a>
-        </div>
+<div id="main-content" class="doc-schedule-page">
+  <div class="doc-schedule-shell">
+    <nav class="doc-schedule-breadcrumb" aria-label="Breadcrumb">
+      <a routerLink="/">Home</a>
+      <span>/</span>
+      <a routerLink="/all-doctors" *ngIf="canReadDirectory">Doctors</a>
+      <span *ngIf="canReadDirectory">/</span>
+      <strong>Doctor &amp; Operation Schedule</strong>
+    </nav>
+
+    <header class="doc-schedule-header">
+      <div>
+        <h1>Doctor &amp; Operation Schedule</h1>
+        <p>View OPD appointments, assigned operations, leave, and working hours in one calendar.</p>
       </div>
-    </div>
+      <div class="doc-schedule-header__actions" *ngIf="canEditSelected">
+        <button type="button" class="ds-btn ds-btn--outline" (click)="openHoursPanel()">
+          <i class="fa fa-clock-o" aria-hidden="true"></i> Set Working Hours
+        </button>
+        <button type="button" class="ds-btn ds-btn--outline" (click)="openLeavePanel()">
+          <i class="fa fa-calendar-times-o" aria-hidden="true"></i> Apply Leave
+        </button>
+        <a class="ds-btn ds-btn--primary" routerLink="/appointments">
+          <i class="fa fa-plus" aria-hidden="true"></i> Book Appointment
+        </a>
+      </div>
+    </header>
 
-    <div class="card" *ngIf="loading">
-      <div class="body">Loading schedule...</div>
-    </div>
+    <div class="doc-schedule-loading" *ngIf="loading">Loading schedule…</div>
 
-    <div class="card" *ngIf="!loading && selectedDoctor">
-      <div class="body">
-        <label class="d-block mb-3" *ngIf="canPickDoctor">
-          <span>Doctor</span>
-          <select class="form-control" [(ngModel)]="selectedDoctorId" (ngModelChange)="onDoctorChange()">
-            <option *ngFor="let doctor of doctors" [value]="doctor._id">
-              {{ doctor.user?.name || doctor.specialization || doctor._id }}
-            </option>
-          </select>
-        </label>
+    <ng-container *ngIf="!loading && selectedDoctor">
+      <div class="doc-schedule-tabs" role="tablist">
+        <button type="button" role="tab" [class.is-active]="activeTab === 'schedule'" (click)="setTab('schedule')">My Schedule</button>
+        <button type="button" role="tab" [class.is-active]="activeTab === 'appointments'" (click)="setTab('appointments')">Appointments</button>
+        <button type="button" role="tab" [class.is-active]="activeTab === 'operations'" (click)="setTab('operations')">Operations</button>
+        <button type="button" role="tab" [class.is-active]="activeTab === 'leave'" (click)="setTab('leave')">Leave</button>
+        <button type="button" role="tab" [class.is-active]="activeTab === 'availability'" (click)="setTab('availability')">Availability</button>
+      </div>
 
-        <p class="mb-1" *ngIf="!canPickDoctor">
-          <strong>{{ selectedDoctor.user?.name || selectedDoctor.specialization || 'Doctor' }}</strong>
-        </p>
-        <p class="mb-1"><strong>Working days:</strong> {{ days(selectedDoctor) }}</p>
-        <p class="mb-1"><strong>Hours:</strong> {{ slots(selectedDoctor) }}</p>
-        <p class="mb-3"><strong>Upcoming appointments:</strong> {{ appointments.length }}</p>
+      <section class="doc-kpi-grid" aria-label="Schedule summary">
+        <article class="doc-kpi">
+          <span class="doc-kpi__icon is-green"><i class="fa fa-stethoscope" aria-hidden="true"></i></span>
+          <div>
+            <small>Today's Appointments</small>
+            <strong>{{ kpis.appointmentsToday }}</strong>
+          </div>
+        </article>
+        <article class="doc-kpi">
+          <span class="doc-kpi__icon is-blue"><i class="fa fa-medkit" aria-hidden="true"></i></span>
+          <div>
+            <small>Today's Operations</small>
+            <strong>{{ kpis.operationsToday }}</strong>
+          </div>
+        </article>
+        <article class="doc-kpi">
+          <span class="doc-kpi__icon is-teal"><i class="fa fa-calendar" aria-hidden="true"></i></span>
+          <div>
+            <small>Upcoming (This Week)</small>
+            <strong>{{ kpis.upcomingWeek }}</strong>
+          </div>
+        </article>
+        <article class="doc-kpi">
+          <span class="doc-kpi__icon is-orange"><i class="fa fa-plane" aria-hidden="true"></i></span>
+          <div>
+            <small>Leave Days</small>
+            <strong>{{ kpis.leaveDays }}</strong>
+          </div>
+        </article>
+      </section>
 
-        <div class="schedule-editor" *ngIf="canEditSelected">
-          <h5>Weekly hours</h5>
-          <p class="text-muted small">Select working days and set start and end time for each day.</p>
-          <label class="slot-duration-field">
-            <span>Minutes per patient</span>
-            <select class="form-control" [(ngModel)]="slotDurationMinutes" name="slotDurationMinutes">
-              <option *ngFor="let minutes of slotDurationOptions" [ngValue]="minutes">
-                {{ minutes }} minutes
-              </option>
-            </select>
-            <small>Open appointment slots are created from working hours using this duration.</small>
-          </label>
-          <div class="day-hours-row" *ngFor="let day of weekDays">
-            <label class="fancy-checkbox mb-0 day-hours-day">
-              <input type="checkbox" [(ngModel)]="dayHours[day].enabled" [name]="'day-' + day">
-              <span class="text-capitalize">{{ day }}</span>
-            </label>
-            <div class="day-hours-times">
-              <input class="form-control" type="time" [(ngModel)]="dayHours[day].startTime" [name]="'start-' + day"
-                [disabled]="!dayHours[day].enabled">
-              <span class="day-hours-sep">to</span>
-              <input class="form-control" type="time" [(ngModel)]="dayHours[day].endTime" [name]="'end-' + day"
-                [disabled]="!dayHours[day].enabled">
+      <div class="doc-schedule-layout">
+        <section class="doc-schedule-main">
+          <div class="doc-calendar-card">
+            <div class="doc-calendar-card__head">
+              <div>
+                <h2>{{ doctorDisplayName }}</h2>
+                <p>
+                  Working days: {{ days(selectedDoctor) }}
+                  <span *ngIf="calendarLoading"> · Refreshing…</span>
+                </p>
+              </div>
+              <label class="doc-doctor-pick" *ngIf="canPickDoctor">
+                <span>Doctor</span>
+                <select [(ngModel)]="selectedDoctorId" (ngModelChange)="onDoctorChange()">
+                  <option *ngFor="let doctor of doctors" [value]="doctor._id">
+                    {{ doctor.user?.name || doctor.specialization || doctor._id }}
+                    {{ isOwnDoctor(doctor) ? '(Me)' : '' }}
+                  </option>
+                </select>
+              </label>
+            </div>
+
+            <full-calendar #calendar [options]="calendarOptions"></full-calendar>
+
+            <div class="doc-legend">
+              <span class="doc-legend__item is-opd"><i></i> OPD</span>
+              <span class="doc-legend__item is-followup"><i></i> Follow-up</span>
+              <span class="doc-legend__item is-operation"><i></i> Operations</span>
+              <span class="doc-legend__item is-completed"><i></i> Completed / Checked</span>
+              <span class="doc-legend__item is-leave"><i></i> Leave</span>
             </div>
           </div>
 
-          <h5 class="mt-4">Unavailable dates</h5>
-          <p class="text-muted small">Patients cannot book appointments on these dates.</p>
-          <div class="leave-row">
-            <input class="form-control" type="date" [(ngModel)]="leaveDate" name="leaveDate">
-            <button type="button" class="btn btn-default" (click)="addLeaveDate()">Add date</button>
-          </div>
-          <div class="leave-chips" *ngIf="unavailableDates.length">
-            <span class="leave-chip" *ngFor="let ymd of unavailableDates">
-              {{ ymd }}
-              <button type="button" (click)="removeLeaveDate(ymd)" aria-label="Remove date">&times;</button>
-            </span>
-          </div>
-          <p class="text-muted small mb-0" *ngIf="!unavailableDates.length">No leave dates set.</p>
+          <section class="doc-panel" *ngIf="showHoursPanel && canEditSelected">
+            <div class="doc-panel__head">
+              <h3>Set Working Hours</h3>
+              <button type="button" class="ds-btn ds-btn--ghost" (click)="showHoursPanel = false">Close</button>
+            </div>
+            <label class="doc-field">
+              <span>Minutes per patient</span>
+              <select [(ngModel)]="slotDurationMinutes" name="slotDurationMinutes">
+                <option *ngFor="let minutes of slotDurationOptions" [ngValue]="minutes">{{ minutes }} minutes</option>
+              </select>
+            </label>
+            <div class="day-hours-row" *ngFor="let day of weekDays">
+              <label class="day-hours-day">
+                <input type="checkbox" [(ngModel)]="dayHours[day].enabled" [name]="'day-' + day" />
+                <span class="text-capitalize">{{ day }}</span>
+              </label>
+              <div class="day-hours-times">
+                <input type="time" [(ngModel)]="dayHours[day].startTime" [name]="'start-' + day" [disabled]="!dayHours[day].enabled" />
+                <span>to</span>
+                <input type="time" [(ngModel)]="dayHours[day].endTime" [name]="'end-' + day" [disabled]="!dayHours[day].enabled" />
+              </div>
+            </div>
+            <div class="doc-panel__foot">
+              <button type="button" class="ds-btn ds-btn--primary" (click)="saveSchedule()" [disabled]="saving">
+                {{ saving ? 'Saving…' : 'Save Working Hours' }}
+              </button>
+            </div>
+          </section>
 
-          <div class="mt-4">
-            <button type="button" class="btn btn-primary" (click)="saveSchedule()" [disabled]="saving">
-              {{ saving ? 'Saving...' : 'Save schedule' }}
+          <section class="doc-panel" *ngIf="showLeavePanel && canEditSelected">
+            <div class="doc-panel__head">
+              <h3>Apply Leave</h3>
+              <button type="button" class="ds-btn ds-btn--ghost" (click)="showLeavePanel = false">Close</button>
+            </div>
+            <p class="doc-hint">Patients cannot book appointments on these dates. Save schedule to persist leave.</p>
+            <div class="leave-row">
+              <input type="date" [(ngModel)]="leaveDate" name="leaveDate" />
+              <button type="button" class="ds-btn ds-btn--outline" (click)="addLeaveDate()">Add date</button>
+            </div>
+            <div class="leave-chips" *ngIf="unavailableDates.length">
+              <span class="leave-chip" *ngFor="let ymd of unavailableDates">
+                {{ ymd }}
+                <button type="button" (click)="removeLeaveDate(ymd)" aria-label="Remove date">&times;</button>
+              </span>
+            </div>
+            <div class="doc-panel__foot">
+              <button type="button" class="ds-btn ds-btn--primary" (click)="saveSchedule()" [disabled]="saving">
+                {{ saving ? 'Saving…' : 'Save Leave Dates' }}
+              </button>
+            </div>
+          </section>
+        </section>
+
+        <aside class="doc-schedule-sidebar">
+          <section class="doc-side-card">
+            <h3>Show</h3>
+            <label class="doc-check"><input type="checkbox" [checked]="filters.opd" (change)="toggleFilter('opd')" /> OPD Appointments</label>
+            <label class="doc-check"><input type="checkbox" [checked]="filters.followup" (change)="toggleFilter('followup')" /> Follow-up</label>
+            <label class="doc-check"><input type="checkbox" [checked]="filters.operations" (change)="toggleFilter('operations')" /> Operations</label>
+            <label class="doc-check"><input type="checkbox" [checked]="filters.leave" (change)="toggleFilter('leave')" /> Leave</label>
+          </section>
+
+          <section class="doc-side-card">
+            <h3>Doctor</h3>
+            <p class="doc-side-card__strong">{{ doctorDisplayName }}</p>
+            <p class="doc-hint">{{ slots(selectedDoctor) }}</p>
+          </section>
+
+          <section class="doc-side-card">
+            <h3>Quick Actions</h3>
+            <a class="doc-quick" routerLink="/appointments"><i class="fa fa-calendar-plus-o"></i> Book Appointment</a>
+            <a class="doc-quick" routerLink="/operations" *ngIf="canReadOperations"><i class="fa fa-medkit"></i> Schedule Operation</a>
+            <button type="button" class="doc-quick" *ngIf="canEditSelected" (click)="openLeavePanel()">
+              <i class="fa fa-plane"></i> Apply for Leave
             </button>
-          </div>
-        </div>
-      </div>
-    </div>
+            <button type="button" class="doc-quick" *ngIf="canEditSelected" (click)="openHoursPanel()">
+              <i class="fa fa-clock-o"></i> Set Working Hours
+            </button>
+            <a class="doc-quick" routerLink="/all-doctors" *ngIf="canReadDirectory"><i class="fa fa-user-md"></i> All Doctors</a>
+          </section>
 
-    <div class="card" *ngIf="!loading">
-      <div class="body">
-        <app-fullcalender></app-fullcalender>
+          <section class="doc-side-card" *ngIf="filters.operations && operations.length">
+            <h3>Assigned Operations</h3>
+            <ul class="doc-op-list">
+              <li *ngFor="let op of operations | slice:0:8">
+                <button type="button" class="doc-op-list__btn" (click)="openOperation(op)">
+                  <strong>{{ operationListLabel(op) }}</strong>
+                  <small>{{ op.scheduledStart ? (op.scheduledStart | date:'mediumDate') : 'Unscheduled' }} · {{ op.status }}</small>
+                </button>
+              </li>
+            </ul>
+          </section>
+        </aside>
       </div>
+    </ng-container>
+
+    <div class="doc-schedule-empty" *ngIf="!loading && !selectedDoctor">
+      No doctor profile found for schedule.
     </div>
   </div>
 </div>

@@ -1,43 +1,34 @@
 <div id="main-content" class="modern-dashboard hms-page ward-page-shell ward-patient-page" [class.ward-patient-page--drawer-open]="previewPatient">
   <div class="container-fluid ward-page-container">
+    <nav class="ward-breadcrumb" aria-label="Breadcrumb">
+      <a routerLink="/dashboard">Home</a>
+      <span class="ward-breadcrumb__sep" aria-hidden="true">/</span>
+      <a routerLink="/ward/dashboard">Ward &amp; Nursing</a>
+      <span class="ward-breadcrumb__sep" aria-hidden="true">/</span>
+      <span class="ward-breadcrumb__current">Patient List</span>
+    </nav>
+
     <div class="ward-page-header ward-page-header--compact">
       <div class="ward-page-header__copy">
         <h1>Patient List — Ward Wise</h1>
-        <p>Admitted patients currently assigned to selected ward</p>
+        <p>View and manage admitted patients grouped by ward. Monitor status, assign staff, and access patient charts.</p>
       </div>
-      <div class="ward-page-header__actions ward-page-header__actions--toolbar">
-        <label class="ward-header-filter">
-          <span>Ward</span>
-          <select [(ngModel)]="filters.ward" (ngModelChange)="onFilterChange()">
-            <option value="">All Wards</option>
-            <option *ngFor="let ward of wardOptions" [value]="ward">{{ ward }}</option>
-          </select>
-        </label>
-        <label class="ward-header-filter">
-          <span>Date</span>
-          <input type="date" [(ngModel)]="filters.date" />
-        </label>
-        <label class="ward-header-filter">
-          <span>Shift</span>
-          <select [(ngModel)]="filters.shift">
-            <option *ngFor="let shift of shiftOptions" [value]="shift">{{ shift }}</option>
-          </select>
-        </label>
-        <div class="ward-filter-toolbar__actions">
-          <span class="ward-filter-toolbar__actions-label" aria-hidden="true">Actions</span>
-          <div class="ward-filter-toolbar__actions-row">
-            <button type="button" class="btn btn-sm btn-outline-primary" (click)="exportCsv()">
-              <i class="fa fa-download"></i> Export
-            </button>
-            <button type="button" class="btn btn-sm btn-primary ward-refresh-btn" (click)="refresh()">
-              <i class="fa fa-refresh"></i>
-            </button>
-          </div>
-        </div>
+      <div class="ward-page-header__actions">
+        <button type="button" class="btn btn-sm ward-btn-outline-teal" (click)="exportCsv()">
+          <i class="fa fa-download"></i> Export
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm ward-btn-teal"
+          *ngIf="canAddPatient"
+          (click)="addPatient()"
+        >
+          <i class="fa fa-plus"></i> Add Patient
+        </button>
       </div>
     </div>
 
-    <section class="ward-kpi-grid">
+    <section class="ward-kpi-grid" aria-label="Patient status summary">
       <button
         type="button"
         class="ward-kpi-card"
@@ -49,21 +40,20 @@
         <span class="ward-kpi-card__copy">
           <strong>{{ card.count }}</strong>
           <small>{{ card.label }}</small>
+          <em *ngIf="card.description">{{ card.description }}</em>
         </span>
       </button>
     </section>
 
     <section class="ward-panel ward-patient-panel">
-      <div class="ward-panel__head ward-panel__head--stack">
-        <div>
-          <h2>Patients in {{ selectedWardLabel }}</h2>
-          <p>{{ filteredPatientsList.length }} patients shown</p>
-        </div>
-        <div class="ward-status-tabs">
+      <div class="ward-panel__head ward-panel__head--tabs">
+        <div class="ward-status-tabs" role="tablist" aria-label="Filter by status">
           <button
             type="button"
             class="ward-status-tab"
             *ngFor="let tab of statusTabs"
+            role="tab"
+            [attr.aria-selected]="filters.statusTab === tab.key"
             [class.ward-status-tab--active]="filters.statusTab === tab.key"
             (click)="setStatusTab(tab.key)"
           >
@@ -72,42 +62,138 @@
         </div>
       </div>
 
-      <div class="ward-filter-toolbar ward-filter-toolbar--in-panel">
-        <label class="ward-filter ward-filter--compact ward-filter--grow">
-          <span>Search</span>
-          <input
-            type="search"
-            [(ngModel)]="filters.search"
-            (ngModelChange)="onFilterChange()"
-            placeholder="Search patient, bed, MRN, diagnosis..."
-          />
-        </label>
-        <label class="ward-filter ward-filter--compact">
-          <span>Doctor</span>
-          <select [(ngModel)]="filters.doctor" (ngModelChange)="onFilterChange()">
-            <option value="">All Doctors</option>
-            <option *ngFor="let doctor of doctorOptionsList" [value]="doctor">{{ doctor }}</option>
-          </select>
-        </label>
-        <label class="ward-filter ward-filter--compact">
-          <span>Nurse</span>
-          <select [(ngModel)]="filters.nurse" (ngModelChange)="onFilterChange()">
-            <option value="">All Nurses</option>
-            <option *ngFor="let nurse of nurseOptionsList" [value]="nurse">{{ nurse }}</option>
-          </select>
-        </label>
-        <label class="ward-filter ward-filter--compact">
-          <span>Room</span>
-          <select [(ngModel)]="filters.room" (ngModelChange)="onFilterChange()">
-            <option value="">All Rooms</option>
-            <option *ngFor="let room of roomOptionsList" [value]="room">{{ room }}</option>
-          </select>
-        </label>
-        <div class="ward-filter-toolbar__actions">
-          <span class="ward-filter-toolbar__actions-label" aria-hidden="true">Actions</span>
-          <div class="ward-filter-toolbar__actions-row">
-            <button type="button" class="btn btn-sm btn-outline-primary" (click)="exportCsv()">
-              <i class="fa fa-download"></i> Export
+      <div class="ward-filter-toolbar ward-filter-toolbar--in-panel ward-patient-filters">
+        <div class="ward-patient-filters__desktop">
+          <div class="ward-patient-filters__row">
+            <label class="ward-filter ward-filter--compact ward-filter--grow ward-filter--search">
+              <span>Search</span>
+              <span class="ward-filter-input-wrap">
+                <i class="fa fa-search" aria-hidden="true"></i>
+                <input
+                  type="search"
+                  [(ngModel)]="filters.search"
+                  (ngModelChange)="onFilterChange()"
+                  placeholder="Search patient, bed, MRN, diagnosis..."
+                />
+              </span>
+            </label>
+            <label class="ward-filter ward-filter--compact">
+              <span>Ward</span>
+              <select [(ngModel)]="filters.ward" (ngModelChange)="onFilterChange()">
+                <option value="">All Wards</option>
+                <option *ngFor="let ward of wardOptions" [value]="ward">{{ ward }}</option>
+              </select>
+            </label>
+            <label class="ward-filter ward-filter--compact">
+              <span>Doctor</span>
+              <select [(ngModel)]="filters.doctor" (ngModelChange)="onFilterChange()">
+                <option value="">All Doctors</option>
+                <option *ngFor="let doctor of doctorOptionsList" [value]="doctor">{{ doctor }}</option>
+              </select>
+            </label>
+            <label class="ward-filter ward-filter--compact">
+              <span>Nurse</span>
+              <select [(ngModel)]="filters.nurse" (ngModelChange)="onFilterChange()">
+                <option value="">All Nurses</option>
+                <option *ngFor="let nurse of nurseOptionsList" [value]="nurse">{{ nurse }}</option>
+              </select>
+            </label>
+          </div>
+          <div class="ward-patient-filters__row">
+            <label class="ward-filter ward-filter--compact">
+              <span>Room</span>
+              <select [(ngModel)]="filters.room" (ngModelChange)="onFilterChange()">
+                <option value="">All Rooms</option>
+                <option *ngFor="let room of roomOptionsList" [value]="room">{{ room }}</option>
+              </select>
+            </label>
+            <label class="ward-filter ward-filter--compact">
+              <span>Date</span>
+              <input type="date" [(ngModel)]="filters.date" />
+            </label>
+            <label class="ward-filter ward-filter--compact">
+              <span>Shift</span>
+              <select [(ngModel)]="filters.shift">
+                <option *ngFor="let shift of shiftOptions" [value]="shift">{{ shift }}</option>
+              </select>
+            </label>
+            <div class="ward-patient-filters__actions">
+              <button type="button" class="ward-filter-clear" (click)="resetFilters()">Clear</button>
+              <button type="button" class="btn btn-sm btn-primary" (click)="onFilterChange()">
+                <i class="fa fa-filter"></i> Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ward-patient-filters__mobile">
+          <label class="ward-filter ward-filter--compact ward-filter--grow ward-filter--search">
+            <span>Search</span>
+            <span class="ward-filter-input-wrap">
+              <i class="fa fa-search" aria-hidden="true"></i>
+              <input
+                type="search"
+                [(ngModel)]="filters.search"
+                (ngModelChange)="onFilterChange()"
+                placeholder="Search patient, bed, MRN..."
+              />
+            </span>
+          </label>
+          <button
+            type="button"
+            class="ward-mobile-filters-btn"
+            (click)="toggleMobileFilters()"
+            [attr.aria-expanded]="mobileFiltersOpen"
+          >
+            <i class="fa fa-sliders"></i>
+            Filters
+            <span class="ward-mobile-filters-btn__count" *ngIf="activeFilterCount">{{ activeFilterCount }}</span>
+          </button>
+          <label class="ward-filter ward-filter--compact ward-filter--date-mobile">
+            <span>Date</span>
+            <input type="date" [(ngModel)]="filters.date" />
+          </label>
+        </div>
+
+        <div class="ward-patient-filters__sheet" *ngIf="mobileFiltersOpen">
+          <label class="ward-filter ward-filter--compact">
+            <span>Ward</span>
+            <select [(ngModel)]="filters.ward" (ngModelChange)="onFilterChange()">
+              <option value="">All Wards</option>
+              <option *ngFor="let ward of wardOptions" [value]="ward">{{ ward }}</option>
+            </select>
+          </label>
+          <label class="ward-filter ward-filter--compact">
+            <span>Doctor</span>
+            <select [(ngModel)]="filters.doctor" (ngModelChange)="onFilterChange()">
+              <option value="">All Doctors</option>
+              <option *ngFor="let doctor of doctorOptionsList" [value]="doctor">{{ doctor }}</option>
+            </select>
+          </label>
+          <label class="ward-filter ward-filter--compact">
+            <span>Nurse</span>
+            <select [(ngModel)]="filters.nurse" (ngModelChange)="onFilterChange()">
+              <option value="">All Nurses</option>
+              <option *ngFor="let nurse of nurseOptionsList" [value]="nurse">{{ nurse }}</option>
+            </select>
+          </label>
+          <label class="ward-filter ward-filter--compact">
+            <span>Room</span>
+            <select [(ngModel)]="filters.room" (ngModelChange)="onFilterChange()">
+              <option value="">All Rooms</option>
+              <option *ngFor="let room of roomOptionsList" [value]="room">{{ room }}</option>
+            </select>
+          </label>
+          <label class="ward-filter ward-filter--compact">
+            <span>Shift</span>
+            <select [(ngModel)]="filters.shift">
+              <option *ngFor="let shift of shiftOptions" [value]="shift">{{ shift }}</option>
+            </select>
+          </label>
+          <div class="ward-patient-filters__actions">
+            <button type="button" class="ward-filter-clear" (click)="resetFilters()">Clear</button>
+            <button type="button" class="btn btn-sm btn-primary" (click)="applyMobileFilters()">
+              <i class="fa fa-filter"></i> Apply Filters
             </button>
           </div>
         </div>
@@ -117,6 +203,7 @@
         <table class="table table-hover table-custom spacing5 mb-0 ward-patients-table">
           <thead>
             <tr>
+              <th>#</th>
               <th>Bed</th>
               <th>Patient</th>
               <th>MRN</th>
@@ -130,31 +217,47 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let patient of paginatedPatientsList; trackBy: trackByAdmissionId">
-              <td><strong class="cell-bed">{{ patient.bedNo }}</strong></td>
+            <tr *ngFor="let patient of paginatedPatientsList; let i = index; trackBy: trackByAdmissionId">
+              <td class="cell-index">{{ rowNumber(i) }}</td>
+              <td>
+                <div class="cell-bed-stack">
+                  <strong class="cell-bed">{{ patient.bedNo }}</strong>
+                  <small>{{ patient.wardName }}</small>
+                </div>
+              </td>
               <td>
                 <button type="button" class="cell-patient-btn" (click)="openPreview(patient, $event)">
-                  <strong>{{ patient.patientName }}</strong>
+                  <span class="ward-avatar">{{ patientInitials(patient.patientName) }}</span>
+                  <span class="cell-patient-btn__copy">
+                    <strong>{{ patient.patientName }}</strong>
+                    <small>{{ patient.mrn }}</small>
+                  </span>
                 </button>
               </td>
               <td class="cell-muted">{{ patient.mrn }}</td>
               <td>{{ ageSex(patient) }}</td>
-              <td class="cell-diagnosis">{{ patient.diagnosis }}</td>
-              <td>{{ patient.doctorName }}</td>
+              <td class="cell-diagnosis" [title]="patient.diagnosis">{{ patient.diagnosis }}</td>
+              <td>{{ displayValue(patient.doctorName) }}</td>
               <td>{{ displayValue(patient.nurseName) }}</td>
-              <td>{{ formatDate(patient.admittedOn) }}</td>
+              <td>{{ formatDateTime(patient.admittedOn) }}</td>
               <td>
                 <span class="patient-badge" [ngClass]="statusClass(patient.status)">
+                  <span class="patient-badge__dot" aria-hidden="true"></span>
                   {{ statusLabel(patient.status) }}
                 </span>
               </td>
-              <td>
-                <div class="table-actions table-actions--wide">
-                  <button type="button" class="btn btn-sm btn-primary" title="Open Control Panel" (click)="viewPatient(patient)">
-                    Open Control Panel
+              <td class="cell-actions">
+                <div class="ward-row-actions">
+                  <button type="button" class="ward-action-btn ward-action-btn--primary" (click)="viewPatient(patient)">
+                    <i class="fa fa-folder-open-o" aria-hidden="true"></i>
+                    <span>Open Chart</span>
                   </button>
-                  <app-hms-action-menu [items]="moreMenuItems" (itemSelect)="onMoreAction(patient, $event)">
-                    <i class="fa fa-ellipsis-v"></i>
+                  <app-hms-action-menu
+                    class="ward-more-menu"
+                    [items]="moreMenuItems"
+                    (itemSelect)="onMoreAction(patient, $event)"
+                  >
+                    <i class="fa fa-ellipsis-v" aria-hidden="true"></i>
                   </app-hms-action-menu>
                 </div>
               </td>
@@ -167,25 +270,45 @@
         <div class="ward-patient-cards" *ngIf="isMobileView && filteredPatientsList.length; else emptyState">
           <article class="ward-patient-card" *ngFor="let patient of paginatedPatientsList; trackBy: trackByAdmissionId">
             <div class="ward-patient-card__head">
-              <div>
+              <div class="ward-patient-card__bed">
                 <strong>{{ patient.bedNo }}</strong>
-                <button type="button" (click)="openPreview(patient)">{{ patient.patientName }}</button>
               </div>
-              <span class="patient-badge" [ngClass]="statusClass(patient.status)">{{ statusLabel(patient.status) }}</span>
+              <div class="ward-patient-card__head-actions">
+                <span class="patient-badge" [ngClass]="statusClass(patient.status)">
+                  <span class="patient-badge__dot" aria-hidden="true"></span>
+                  {{ statusLabel(patient.status) }}
+                </span>
+                <app-hms-action-menu
+                  class="ward-more-menu"
+                  [items]="moreMenuItems"
+                  (itemSelect)="onMoreAction(patient, $event)"
+                >
+                  <i class="fa fa-ellipsis-v" aria-hidden="true"></i>
+                </app-hms-action-menu>
+              </div>
             </div>
-            <dl>
-              <div><dt>MRN</dt><dd>{{ patient.mrn }}</dd></div>
-              <div><dt>Age/Sex</dt><dd>{{ ageSex(patient) }}</dd></div>
-              <div><dt>Diagnosis</dt><dd>{{ patient.diagnosis }}</dd></div>
-              <div><dt>Doctor</dt><dd>{{ patient.doctorName }}</dd></div>
-              <div><dt>Nurse</dt><dd>{{ displayValue(patient.nurseName) }}</dd></div>
-              <div><dt>Admitted</dt><dd>{{ formatDate(patient.admittedOn) }}</dd></div>
-            </dl>
-            <div class="table-actions table-actions--wide">
-              <button type="button" class="btn btn-sm btn-primary" (click)="viewPatient(patient)">Open Control Panel</button>
-              <app-hms-action-menu [items]="moreMenuItems" (itemSelect)="onMoreAction(patient, $event)">
-                More
-              </app-hms-action-menu>
+            <button type="button" class="ward-patient-card__patient" (click)="openPreview(patient)">
+              <span class="ward-avatar">{{ patientInitials(patient.patientName) }}</span>
+              <span>
+                <strong>{{ patient.patientName }}</strong>
+                <small>{{ patient.mrn }}</small>
+              </span>
+            </button>
+            <ul class="ward-patient-card__meta">
+              <li><i class="fa fa-user" aria-hidden="true"></i> {{ ageSex(patient) }}</li>
+              <li><i class="fa fa-stethoscope" aria-hidden="true"></i> {{ patient.diagnosis }}</li>
+              <li><i class="fa fa-hospital-o" aria-hidden="true"></i> {{ patient.wardName }}</li>
+              <li><i class="fa fa-calendar" aria-hidden="true"></i> {{ formatDateTime(patient.admittedOn) }}</li>
+            </ul>
+            <div class="ward-patient-card__actions">
+              <button type="button" class="ward-action-btn ward-action-btn--outline" (click)="viewPatient(patient)">
+                <i class="fa fa-folder-open-o" aria-hidden="true"></i>
+                <span>Open Chart</span>
+              </button>
+              <button type="button" class="ward-action-btn ward-action-btn--primary" (click)="assignNurse(patient)">
+                <i class="fa fa-user-md" aria-hidden="true"></i>
+                <span>Assign Nurse</span>
+              </button>
             </div>
           </article>
         </div>
@@ -204,7 +327,7 @@
         <span>Showing {{ paginationStart }} to {{ paginationEnd }} of {{ filteredPatientsList.length }} patients</span>
         <div class="ward-pagination">
           <button type="button" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
-            <i class="fa fa-chevron-left"></i>
+            Previous
           </button>
           <button
             type="button"
@@ -215,7 +338,7 @@
             {{ page }}
           </button>
           <button type="button" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
-            <i class="fa fa-chevron-right"></i>
+            Next
           </button>
         </div>
       </div>
@@ -241,7 +364,7 @@
           <div><dt>Ward</dt><dd>{{ patient.wardName }}</dd></div>
           <div><dt>Room</dt><dd>{{ patient.roomName }}</dd></div>
           <div><dt>Gallery</dt><dd>{{ patient.galleryName }}</dd></div>
-          <div><dt>Doctor</dt><dd>{{ patient.doctorName }}</dd></div>
+          <div><dt>Doctor</dt><dd>{{ displayValue(patient.doctorName) }}</dd></div>
           <div><dt>Nurse</dt><dd>{{ displayValue(patient.nurseName) }}</dd></div>
           <div><dt>Diagnosis</dt><dd>{{ patient.diagnosis }}</dd></div>
           <div class="ward-modal__full"><dt>Admitted</dt><dd>{{ formatDateTime(patient.admittedOn) }}</dd></div>

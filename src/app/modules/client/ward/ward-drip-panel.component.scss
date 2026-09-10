@@ -1,0 +1,46 @@
+@use './ward-chart-section.scss';
+
+.ward-drip-active {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.ward-drip-active h4 {
+  margin: 0.35rem 0 0.2rem;
+}
+
+.ward-drip-active p {
+  color: #047857;
+  font-size: 0.84rem;
+  margin: 0;
+}
+
+.wcs-sub {
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.ward-drip-card[data-status='Running'] {
+  border-left: 3px solid #059669;
+}
+
+.ward-drip-card[data-status='Planned'] {
+  border-left: 3px solid #2563eb;
+}
+
+.ward-drip-card[data-status='Completed'] {
+  border-left: 3px solid #94a3b8;
+}
+
+.ward-drip-card[data-status='Stopped'] {
+  border-left: 3px solid #dc2626;
+}
+
+.wcs-card__top {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}

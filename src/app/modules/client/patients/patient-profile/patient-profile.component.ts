@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { BackendService } from '../../../../core/services/backend.service';
@@ -35,9 +35,12 @@ export class PatientProfileComponent implements OnInit {
   billsLoading = false;
   labOrdersLoading = false;
   labReportLoadingId: string | null = null;
+  labActionsOpen = false;
+  selectedLabOrder: LabOrder | null = null;
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private backend: BackendService,
     private toastr: ToastrService
   ) {}
@@ -125,28 +128,70 @@ export class PatientProfileComponent implements OnInit {
       : '-';
   }
 
-  canOpenClinicalRecords(): boolean {
+  can(permission: string): boolean {
     const permissions = JSON.parse(localStorage.getItem('permissions') || '[]') as string[];
-    return permissions.includes('*') || permissions.includes('patients_history.read');
+    return permissions.includes('*') || permissions.includes(permission);
+  }
+
+  canOpenClinicalRecords(): boolean {
+    return this.can('patients_history.read');
   }
 
   canOpenPrescriptions(): boolean {
-    const permissions = JSON.parse(localStorage.getItem('permissions') || '[]') as string[];
-    return (
-      permissions.includes('*') ||
-      permissions.includes('prescriptions.read') ||
-      permissions.includes('prescriptions.create')
-    );
+    return this.can('prescriptions.read') || this.can('prescriptions.create');
   }
 
   canCreatePrescription(): boolean {
-    const permissions = JSON.parse(localStorage.getItem('permissions') || '[]') as string[];
-    return permissions.includes('*') || permissions.includes('prescriptions.create');
+    return this.can('prescriptions.create');
   }
 
   canViewBills(): boolean {
-    const permissions = JSON.parse(localStorage.getItem('permissions') || '[]') as string[];
-    return permissions.includes('*') || permissions.includes('bills.read');
+    return this.can('bills.read');
+  }
+
+  canEditPatient(): boolean {
+    return this.can('patients.update');
+  }
+
+  editPatient(): void {
+    if (!this.patient || !this.canEditPatient()) {
+      return;
+    }
+    this.router.navigate(['/patients/add-patient'], { state: { patient: this.patient } });
+  }
+
+  genderLabel(): string {
+    const gender = String(this.patient?.gender || '').trim();
+    if (!gender) {
+      return '-';
+    }
+    return gender.charAt(0).toUpperCase() + gender.slice(1);
+  }
+
+  statusLabel(): string {
+    const status = String(this.patient?.status || '').trim();
+    if (!status) {
+      return '-';
+    }
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  openLabActions(order: LabOrder, event?: Event): void {
+    event?.stopPropagation();
+    this.selectedLabOrder = order;
+    this.labActionsOpen = true;
+  }
+
+  closeLabActions(): void {
+    this.labActionsOpen = false;
+    this.selectedLabOrder = null;
+  }
+
+  viewLabReport(): void {
+    if (!this.selectedLabOrder) {
+      return;
+    }
+    this.printLabReport(this.selectedLabOrder);
   }
 
   prescriptionQueryParams(order?: LabOrder | null): Record<string, string> {

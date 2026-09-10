@@ -710,6 +710,16 @@
   font-size: 16px;
 }
 
+.ward-admission-success header p {
+  margin: 6px 0 0;
+  color: #3f6212;
+  font-size: 13px;
+}
+
+.ward-admission-success-card {
+  grid-column: 1 / -1;
+}
+
 .ward-admission-success__grid {
   display: grid;
   gap: 10px 16px;

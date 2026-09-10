@@ -133,9 +133,13 @@
                   </span>
                 </td>
                 <td class="text-right">
-                  <a class="pay-btn-outline pay-btn-sm" [routerLink]="['/payments/invoices/invoice-detail', bill._id]">View</a>
-                  <button type="button" class="pay-btn-primary pay-btn-sm ml-1" *ngIf="can('bills.update_payment')" (click)="updatePayment(bill)">
-                    Payment
+                  <button
+                    type="button"
+                    class="pay-action-more"
+                    aria-label="More actions"
+                    (click)="openActions(bill, $event)"
+                  >
+                    <i class="fa fa-ellipsis-v" aria-hidden="true"></i>
                   </button>
                 </td>
               </tr>
@@ -147,7 +151,17 @@
           <article class="pay-mobile-card" *ngFor="let bill of visibleBills">
             <div class="pay-mobile-card__head">
               <strong>{{ bill.billNo }}</strong>
-              <span class="pay-status-pill" [ngClass]="'status-' + bill.paymentStatus">{{ statusLabel(bill.paymentStatus) }}</span>
+              <div class="pay-mobile-card__head-right">
+                <span class="pay-status-pill" [ngClass]="'status-' + bill.paymentStatus">{{ statusLabel(bill.paymentStatus) }}</span>
+                <button
+                  type="button"
+                  class="pay-action-more"
+                  aria-label="More actions"
+                  (click)="openActions(bill, $event)"
+                >
+                  <i class="fa fa-ellipsis-v" aria-hidden="true"></i>
+                </button>
+              </div>
             </div>
             <div class="invoice-card-meta">
               <span>{{ patientName(bill) }}</span>
@@ -157,10 +171,6 @@
               <div><span>Total</span><strong>{{ bill.grandTotal | number:'1.0-0' }}</strong></div>
               <div><span>Paid</span><strong class="pay-amount-paid">{{ bill.paidAmount | number:'1.0-0' }}</strong></div>
               <div><span>Due</span><strong [class.pay-amount-due]="bill.dueAmount > 0">{{ bill.dueAmount | number:'1.0-0' }}</strong></div>
-            </div>
-            <div class="pay-mobile-card__actions">
-              <a class="pay-btn-outline" [routerLink]="['/payments/invoices/invoice-detail', bill._id]">View</a>
-              <button type="button" class="pay-btn-primary" *ngIf="can('bills.update_payment')" (click)="updatePayment(bill)">Payment</button>
             </div>
           </article>
         </div>
@@ -174,6 +184,44 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="inv-actions-backdrop" *ngIf="actionsOpen && selectedBill as bill" (click)="closeActions()">
+    <div class="inv-actions-modal" role="dialog" aria-modal="true" aria-labelledby="inv-actions-title" (click)="$event.stopPropagation()">
+      <header class="inv-actions-modal__head">
+        <div>
+          <h3 id="inv-actions-title">Invoice Actions</h3>
+          <p>{{ bill.billNo }} · {{ patientName(bill) }}</p>
+        </div>
+        <button type="button" class="inv-actions-modal__close" (click)="closeActions()" aria-label="Close">
+          <i class="fa fa-times" aria-hidden="true"></i>
+        </button>
+      </header>
+      <div class="inv-actions-modal__body">
+        <button type="button" class="inv-actions-item" (click)="viewInvoice()">
+          <i class="fa fa-eye" aria-hidden="true"></i>
+          <span>
+            <strong>View Invoice</strong>
+            <small>Open full invoice details</small>
+          </span>
+        </button>
+        <button
+          type="button"
+          class="inv-actions-item"
+          *ngIf="canShowPayment(bill)"
+          (click)="payInvoice()"
+        >
+          <i class="fa fa-credit-card" aria-hidden="true"></i>
+          <span>
+            <strong>Record Payment</strong>
+            <small>Update paid amount for this bill</small>
+          </span>
+        </button>
+      </div>
+      <footer class="inv-actions-modal__foot">
+        <button type="button" class="pay-btn-ghost" (click)="closeActions()">Cancel</button>
+      </footer>
     </div>
   </div>
 </div>

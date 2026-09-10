@@ -24,12 +24,12 @@
     </div>
 
     <div class="ward-modal__foot">
-      <button type="button" class="btn btn-sm btn-outline-secondary" (click)="close()">Cancel</button>
+      <button type="button" class="hms-btn hms-btn--ghost" (click)="close()">Cancel</button>
       <button
         type="button"
-        class="btn btn-sm"
-        [class.btn-warning]="action === 'stop'"
-        [class.btn-success]="action === 'complete'"
+        class="hms-btn"
+        [class.hms-btn--primary]="action === 'complete'"
+        [class.hms-btn--ghost]="action === 'stop'"
         (click)="confirm()"
       >
         <i class="fa" [ngClass]="action === 'stop' ? 'fa-pause' : 'fa-check'"></i>

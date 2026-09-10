@@ -1,0 +1,149 @@
+<div class="wcs ward-drip-panel">
+  <div class="wcs-head">
+    <div class="wcs-head__lead">
+      <span class="wcs-head__icon"><i class="fa fa-tint" aria-hidden="true"></i></span>
+      <div>
+        <h3>IV / Drip Management</h3>
+        <p>Manage IV fluids and monitor infusion therapy</p>
+      </div>
+    </div>
+    <button type="button" class="wcs-add" (click)="openAdd()"><i class="fa fa-plus" aria-hidden="true"></i> Add IV Order</button>
+  </div>
+
+  <div class="wcs-kpis">
+    <article class="wcs-kpi wcs-kpi--teal">
+      <div class="wcs-kpi__icon"><i class="fa fa-play" aria-hidden="true"></i></div>
+      <div>
+        <strong>{{ runningCount }}</strong>
+        <span>Active Drips</span>
+        <small>Currently running</small>
+      </div>
+    </article>
+    <article class="wcs-kpi wcs-kpi--blue">
+      <div class="wcs-kpi__icon"><i class="fa fa-check" aria-hidden="true"></i></div>
+      <div>
+        <strong>{{ completedCount }}</strong>
+        <span>Completed Today</span>
+        <small>Finished orders</small>
+      </div>
+    </article>
+    <article class="wcs-kpi wcs-kpi--orange">
+      <div class="wcs-kpi__icon"><i class="fa fa-clock-o" aria-hidden="true"></i></div>
+      <div>
+        <strong>{{ dueReviewCount }}</strong>
+        <span>Due Review</span>
+        <small>Needs attention</small>
+      </div>
+    </article>
+    <article class="wcs-kpi wcs-kpi--slate">
+      <div class="wcs-kpi__icon"><i class="fa fa-list" aria-hidden="true"></i></div>
+      <div>
+        <strong>{{ rows.length }}</strong>
+        <span>Total Orders</span>
+      </div>
+    </article>
+  </div>
+
+  <div class="wcs-filters">
+    <label class="wcs-field">
+      <span>Search</span>
+      <input type="search" [(ngModel)]="search" placeholder="Search fluids / medications..." />
+    </label>
+    <label class="wcs-field">
+      <span>Status</span>
+      <select [(ngModel)]="statusFilter">
+        <option value="all">All Status</option>
+        <option value="running">Running</option>
+        <option value="planned">Planned</option>
+        <option value="completed">Completed</option>
+        <option value="stopped">Stopped</option>
+      </select>
+    </label>
+  </div>
+
+  <section class="wcs-active-banner" *ngIf="activeRunning as drip">
+    <div class="ward-drip-active">
+      <div>
+        <span class="wcs-badge wcs-badge--running">Running</span>
+        <h4>{{ cell(drip, 'fluid') }}</h4>
+        <p>Rate {{ cell(drip, 'rate') }} · Started {{ cell(drip, 'startedAt') }} · Prescribed by {{ cell(drip, 'nurse') }}</p>
+      </div>
+      <button type="button" class="wcs-btn wcs-btn--ghost" (click)="openAction(drip)">View Details</button>
+    </div>
+  </section>
+
+  <section class="wcs-table-card">
+    <div class="wcs-table-card__head">
+      <h4>IV / Drip Orders</h4>
+      <span>{{ filtered.length }} records</span>
+    </div>
+
+    <div class="table-responsive wcs-table-wrap" *ngIf="filtered.length; else emptyTpl">
+      <table class="wcs-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>IV Solution / Medication</th>
+            <th>Rate</th>
+            <th>Start Time</th>
+            <th>Prescribed By</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of filtered; let i = index">
+            <td>{{ i + 1 }}</td>
+            <td>
+              <strong>{{ cell(row, 'fluid') }}</strong>
+              <div class="wcs-sub">IV Fluid</div>
+            </td>
+            <td>{{ cell(row, 'rate') }}</td>
+            <td>{{ cell(row, 'startedAt') }}</td>
+            <td>{{ cell(row, 'nurse') }}</td>
+            <td><span [ngClass]="statusClass(row.cells['status'])">{{ cell(row, 'status') }}</span></td>
+            <td>
+              <button type="button" class="wcs-btn wcs-btn--ghost" (click)="openAction(row)">
+                <i class="fa fa-eye" aria-hidden="true"></i> View
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="wcs-cards" *ngIf="filtered.length">
+      <article class="wcs-card ward-drip-card" *ngFor="let row of filtered" [attr.data-status]="cell(row, 'status')">
+        <div class="wcs-card__top">
+          <strong>{{ cell(row, 'fluid') }}</strong>
+          <span [ngClass]="statusClass(row.cells['status'])">{{ cell(row, 'status') }}</span>
+        </div>
+        <p>Rate {{ cell(row, 'rate') }} · {{ cell(row, 'startedAt') }}</p>
+        <small>{{ cell(row, 'nurse') }}</small>
+        <button type="button" class="wcs-btn wcs-btn--ghost" (click)="openAction(row)">View Details</button>
+      </article>
+    </div>
+  </section>
+</div>
+
+<ng-template #emptyTpl>
+  <div class="wcs-empty">No IV / drip orders yet.</div>
+</ng-template>
+
+<app-ward-action-modal
+  [open]="addOpen"
+  moduleKey="drips-iv"
+  title="Add IV Order"
+  [preset]="addPreset"
+  (closed)="addOpen = false"
+  (saved)="onSaved()"
+></app-ward-action-modal>
+
+<app-ward-drip-action-modal
+  [open]="actionOpen"
+  [action]="actionType"
+  [patientName]="patientName"
+  [fluidName]="activeRow ? cell(activeRow, 'fluid') : ''"
+  (closed)="actionOpen = false"
+  (confirmed)="confirmAction($event)"
+></app-ward-drip-action-modal>

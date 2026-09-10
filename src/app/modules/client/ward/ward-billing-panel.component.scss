@@ -1,3 +1,5 @@
+@use './ward-chart-section.scss';
+
 .ward-billing-panel {
   display: grid;
   gap: 1rem;
@@ -64,4 +66,813 @@
 .ward-billing-loading {
   padding: 1rem;
   color: #64748b;
+}
+
+.ward-proc-panel {
+  .wcs-form__grid {
+    grid-template-columns: 1.4fr 1fr 0.7fr 0.9fr auto;
+  }
+}
+
+/* ——— Payments (mockup) ——— */
+.ward-payments {
+  --pay-teal: #0d9488;
+  --pay-teal-soft: #ccfbf1;
+  --pay-blue: #2563eb;
+  --pay-green: #059669;
+  --pay-orange: #ea580c;
+  --pay-purple: #7c3aed;
+  display: grid;
+  gap: 1rem;
+}
+
+.ward-payments__head {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.ward-payments__head h3 {
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 0 0 0.2rem;
+}
+
+.ward-payments__head p {
+  color: #64748b;
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.ward-payments__stamp {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ward-payments-top {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) 280px;
+}
+
+.ward-payments-top__main,
+.ward-payments-side {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.ward-pay-kpis {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ward-pay-kpi {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e5ecec;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  display: flex;
+  gap: 0.75rem;
+  min-height: 84px;
+  padding: 0.9rem 1rem;
+}
+
+.ward-pay-kpi span {
+  color: #64748b;
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ward-pay-kpi strong {
+  color: #0f172a;
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-top: 0.2rem;
+}
+
+.ward-pay-kpi em {
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.ward-pay-kpi__icon {
+  align-items: center;
+  border-radius: 10px;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 1rem;
+  height: 2.35rem;
+  justify-content: center;
+  width: 2.35rem;
+}
+
+.ward-pay-kpi--charges .ward-pay-kpi__icon { background: #dbeafe; color: var(--pay-blue); }
+.ward-pay-kpi--charges strong { color: var(--pay-blue); }
+.ward-pay-kpi--paid .ward-pay-kpi__icon { background: #d1fae5; color: var(--pay-green); }
+.ward-pay-kpi--paid strong { color: var(--pay-green); }
+.ward-pay-kpi--due .ward-pay-kpi__icon { background: #ffedd5; color: var(--pay-orange); }
+.ward-pay-kpi--due strong { color: var(--pay-orange); }
+.ward-pay-kpi--security .ward-pay-kpi__icon { background: #ede9fe; color: var(--pay-purple); }
+.ward-pay-kpi--security strong { color: var(--pay-purple); }
+.ward-pay-kpi--advance .ward-pay-kpi__icon,
+.ward-pay-kpi--pharmacy .ward-pay-kpi__icon { background: #e2e8f0; color: #475569; }
+
+.ward-pay-row {
+  background: #fff;
+  border: 1px solid #e5ecec;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+}
+
+.ward-pay-row__title {
+  align-items: center;
+  color: var(--pay-teal);
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ward-pay-row__title h4 {
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.ward-pay-row__fields {
+  align-items: end;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: 1fr 1fr 1fr 1.4fr auto;
+}
+
+.ward-pay-row__fields--security {
+  grid-template-columns: 1fr 1fr 1.6fr auto;
+}
+
+.ward-pay-row__fields label {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.ward-pay-row__fields label span {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.ward-pay-row__fields input,
+.ward-pay-row__fields select {
+  background: #fff;
+  border: 1px solid #dbe4e4;
+  border-radius: 8px;
+  color: #0f172a;
+  min-height: 2.4rem;
+  padding: 0.45rem 0.65rem;
+  width: 100%;
+}
+
+.ward-pay-row__fields input:focus,
+.ward-pay-row__fields select:focus {
+  border-color: var(--pay-teal);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.14);
+  outline: none;
+}
+
+.ward-pay-row__fields .ward-pay-btn {
+  min-width: 160px;
+  width: auto;
+}
+
+.ward-pay-btn {
+  align-items: center;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.86rem;
+  font-weight: 700;
+  gap: 0.4rem;
+  justify-content: center;
+  min-height: 2.4rem;
+  padding: 0.5rem 0.9rem;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.ward-pay-btn--primary {
+  background: var(--pay-teal);
+  border-color: var(--pay-teal);
+  color: #fff;
+}
+
+.ward-pay-btn--primary:hover {
+  background: #0f766e;
+  border-color: #0f766e;
+}
+
+.ward-pay-btn--outline {
+  background: #fff;
+  border-color: var(--pay-teal);
+  color: var(--pay-teal);
+}
+
+.ward-pay-btn--outline:hover {
+  background: var(--pay-teal-soft);
+}
+
+.ward-pay-btn--ghost {
+  background: #fff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.ward-pay-btn--ghost:hover {
+  background: #eff6ff;
+}
+
+.ward-pay-history {
+  background: #fff;
+  border: 1px solid #e5ecec;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ward-pay-history__head {
+  border-bottom: 1px solid #eef2f7;
+  padding: 0.85rem 1rem;
+}
+
+.ward-pay-history__head h4 {
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.ward-pay-table {
+  margin: 0;
+}
+
+.ward-pay-table th,
+.ward-pay-table td {
+  font-size: 0.8rem;
+  padding: 0.7rem 0.85rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.ward-pay-receipt {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.ward-pay-amount {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.pay-type,
+.pay-status {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+}
+
+.pay-type--payment { background: #d1fae5; color: #047857; }
+.pay-type--security { background: #ede9fe; color: #6d28d9; }
+.pay-type--advance { background: #dbeafe; color: #1d4ed8; }
+.pay-status { background: #d1fae5; color: #047857; }
+
+.ward-pay-icon-btn {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: var(--pay-teal);
+  cursor: pointer;
+  display: inline-flex;
+  height: 1.85rem;
+  justify-content: center;
+  width: 1.85rem;
+}
+
+.ward-pay-icon-btn:hover {
+  background: var(--pay-teal-soft);
+  border-color: #99f6e4;
+}
+
+.ward-pay-history-cards {
+  display: none;
+}
+
+.ward-pay-side-card {
+  background: #fff;
+  border: 1px solid #e5ecec;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.ward-pay-side-card h4 {
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.ward-pay-invoice {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.ward-pay-invoice > div {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.ward-pay-invoice dt {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.ward-pay-invoice dd {
+  color: #0f172a;
+  font-size: 0.84rem;
+  font-weight: 700;
+  margin: 0;
+  text-align: right;
+}
+
+.ward-pay-invoice dd.is-due {
+  color: var(--pay-orange);
+}
+
+.ward-pay-side-actions {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.ward-pay-insight {
+  align-items: flex-start;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.9rem;
+}
+
+.ward-pay-insight__icon {
+  align-items: center;
+  background: #dbeafe;
+  border-radius: 999px;
+  color: #2563eb;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 2rem;
+  justify-content: center;
+  width: 2rem;
+}
+
+.ward-pay-insight h5 {
+  color: #1e3a8a;
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin: 0 0 0.25rem;
+}
+
+.ward-pay-insight p {
+  color: #1e40af;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+@media (max-width: 1200px) {
+  .ward-pay-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ward-pay-row__fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ward-pay-row__fields .ward-pay-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 992px) {
+  .ward-payments-top {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .ward-pay-kpis,
+  .ward-pay-row__fields,
+  .ward-pay-side-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .ward-pay-history .table-responsive {
+    display: none;
+  }
+
+  .ward-pay-history-cards {
+    display: grid;
+    gap: 0.65rem;
+    padding: 0.85rem;
+  }
+
+  .ward-pay-history-card {
+    align-items: flex-start;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .ward-pay-history-card__icon {
+    align-items: center;
+    background: #d1fae5;
+    border-radius: 10px;
+    color: #047857;
+    display: inline-flex;
+    height: 2.25rem;
+    justify-content: center;
+    width: 2.25rem;
+  }
+
+  .ward-pay-history-card__icon.is-security {
+    background: #ede9fe;
+    color: #6d28d9;
+  }
+
+  .ward-pay-history-card__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ward-pay-history-card__top {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: space-between;
+  }
+
+  .ward-pay-history-card p {
+    color: #64748b;
+    font-size: 0.75rem;
+    margin: 0.2rem 0 0;
+  }
+}
+
+/* ——— Discharge statement (on-screen) ——— */
+.ward-discharge {
+  --ds-teal: #0f766e;
+  --ds-ink: #0f172a;
+  --ds-muted: #64748b;
+  --ds-line: #e2e8f0;
+  display: grid;
+  gap: 1rem;
+}
+
+.ward-discharge__head {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.ward-discharge__head h3 {
+  color: var(--ds-ink);
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.ward-discharge__head p {
+  color: var(--ds-muted);
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0;
+}
+
+.ward-discharge-patient {
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem 1.1rem;
+}
+
+.ward-discharge-patient__main {
+  align-items: center;
+  display: flex;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.ward-discharge-avatar {
+  align-items: center;
+  background: #e2e8f0;
+  border-radius: 999px;
+  color: #64748b;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  height: 3.4rem;
+  justify-content: center;
+  width: 3.4rem;
+}
+
+.ward-discharge-patient__label {
+  color: var(--ds-muted);
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ward-discharge-patient__name {
+  color: var(--ds-ink);
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-top: 0.1rem;
+}
+
+.ward-discharge-patient__facts {
+  color: #475569;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  font-weight: 600;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+}
+
+.ward-discharge-meta {
+  display: grid;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  min-width: 220px;
+}
+
+.ward-discharge-meta div {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.ward-discharge-meta dt {
+  color: var(--ds-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.ward-discharge-meta dd {
+  color: var(--ds-ink);
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin: 0;
+  text-align: right;
+}
+
+.ward-discharge-stay {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ward-discharge-stay article {
+  background: #fff;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+.ward-discharge-stay span {
+  color: var(--ds-muted);
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ward-discharge-stay strong {
+  color: var(--ds-ink);
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 800;
+  margin-top: 0.3rem;
+}
+
+.ward-discharge-charges {
+  background: #fff;
+  border: 1px solid var(--ds-line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.ward-discharge-charges__head {
+  align-items: center;
+  border-bottom: 1px solid #eef2f7;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+}
+
+.ward-discharge-charges__head i {
+  color: var(--ds-teal);
+}
+
+.ward-discharge-charges__head h4 {
+  color: var(--ds-ink);
+  font-size: 0.95rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.ward-discharge-table {
+  margin: 0;
+  width: 100%;
+}
+
+.ward-discharge-table th {
+  background: #eef6f8;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.65rem 1rem;
+  text-transform: uppercase;
+}
+
+.ward-discharge-table td {
+  border-top: 1px solid #f1f5f9;
+  color: #334155;
+  font-size: 0.88rem;
+  padding: 0.75rem 1rem;
+}
+
+.ward-discharge-table .is-muted {
+  color: #94a3b8;
+}
+
+.ward-discharge-table .is-amount {
+  font-weight: 700;
+}
+
+.ward-discharge-totals {
+  border-top: 1px solid var(--ds-line);
+  display: grid;
+  gap: 0.4rem;
+  justify-content: end;
+  padding: 0.85rem 1rem 1rem;
+}
+
+.ward-discharge-totals div {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: flex-end;
+  min-width: 220px;
+}
+
+.ward-discharge-totals span {
+  color: var(--ds-muted);
+  font-weight: 600;
+}
+
+.ward-discharge-totals strong {
+  color: var(--ds-ink);
+  min-width: 5rem;
+  text-align: right;
+}
+
+.ward-discharge-totals .is-net {
+  border-top: 1px solid var(--ds-line);
+  margin-top: 0.2rem;
+  padding-top: 0.45rem;
+}
+
+.ward-discharge-totals .is-net span,
+.ward-discharge-totals .is-net strong {
+  color: var(--ds-ink);
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.ward-discharge-payment {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.ward-discharge-payment article {
+  background: var(--ds-teal);
+  border-radius: 12px;
+  color: #fff;
+  padding: 0.95rem 1.1rem;
+}
+
+.ward-discharge-payment span {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.ward-discharge-payment strong {
+  display: block;
+  font-size: 1.45rem;
+  font-weight: 800;
+  margin-top: 0.15rem;
+}
+
+.ward-discharge-extras {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ward-discharge-extras article {
+  background: #fff;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+}
+
+.ward-discharge-extras span {
+  color: var(--ds-muted);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.ward-discharge-extras strong {
+  color: var(--ds-ink);
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 800;
+  margin-top: 0.25rem;
+}
+
+.ward-discharge-thanks {
+  align-items: center;
+  background: #f8fafc;
+  border-radius: 12px;
+  color: #475569;
+  display: flex;
+  font-size: 0.88rem;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+}
+
+.ward-discharge-thanks i {
+  color: #ef4444;
+}
+
+@media (max-width: 991px) {
+  .ward-discharge-stay,
+  .ward-discharge-extras {
+    grid-template-columns: 1fr;
+  }
+
+  .ward-discharge-payment {
+    grid-template-columns: 1fr;
+  }
 }

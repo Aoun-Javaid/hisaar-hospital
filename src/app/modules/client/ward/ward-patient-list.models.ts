@@ -54,6 +54,7 @@ export interface WardPatientKpi {
   count: number;
   icon: string;
   tone: 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'amber';
+  description?: string;
   filterTab?: PatientStatusTab;
   unassignedOnly?: boolean;
 }

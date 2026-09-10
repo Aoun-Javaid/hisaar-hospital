@@ -12,8 +12,12 @@ export function readCurrentUserName(): string {
 
 export function mapHospitalDocumentInfo(hospital?: Hospital | null): HmsDocumentHospitalInfo | null {
   if (!hospital) return null;
+  const name = String(hospital.name || '').trim();
+  if (!name && !hospital.logoUrl && !hospital.address && !hospital.phone) {
+    return null;
+  }
   return {
-    name: hospital.name,
+    name: name || undefined,
     address: hospital.address || undefined,
     city: hospital.city || undefined,
     phone: hospital.phone || undefined,
@@ -22,11 +26,32 @@ export function mapHospitalDocumentInfo(hospital?: Hospital | null): HmsDocument
   };
 }
 
-export function readStoredHospitalDocumentInfo(): HmsDocumentHospitalInfo | null {
+function readHospitalFromUserStorage(): Hospital | null {
   try {
-    const hospital = JSON.parse(localStorage.getItem('hospital') || 'null') as Hospital | null;
-    return mapHospitalDocumentInfo(hospital);
+    const user = JSON.parse(localStorage.getItem('user') || 'null') as {
+      hospital?: Hospital | null;
+    } | null;
+    return user?.hospital || null;
   } catch {
     return null;
+  }
+}
+
+export function readStoredHospitalDocumentInfo(): HmsDocumentHospitalInfo | null {
+  try {
+    const stored = JSON.parse(localStorage.getItem('hospital') || 'null') as Hospital | null;
+    const fromHospitalKey = mapHospitalDocumentInfo(stored);
+    if (fromHospitalKey?.name) {
+      return fromHospitalKey;
+    }
+
+    const fromUser = mapHospitalDocumentInfo(readHospitalFromUserStorage());
+    if (fromUser?.name) {
+      return fromUser;
+    }
+
+    return fromHospitalKey || fromUser;
+  } catch {
+    return mapHospitalDocumentInfo(readHospitalFromUserStorage());
   }
 }

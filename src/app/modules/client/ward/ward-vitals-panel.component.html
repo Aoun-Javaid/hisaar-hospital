@@ -1,0 +1,135 @@
+<div class="wcs ward-vitals-panel">
+  <div class="wcs-head">
+    <div class="wcs-head__lead">
+      <span class="wcs-head__icon"><i class="fa fa-heartbeat" aria-hidden="true"></i></span>
+      <div>
+        <h3>Vitals</h3>
+        <p>Monitor and track patient vital signs</p>
+      </div>
+    </div>
+    <button type="button" class="wcs-add" (click)="openAdd()"><i class="fa fa-plus" aria-hidden="true"></i> Add Vitals</button>
+  </div>
+
+  <div class="wcs-kpis ward-vitals-kpis">
+    <article class="wcs-kpi wcs-kpi--blue">
+      <div class="wcs-kpi__icon"><i class="fa fa-tint" aria-hidden="true"></i></div>
+      <div>
+        <span>Blood Pressure (Latest)</span>
+        <strong>{{ cell(latest, 'bp') }} <small>mmHg</small></strong>
+      </div>
+    </article>
+    <article class="wcs-kpi wcs-kpi--orange">
+      <div class="wcs-kpi__icon"><i class="fa fa-thermometer-half" aria-hidden="true"></i></div>
+      <div>
+        <span>Temperature (Latest)</span>
+        <strong>{{ cell(latest, 'temp') }} <small>°C</small></strong>
+      </div>
+    </article>
+    <article class="wcs-kpi wcs-kpi--pink">
+      <div class="wcs-kpi__icon"><i class="fa fa-heart" aria-hidden="true"></i></div>
+      <div>
+        <span>Pulse (Latest)</span>
+        <strong>{{ cell(latest, 'pulse') }} <small>bpm</small></strong>
+      </div>
+    </article>
+    <article class="wcs-kpi wcs-kpi--purple">
+      <div class="wcs-kpi__icon"><i class="fa fa-cloud" aria-hidden="true"></i></div>
+      <div>
+        <span>SpO2 (Latest)</span>
+        <strong>{{ cell(latest, 'spo2') }} <small>%</small></strong>
+      </div>
+    </article>
+    <article class="wcs-kpi wcs-kpi--slate">
+      <div class="wcs-kpi__icon"><i class="fa fa-list" aria-hidden="true"></i></div>
+      <div>
+        <span>Total Records</span>
+        <strong>{{ filtered.length }}</strong>
+      </div>
+    </article>
+  </div>
+
+  <div class="wcs-filters">
+    <label class="wcs-field">
+      <span>Date From</span>
+      <input type="date" [(ngModel)]="dateFrom" />
+    </label>
+    <label class="wcs-field">
+      <span>Date To</span>
+      <input type="date" [(ngModel)]="dateTo" />
+    </label>
+    <label class="wcs-field">
+      <span>Vital Type</span>
+      <select [(ngModel)]="vitalType">
+        <option value="all">All Vitals</option>
+        <option value="bp">Blood Pressure</option>
+        <option value="pulse">Pulse</option>
+        <option value="temp">Temperature</option>
+        <option value="spo2">SpO2</option>
+      </select>
+    </label>
+    <button type="button" class="wcs-btn wcs-btn--ghost" (click)="resetFilters()">Reset</button>
+    <button type="button" class="wcs-btn wcs-btn--primary" (click)="applyFilters()">Apply Filter</button>
+  </div>
+
+  <section class="wcs-table-card">
+    <div class="wcs-table-card__head">
+      <h4>Vitals Records</h4>
+      <span>{{ filtered.length }} records</span>
+    </div>
+
+    <div class="table-responsive wcs-table-wrap" *ngIf="filtered.length; else emptyTpl">
+      <table class="wcs-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date &amp; Time</th>
+            <th>BP (mmHg)</th>
+            <th>Pulse (bpm)</th>
+            <th>Temp (°C)</th>
+            <th>SpO2 (%)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of filtered; let i = index">
+            <td>{{ i + 1 }}</td>
+            <td>{{ cell(row, 'recordedAt') }}</td>
+            <td>{{ cell(row, 'bp') }}</td>
+            <td>{{ cell(row, 'pulse') }}</td>
+            <td>{{ cell(row, 'temp') }}</td>
+            <td>{{ cell(row, 'spo2') }}</td>
+            <td><span class="wcs-badge" [ngClass]="'wcs-badge--' + statusFor(row).tone">{{ statusFor(row).label }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="wcs-cards" *ngIf="filtered.length">
+      <article class="wcs-card" *ngFor="let row of filtered">
+        <div class="wcs-card__top">
+          <strong>{{ cell(row, 'recordedAt') }}</strong>
+          <span class="wcs-badge" [ngClass]="'wcs-badge--' + statusFor(row).tone">{{ statusFor(row).label }}</span>
+        </div>
+        <div class="ward-vitals-card-grid">
+          <div><span>BP</span><strong>{{ cell(row, 'bp') }}</strong></div>
+          <div><span>Pulse</span><strong>{{ cell(row, 'pulse') }}</strong></div>
+          <div><span>Temp</span><strong>{{ cell(row, 'temp') }}</strong></div>
+          <div><span>SpO2</span><strong>{{ cell(row, 'spo2') }}</strong></div>
+        </div>
+      </article>
+    </div>
+  </section>
+</div>
+
+<ng-template #emptyTpl>
+  <div class="wcs-empty">No vitals recorded yet. Click Add Vitals to create the first entry.</div>
+</ng-template>
+
+<app-ward-action-modal
+  [open]="addOpen"
+  moduleKey="vitals"
+  title="Add Vitals"
+  [preset]="addPreset"
+  (closed)="addOpen = false"
+  (saved)="onSaved()"
+></app-ward-action-modal>

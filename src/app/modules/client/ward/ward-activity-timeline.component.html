@@ -1,0 +1,166 @@
+<div class="tl-panel" *ngIf="!loading; else loadingTpl">
+  <div class="tl-head">
+    <div>
+      <h3>Patient Activity Timeline</h3>
+      <p>Track all nursing activities, orders and care provided to this patient</p>
+    </div>
+    <button type="button" class="tl-add-btn" (click)="openAdd()">
+      <i class="fa fa-plus" aria-hidden="true"></i> Add New Activity
+    </button>
+  </div>
+
+  <div class="tl-kpis">
+    <article class="tl-kpi tl-kpi--total">
+      <div class="tl-kpi__icon"><i class="fa fa-list-alt" aria-hidden="true"></i></div>
+      <div>
+        <strong>{{ totalCount }}</strong>
+        <span>Total Activities</span>
+      </div>
+    </article>
+    <article class="tl-kpi tl-kpi--due">
+      <div class="tl-kpi__icon"><i class="fa fa-clock-o" aria-hidden="true"></i></div>
+      <div>
+        <strong>{{ dueCount }}</strong>
+        <span>Due</span>
+      </div>
+    </article>
+    <article class="tl-kpi tl-kpi--done">
+      <div class="tl-kpi__icon"><i class="fa fa-check-circle" aria-hidden="true"></i></div>
+      <div>
+        <strong>{{ completedCount }}</strong>
+        <span>Completed</span>
+      </div>
+    </article>
+    <article class="tl-kpi tl-kpi--review">
+      <div class="tl-kpi__icon"><i class="fa fa-eye" aria-hidden="true"></i></div>
+      <div>
+        <strong>{{ pendingReviewCount }}</strong>
+        <span>Pending Review</span>
+      </div>
+    </article>
+  </div>
+
+  <div class="tl-filters">
+    <label class="tl-search">
+      <i class="fa fa-search" aria-hidden="true"></i>
+      <input type="search" [(ngModel)]="search" placeholder="Search activities..." />
+    </label>
+
+    <div class="tl-date">
+      <i class="fa fa-calendar" aria-hidden="true"></i>
+      <input type="date" [(ngModel)]="dateFrom" />
+      <span>—</span>
+      <input type="date" [(ngModel)]="dateTo" />
+    </div>
+
+    <select [(ngModel)]="typeFilter">
+      <option *ngFor="let opt of typeOptions" [value]="opt.value">{{ opt.label }}</option>
+    </select>
+
+    <select [(ngModel)]="statusFilter">
+      <option *ngFor="let opt of statusOptions" [value]="opt.value">{{ opt.label }}</option>
+    </select>
+
+    <div class="tl-seg">
+      <button
+        type="button"
+        *ngFor="let item of quickFilters"
+        [class.is-active]="quickFilter === item.key"
+        (click)="setQuickFilter(item.key)"
+      >
+        {{ item.label }}
+      </button>
+    </div>
+  </div>
+
+  <div class="tl-groups" *ngIf="groupedActivities.length; else emptyTpl">
+    <section class="tl-group" *ngFor="let group of groupedActivities">
+      <header class="tl-group__head">
+        <strong>{{ group.label }}</strong>
+        <span>{{ group.count }} {{ group.count === 1 ? 'activity' : 'activities' }}</span>
+      </header>
+
+      <div class="table-responsive tl-table-wrap">
+        <table class="tl-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Type</th>
+              <th>Activity</th>
+              <th>Details</th>
+              <th>Ordered By / Source</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of group.items">
+              <td class="tl-time">{{ item.timestamp | date:'shortTime' }}</td>
+              <td>
+                <span class="tl-type">
+                  <i class="fa" [ngClass]="item.typeIcon" aria-hidden="true"></i>
+                  {{ item.typeLabel }}
+                </span>
+              </td>
+              <td class="tl-activity">{{ item.activity }}</td>
+              <td class="tl-details">{{ item.details || '—' }}</td>
+              <td>{{ item.source || '—' }}</td>
+              <td>
+                <span [ngClass]="statusClass(item.statusKey)">
+                  <i class="fa" [ngClass]="statusIcon(item.statusKey)" aria-hidden="true"></i>
+                  {{ item.status }}
+                </span>
+              </td>
+              <td>
+                <button type="button" class="tl-view-btn" (click)="viewItem(item)">View</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tl-cards">
+        <article class="tl-card" *ngFor="let item of group.items">
+          <div class="tl-card__top">
+            <span class="tl-time">{{ item.timestamp | date:'shortTime' }}</span>
+            <span [ngClass]="statusClass(item.statusKey)">
+              <i class="fa" [ngClass]="statusIcon(item.statusKey)" aria-hidden="true"></i>
+              {{ item.status }}
+            </span>
+          </div>
+          <span class="tl-type">
+            <i class="fa" [ngClass]="item.typeIcon" aria-hidden="true"></i>
+            {{ item.typeLabel }}
+          </span>
+          <strong>{{ item.activity }}</strong>
+          <p *ngIf="item.details">{{ item.details }}</p>
+          <small>{{ item.source || '—' }}</small>
+          <button type="button" class="tl-view-btn" (click)="viewItem(item)">View</button>
+        </article>
+      </div>
+    </section>
+  </div>
+</div>
+
+<ng-template #loadingTpl>
+  <div class="tl-loading">Loading activity timeline...</div>
+</ng-template>
+
+<ng-template #emptyTpl>
+  <div class="tl-empty">
+    <h4>No activities found</h4>
+    <p>Try adjusting filters or add a new nursing activity.</p>
+    <button type="button" class="tl-add-btn" (click)="openAdd()">
+      <i class="fa fa-plus" aria-hidden="true"></i> Add New Activity
+    </button>
+  </div>
+</ng-template>
+
+<app-ward-action-modal
+  [open]="addOpen"
+  moduleKey="nursing-care"
+  title="Add Nursing Activity"
+  [preset]="addPreset"
+  (closed)="addOpen = false"
+  (saved)="onActivitySaved()"
+></app-ward-action-modal>

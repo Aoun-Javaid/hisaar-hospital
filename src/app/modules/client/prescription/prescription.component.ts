@@ -2277,6 +2277,19 @@ export class PrescriptionComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // One active order per patient — reopen existing instead of creating a duplicate.
+    if (!record) {
+      const existing = this.admissionRecommendations.find((item) =>
+        ['draft', 'pending', 'acknowledged'].includes(String(item.status || ''))
+      );
+      if (existing) {
+        this.toastr.info(`Active order ${existing.orderNo || ''} already exists — opening it to update.`);
+        this.editingAdmissionRecommendation = existing;
+        this.admissionRecommendationDrawerOpen = true;
+        return;
+      }
+    }
+
     this.editingAdmissionRecommendation = record;
     this.admissionRecommendationDrawerOpen = true;
   }

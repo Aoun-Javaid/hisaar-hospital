@@ -4,6 +4,77 @@
   display: block;
 }
 
+.ward-patient-page {
+  --ward-teal: #0d9488;
+  --ward-teal-soft: #ccfbf1;
+}
+
+.ward-breadcrumb {
+  align-items: center;
+  color: var(--ward-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.ward-breadcrumb a {
+  color: var(--ward-muted);
+  text-decoration: none;
+}
+
+.ward-breadcrumb a:hover {
+  color: var(--ward-blue);
+  text-decoration: underline;
+}
+
+.ward-breadcrumb__sep {
+  color: #cbd5e1;
+}
+
+.ward-breadcrumb__current {
+  color: var(--ward-text);
+  font-weight: 600;
+}
+
+.ward-btn-teal,
+.ward-btn-outline-teal {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 14px;
+}
+
+.ward-btn-teal {
+  background: var(--ward-teal);
+  border: 1px solid var(--ward-teal);
+  color: #fff;
+}
+
+.ward-btn-teal:hover,
+.ward-btn-teal:focus {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #fff;
+}
+
+.ward-btn-outline-teal {
+  background: #fff;
+  border: 1px solid var(--ward-teal);
+  color: var(--ward-teal);
+}
+
+.ward-btn-outline-teal:hover,
+.ward-btn-outline-teal:focus {
+  background: var(--ward-teal-soft);
+  border-color: var(--ward-teal);
+  color: #0f766e;
+}
+
 .ward-kpi-grid {
   grid-template-columns: repeat(6, minmax(0, 1fr));
 }
@@ -18,9 +89,132 @@
   transform: translateY(-1px);
 }
 
+.ward-kpi-card__copy em {
+  color: #94a3b8;
+  display: block;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.3;
+  margin-top: 1px;
+}
+
 .ward-patient-panel {
   position: relative;
   z-index: 1;
+}
+
+.ward-panel__head--tabs {
+  background: #fff;
+  padding: 10px 12px 8px;
+}
+
+.ward-patient-page .ward-status-tab {
+  border-radius: 8px;
+  padding: 7px 12px;
+}
+
+.ward-patient-page .ward-status-tab--active {
+  background: var(--ward-blue);
+  border-color: var(--ward-blue);
+  color: #fff;
+}
+
+.ward-patient-filters {
+  display: grid;
+  gap: 10px;
+}
+
+.ward-patient-filters__desktop {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.ward-patient-filters__row {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.ward-patient-filters__mobile,
+.ward-patient-filters__sheet {
+  display: none;
+}
+
+.ward-filter--search {
+  min-width: 220px;
+}
+
+.ward-filter-input-wrap {
+  position: relative;
+}
+
+.ward-filter-input-wrap i {
+  color: #94a3b8;
+  left: 10px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ward-filter-input-wrap input {
+  padding-left: 30px;
+  width: 100%;
+}
+
+.ward-patient-filters__actions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 10px;
+  margin-left: auto;
+  min-height: 32px;
+}
+
+.ward-filter-clear {
+  background: transparent;
+  border: 0;
+  color: var(--ward-muted);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+}
+
+.ward-filter-clear:hover {
+  color: var(--ward-blue);
+  text-decoration: underline;
+}
+
+.ward-mobile-filters-btn {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--ward-border);
+  border-radius: 8px;
+  color: var(--ward-text);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  position: relative;
+}
+
+.ward-mobile-filters-btn__count {
+  align-items: center;
+  background: var(--ward-blue);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 10px;
+  height: 18px;
+  justify-content: center;
+  min-width: 18px;
+  padding: 0 5px;
 }
 
 .ward-patient-table-wrap {
@@ -47,7 +241,7 @@
 
 .ward-patients-table tbody td {
   border-bottom: 1px solid #f1f5f9;
-  padding: 7px 10px;
+  padding: 10px;
   vertical-align: middle;
 }
 
@@ -55,16 +249,43 @@
   background: #f8fbff;
 }
 
+.cell-index {
+  color: var(--ward-muted);
+  font-weight: 600;
+  width: 36px;
+}
+
+.cell-bed-stack {
+  display: grid;
+  gap: 2px;
+}
+
 .cell-bed {
   color: var(--ward-blue);
+  font-weight: 800;
+}
+
+.cell-bed-stack small {
+  color: var(--ward-muted);
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .cell-patient-btn {
+  align-items: center;
   background: transparent;
   border: 0;
   color: inherit;
+  display: inline-flex;
+  gap: 8px;
   padding: 0;
   text-align: left;
+}
+
+.cell-patient-btn__copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
 }
 
 .cell-patient-btn strong {
@@ -72,9 +293,28 @@
   font-weight: 700;
 }
 
+.cell-patient-btn small {
+  color: var(--ward-muted);
+  font-size: 10px;
+}
+
 .cell-patient-btn:hover strong {
   color: var(--ward-blue);
   text-decoration: underline;
+}
+
+.ward-avatar {
+  align-items: center;
+  background: #dbeafe;
+  border-radius: 999px;
+  color: #1d4ed8;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 800;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
 }
 
 .cell-muted {
@@ -83,29 +323,166 @@
 }
 
 .cell-diagnosis {
-  max-width: 160px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .patient-badge {
+  align-items: center;
   border-radius: 999px;
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 800;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 6px;
   line-height: 1;
-  padding: 4px 8px;
+  padding: 6px 10px;
   white-space: nowrap;
 }
 
-.patient-badge--stable { background: #dcfce7; color: #15803d; }
-.patient-badge--watch { background: #ffedd5; color: #c2410c; }
-.patient-badge--critical { background: #fee2e2; color: #b91c1c; }
-.patient-badge--dischargePlanned { background: #ede9fe; color: #6d28d9; }
-.patient-badge--pendingAssignment { background: #fef3c7; color: #b45309; }
+.patient-badge__dot {
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 7px;
+  width: 7px;
+}
+
+.patient-badge--stable {
+  background: #dcfce7;
+  color: #15803d;
+}
+.patient-badge--stable .patient-badge__dot { background: #16a34a; }
+
+.patient-badge--watch {
+  background: #ffedd5;
+  color: #c2410c;
+}
+.patient-badge--watch .patient-badge__dot { background: #ea580c; }
+
+.patient-badge--critical {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.patient-badge--critical .patient-badge__dot { background: #dc2626; }
+
+.patient-badge--dischargePlanned {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+.patient-badge--dischargePlanned .patient-badge__dot { background: #7c3aed; }
+
+.patient-badge--pendingAssignment {
+  background: #fef3c7;
+  color: #b45309;
+}
+.patient-badge--pendingAssignment .patient-badge__dot { background: #d97706; }
+
+.cell-actions {
+  min-width: 168px;
+  white-space: nowrap;
+}
+
+.ward-row-actions {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.ward-action-btn {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+  height: 32px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.ward-action-btn i {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.ward-action-btn--primary {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #fff;
+}
+
+.ward-action-btn--primary:hover {
+  background: #0d9488;
+  border-color: #0d9488;
+  color: #fff;
+}
+
+.ward-action-btn--outline {
+  background: #fff;
+  border-color: #99f6e4;
+  color: #0f766e;
+}
+
+.ward-action-btn--outline:hover {
+  background: #f0fdfa;
+  border-color: #5eead4;
+  color: #0f766e;
+}
+
+.ward-more-menu {
+  flex: 0 0 auto;
+}
+
+:host ::ng-deep .ward-more-menu .hms-action-menu__trigger {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #475569;
+  height: 32px;
+  min-height: 32px;
+  min-width: 32px;
+  width: 32px;
+}
+
+:host ::ng-deep .ward-more-menu .hms-action-menu__trigger:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.ward-patient-card__actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 12px;
+}
+
+.ward-patient-card__actions .ward-action-btn {
+  width: 100%;
+}
+
+.ward-open-chart-btn {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 5px;
+  white-space: nowrap;
+}
 
 .table-actions--wide {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
   position: relative;
 }
 
@@ -143,54 +520,87 @@
 
 .ward-patient-cards {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   grid-template-columns: 1fr;
-  padding: 8px 12px 12px;
+  padding: 10px 12px 12px;
 }
 
 .ward-patient-card {
   background: #fff;
   border: 1px solid var(--ward-border);
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 12px;
 }
 
 .ward-patient-card__head {
-  align-items: start;
+  align-items: center;
   display: flex;
   gap: 8px;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
-.ward-patient-card__head button {
+.ward-patient-card__bed strong {
+  color: var(--ward-blue);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ward-patient-card__head-actions {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.ward-patient-card__patient {
+  align-items: center;
   background: transparent;
   border: 0;
-  color: var(--ward-blue);
-  display: block;
-  font-size: 12px;
-  font-weight: 700;
+  color: inherit;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
   padding: 0;
   text-align: left;
+  width: 100%;
 }
 
-.ward-patient-card dl {
+.ward-patient-card__patient span {
+  display: grid;
+  gap: 2px;
+}
+
+.ward-patient-card__patient strong {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ward-patient-card__patient small {
+  color: var(--ward-muted);
+  font-size: 11px;
+}
+
+.ward-patient-card__meta {
   display: grid;
   gap: 6px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0 0 10px;
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
 }
 
-.ward-patient-card dt {
-  color: var(--ward-muted);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.ward-patient-card dd {
+.ward-patient-card__meta li {
+  align-items: flex-start;
+  color: #334155;
+  display: flex;
   font-size: 12px;
-  font-weight: 600;
-  margin: 0;
+  gap: 8px;
+  line-height: 1.35;
+}
+
+.ward-patient-card__meta i {
+  color: var(--ward-muted);
+  margin-top: 2px;
+  width: 14px;
 }
 
 .room-details-grid {
@@ -347,27 +757,6 @@
   padding: 12px 16px 16px;
 }
 
-@media (max-width: 1400px) {
-  .ward-kpi-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 992px) {
-  .ward-page-header--compact {
-    align-items: start;
-    flex-direction: column;
-  }
-
-  .ward-page-header__actions--toolbar {
-    width: 100%;
-  }
-
-  .ward-kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 .ward-assign-nurse {
   background: #fff;
   border: 1px solid var(--ward-border);
@@ -383,7 +772,7 @@
   right: 16px;
   top: 72px;
   width: min(440px, calc(100vw - 24px));
-  z-index: 40;
+  z-index: 1060;
 }
 
 .ward-assign-nurse header,
@@ -421,7 +810,74 @@
   padding: 0 10px;
 }
 
+@media (max-width: 1400px) {
+  .ward-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 992px) {
+  .ward-page-header--compact {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .ward-page-header__actions {
+    width: 100%;
+  }
+
+  .ward-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ward-patient-filters__actions {
+    margin-left: 0;
+  }
+}
+
 @media (max-width: 768px) {
+  .ward-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ward-patient-filters__desktop {
+    display: none;
+  }
+
+  .ward-patient-filters__mobile {
+    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .ward-patient-filters__mobile .ward-filter--grow {
+    flex: 1 1 160px;
+  }
+
+  .ward-filter--date-mobile {
+    min-width: 132px;
+  }
+
+  .ward-patient-filters__sheet {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .ward-patient-filters__sheet .ward-patient-filters__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  .ward-status-tabs {
+    flex-wrap: nowrap;
+    overflow: auto;
+    padding-bottom: 2px;
+  }
+
   .ward-assign-nurse {
     border-radius: 16px 16px 0 0;
     bottom: 0;
@@ -430,19 +886,5 @@
     right: 0;
     top: auto;
     width: 100%;
-  }
-  .ward-filter-toolbar--in-panel {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .ward-filter--grow {
-    grid-column: 1 / -1;
-  }
-
-  .ward-status-tabs {
-    flex-wrap: nowrap;
-    overflow: auto;
-    padding-bottom: 2px;
   }
 }

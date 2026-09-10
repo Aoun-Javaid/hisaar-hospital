@@ -9,17 +9,31 @@
     </nav>
 
     <header class="allotment-header">
-      <h1>{{ recommendationReadOnly ? 'Review & Admit Patient' : 'Add Room Allotment' }}</h1>
+      <h1>
+        {{
+          admissionSuccess
+            ? 'Admission Complete'
+            : recommendationReadOnly
+              ? 'Review & Admit Patient'
+              : 'Add Room Allotment'
+        }}
+      </h1>
       <p>
         {{
-          recommendationReadOnly
-            ? 'Doctor admission order is read-only. Complete ward/bed allocation below.'
-            : 'Admit patient to a room and capture advance or security if needed.'
+          admissionSuccess
+            ? 'Patient is admitted. Use the actions below to continue care.'
+            : recommendationReadOnly
+              ? 'Doctor admission order is read-only. Complete ward/bed allocation below.'
+              : 'Admit patient to a room and capture advance or security if needed.'
         }}
       </p>
     </header>
 
-    <section class="allotment-card recommendation-summary" *ngIf="recommendationSummary as rec" data-testid="ward-admit-review">
+    <section
+      class="allotment-card recommendation-summary"
+      *ngIf="!admissionSuccess && recommendationSummary as rec"
+      data-testid="ward-admit-review"
+    >
       <div class="allotment-card__head allotment-card__head--soft">
         <div class="allotment-card__title">
           <span class="allotment-card__icon"><i class="fa fa-file-text-o" aria-hidden="true"></i></span>
@@ -97,7 +111,7 @@
     </section>
 
     <div class="allotment-layout">
-      <section class="allotment-card allotment-form-card">
+      <section class="allotment-card allotment-form-card" *ngIf="!admissionSuccess">
         <div class="allotment-card__head allotment-card__head--soft">
           <div class="allotment-card__title">
             <span class="allotment-card__icon"><i class="fa fa-file-text-o" aria-hidden="true"></i></span>
@@ -395,35 +409,38 @@
               {{ saving ? 'Saving...' : 'Save Allotment' }}
             </button>
           </div>
-
-          <div class="ward-admission-success" *ngIf="admissionSuccess as success" data-testid="ward-admission-success">
-            <header>
-              <strong>Patient Admitted Successfully</strong>
-            </header>
-            <dl class="ward-admission-success__grid">
-              <div><dt>Admission No</dt><dd>{{ success.admissionNo }}</dd></div>
-              <div><dt>Encounter No</dt><dd>{{ success.encounterNo || success.encounterId }}</dd></div>
-              <div><dt>Ward</dt><dd>{{ success.wardName }}</dd></div>
-              <div><dt>Room</dt><dd>{{ success.roomNo }}</dd></div>
-              <div><dt>Bed</dt><dd>{{ success.bedLabel }}</dd></div>
-              <div><dt>Consultant</dt><dd>{{ success.consultantName }}</dd></div>
-              <div><dt>Assigned Nurse</dt><dd>{{ success.nurseName || '—' }}</dd></div>
-            </dl>
-            <article class="ward-admission-success__next">
-              <h4>WHAT HAPPENS NEXT?</h4>
-              <p>Continue patient care from the Ward Patient Control Panel.</p>
-              <div class="ward-admission-success__actions">
-                <button type="button" class="allotment-btn allotment-btn--primary" (click)="openPatientControlPanel()" data-testid="ward-open-control-panel">
-                  Open Patient Control Panel
-                </button>
-                <button type="button" class="allotment-btn allotment-btn--ghost" (click)="backToAdmissions()">Back to Admissions</button>
-              </div>
-            </article>
-          </div>
         </form>
       </section>
 
-      <aside class="allotment-sidebar">
+      <section class="allotment-card ward-admission-success-card" *ngIf="admissionSuccess as success" data-testid="ward-admission-success">
+        <div class="ward-admission-success">
+          <header>
+            <strong>Patient Admitted Successfully</strong>
+            <p>Admission is complete. The allotment form is closed to prevent duplicate saves.</p>
+          </header>
+          <dl class="ward-admission-success__grid">
+            <div><dt>Admission No</dt><dd>{{ success.admissionNo }}</dd></div>
+            <div><dt>Encounter No</dt><dd>{{ success.encounterNo || success.encounterId }}</dd></div>
+            <div><dt>Ward</dt><dd>{{ success.wardName }}</dd></div>
+            <div><dt>Room</dt><dd>{{ success.roomNo }}</dd></div>
+            <div><dt>Bed</dt><dd>{{ success.bedLabel }}</dd></div>
+            <div><dt>Consultant</dt><dd>{{ success.consultantName }}</dd></div>
+            <div><dt>Assigned Nurse</dt><dd>{{ success.nurseName || '—' }}</dd></div>
+          </dl>
+          <article class="ward-admission-success__next">
+            <h4>WHAT HAPPENS NEXT?</h4>
+            <p>Continue patient care from the Ward Patient Control Panel.</p>
+            <div class="ward-admission-success__actions">
+              <button type="button" class="allotment-btn allotment-btn--primary" (click)="openPatientControlPanel()" data-testid="ward-open-control-panel">
+                Open Patient Control Panel
+              </button>
+              <button type="button" class="allotment-btn allotment-btn--ghost" (click)="backToAdmissions()">Back to Admissions</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <aside class="allotment-sidebar" *ngIf="!admissionSuccess">
         <section class="allotment-card allotment-details-card">
           <div class="allotment-card__head allotment-card__head--soft">
             <div class="allotment-card__title">

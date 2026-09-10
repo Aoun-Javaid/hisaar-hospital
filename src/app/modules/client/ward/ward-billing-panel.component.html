@@ -1,5 +1,5 @@
 <div class="ward-billing-panel" *ngIf="!loading; else loadingTpl">
-  <div class="ward-billing-kpis" *ngIf="mode === 'billing' || mode === 'payments' || mode === 'settlement'">
+  <div class="ward-billing-kpis" *ngIf="mode === 'billing' || mode === 'settlement'">
     <app-hms-document-toolbar
       *ngIf="mode === 'billing'"
       [title]="'Running Bill'"
@@ -43,39 +43,225 @@
       </div>
     </div>
 
-    <div *ngSwitchCase="'payments'">
-      <div class="ward-billing-form">
-        <h4>Collect Payment</h4>
-        <div class="ward-billing-form__row">
-          <input type="number" [(ngModel)]="paymentForm.amount" placeholder="Amount" />
-          <select [(ngModel)]="paymentForm.method"><option value="cash">Cash</option><option value="bank">Bank</option><option value="card">Card</option></select>
-          <select [(ngModel)]="paymentForm.type"><option value="partial">Partial</option><option value="final">Final</option><option value="advance">Advance</option></select>
-          <button type="button" class="btn btn-primary btn-sm" (click)="collectPayment()">Collect</button>
+    <div *ngSwitchCase="'payments'" class="ward-payments">
+      <div class="ward-payments__head">
+        <div>
+          <h3>Payments</h3>
+          <p>Manage patient payments, deposits and billing information.</p>
         </div>
+        <time class="ward-payments__stamp">{{ now | date:'fullDate' }} {{ now | date:'shortTime' }}</time>
       </div>
-      <div class="ward-billing-form">
-        <h4>Security / Deposit</h4>
-        <div class="ward-billing-form__row">
-          <input type="number" [(ngModel)]="securityForm.amount" placeholder="Security amount" />
-          <select [(ngModel)]="securityForm.method"><option value="cash">Cash</option><option value="bank">Bank</option></select>
-          <button type="button" class="btn btn-outline-primary btn-sm" (click)="collectSecurity()">Collect Security</button>
+
+      <div class="ward-payments-top">
+        <div class="ward-payments-top__main">
+          <div class="ward-pay-kpis">
+            <article class="ward-pay-kpi ward-pay-kpi--charges">
+              <div class="ward-pay-kpi__icon"><i class="fa fa-file-text-o" aria-hidden="true"></i></div>
+              <div>
+                <span>Total Charges</span>
+                <strong>{{ money(summary['netPayable']) }} <em>PKR</em></strong>
+              </div>
+            </article>
+            <article class="ward-pay-kpi ward-pay-kpi--paid">
+              <div class="ward-pay-kpi__icon"><i class="fa fa-check-circle" aria-hidden="true"></i></div>
+              <div>
+                <span>Paid</span>
+                <strong>{{ money(summary['totalPaid']) }} <em>PKR</em></strong>
+              </div>
+            </article>
+            <article class="ward-pay-kpi ward-pay-kpi--due">
+              <div class="ward-pay-kpi__icon"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></div>
+              <div>
+                <span>Outstanding</span>
+                <strong>{{ money(summary['outstandingBalance'] ?? summary['balance']) }} <em>PKR</em></strong>
+              </div>
+            </article>
+            <article class="ward-pay-kpi ward-pay-kpi--security">
+              <div class="ward-pay-kpi__icon"><i class="fa fa-shield" aria-hidden="true"></i></div>
+              <div>
+                <span>Security Held</span>
+                <strong>{{ money(summary['securityDepositHeld']) }} <em>PKR</em></strong>
+              </div>
+            </article>
+            <article class="ward-pay-kpi ward-pay-kpi--advance">
+              <div class="ward-pay-kpi__icon"><i class="fa fa-credit-card" aria-hidden="true"></i></div>
+              <div>
+                <span>Advance Credit</span>
+                <strong>{{ money(summary['advanceCreditBalance']) }} <em>PKR</em></strong>
+              </div>
+            </article>
+            <article class="ward-pay-kpi ward-pay-kpi--pharmacy">
+              <div class="ward-pay-kpi__icon"><i class="fa fa-medkit" aria-hidden="true"></i></div>
+              <div>
+                <span>Pending Pharmacy Settlement</span>
+                <strong>{{ money(summary['pendingPharmacySettlement']) }} <em>PKR</em></strong>
+              </div>
+            </article>
+          </div>
+
+          <section class="ward-pay-row">
+            <header class="ward-pay-row__title">
+              <i class="fa fa-money" aria-hidden="true"></i>
+              <h4>Collect Payment</h4>
+            </header>
+            <div class="ward-pay-row__fields">
+              <label>
+                <span>Amount (PKR)</span>
+                <input type="number" min="0" [(ngModel)]="paymentForm.amount" placeholder="0" />
+              </label>
+              <label>
+                <span>Payment Method</span>
+                <select [(ngModel)]="paymentForm.method">
+                  <option value="cash">Cash</option>
+                  <option value="bank">Bank</option>
+                  <option value="card">Card</option>
+                  <option value="jazzcash">JazzCash</option>
+                  <option value="easypaisa">Easypaisa</option>
+                </select>
+              </label>
+              <label>
+                <span>Payment Type</span>
+                <select [(ngModel)]="paymentForm.type">
+                  <option value="final">Full Payment</option>
+                  <option value="partial">Partial Payment</option>
+                  <option value="advance">Advance</option>
+                </select>
+              </label>
+              <label class="ward-pay-row__note">
+                <span>Note (Optional)</span>
+                <input type="text" [(ngModel)]="paymentForm.note" placeholder="Add a note..." />
+              </label>
+              <button type="button" class="ward-pay-btn ward-pay-btn--primary" (click)="collectPayment()">
+                <i class="fa fa-money" aria-hidden="true"></i> Collect Payment
+              </button>
+            </div>
+          </section>
+
+          <section class="ward-pay-row">
+            <header class="ward-pay-row__title">
+              <i class="fa fa-shield" aria-hidden="true"></i>
+              <h4>Security / Deposit</h4>
+            </header>
+            <div class="ward-pay-row__fields ward-pay-row__fields--security">
+              <label>
+                <span>Amount (PKR)</span>
+                <input type="number" min="0" [(ngModel)]="securityForm.amount" placeholder="0" />
+              </label>
+              <label>
+                <span>Payment Method</span>
+                <select [(ngModel)]="securityForm.method">
+                  <option value="cash">Cash</option>
+                  <option value="bank">Bank</option>
+                  <option value="card">Card</option>
+                </select>
+              </label>
+              <label class="ward-pay-row__note">
+                <span>Note (Optional)</span>
+                <input type="text" [(ngModel)]="securityForm.note" placeholder="Admission security deposit" />
+              </label>
+              <button type="button" class="ward-pay-btn ward-pay-btn--outline" (click)="collectSecurity()">
+                <i class="fa fa-shield" aria-hidden="true"></i> Collect Security
+              </button>
+            </div>
+          </section>
         </div>
+
+        <aside class="ward-payments-side">
+          <section class="ward-pay-side-card">
+            <h4>Latest Invoice</h4>
+            <dl class="ward-pay-invoice">
+              <div><dt>Invoice No</dt><dd>{{ latestInvoice['invoiceNo'] || '—' }}</dd></div>
+              <div><dt>Date</dt><dd>{{ asDate(latestInvoice['date']) | date:'mediumDate' }}</dd></div>
+              <div><dt>Amount</dt><dd>{{ money(latestInvoice['amount'] ?? summary['netPayable']) }} PKR</dd></div>
+              <div><dt>Paid</dt><dd>{{ money(latestInvoice['paid'] ?? summary['totalPaid']) }} PKR</dd></div>
+              <div><dt>Due Amount</dt><dd class="is-due">{{ money(latestInvoice['due'] ?? summary['outstandingBalance'] ?? summary['balance']) }} PKR</dd></div>
+            </dl>
+            <button type="button" class="ward-pay-btn ward-pay-btn--ghost" (click)="viewInvoice()">
+              <i class="fa fa-eye" aria-hidden="true"></i> View Invoice
+            </button>
+            <div class="ward-pay-side-actions">
+              <button type="button" class="ward-pay-btn ward-pay-btn--ghost" (click)="printReceipt()">
+                <i class="fa fa-print" aria-hidden="true"></i> Print Receipt
+              </button>
+              <button type="button" class="ward-pay-btn ward-pay-btn--ghost" (click)="downloadInvoice()">
+                <i class="fa fa-download" aria-hidden="true"></i> Download
+              </button>
+            </div>
+          </section>
+
+          <section class="ward-pay-insight">
+            <div class="ward-pay-insight__icon"><i class="fa fa-lightbulb-o" aria-hidden="true"></i></div>
+            <div>
+              <h5>Billing Insights</h5>
+              <p>{{ billingInsight }}</p>
+            </div>
+          </section>
+        </aside>
       </div>
-      <div class="table-responsive">
-        <table class="table table-sm ward-table">
-          <thead><tr><th>Receipt</th><th>Date</th><th>Type</th><th>Method</th><th>Amount</th><th>Note</th></tr></thead>
-          <tbody>
-            <tr *ngFor="let payment of ledgerPayments">
-              <td>{{ payment['paymentNo'] }}</td>
-              <td>{{ asDate(payment['createdAt']) | date:'short' }}</td>
-              <td>{{ payment['type'] }}</td>
-              <td>{{ payment['method'] }}</td>
-              <td>{{ money(payment['amount']) }}</td>
-              <td>{{ payment['note'] }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+
+      <section class="ward-pay-history">
+        <header class="ward-pay-history__head">
+          <h4>Payment History</h4>
+        </header>
+        <div class="table-responsive">
+          <table class="table table-sm ward-table ward-pay-table">
+            <thead>
+              <tr>
+                <th>Receipt #</th>
+                <th>Date &amp; Time</th>
+                <th>Type</th>
+                <th>Method</th>
+                <th>Amount (PKR)</th>
+                <th>Status</th>
+                <th>Collected By</th>
+                <th>Note</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let payment of ledgerPayments">
+                <td class="ward-pay-receipt">{{ payment['paymentNo'] }}</td>
+                <td>{{ asDate(payment['createdAt']) | date:'medium' }}</td>
+                <td><span [ngClass]="paymentTypeClass(payment['type'])">{{ paymentTypeLabel(payment['type']) }}</span></td>
+                <td class="text-capitalize">{{ payment['method'] || '—' }}</td>
+                <td class="ward-pay-amount">{{ money(payment['amount']) }}</td>
+                <td><span class="pay-status">{{ paymentStatusLabel(payment['status']) }}</span></td>
+                <td>{{ collectedByName(payment) }}</td>
+                <td>{{ payment['note'] || '—' }}</td>
+                <td>
+                  <button type="button" class="ward-pay-icon-btn" title="View invoice" (click)="viewInvoice()">
+                    <i class="fa fa-eye" aria-hidden="true"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="ledgerPayments.length === 0">
+                <td colspan="9" class="text-muted">No payments collected yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ward-pay-history-cards" *ngIf="ledgerPayments.length">
+          <article class="ward-pay-history-card" *ngFor="let payment of ledgerPayments">
+            <div class="ward-pay-history-card__icon" [class.is-security]="payment['type'] === 'security_deposit'">
+              <i class="fa fa-file-text-o" aria-hidden="true"></i>
+            </div>
+            <div class="ward-pay-history-card__body">
+              <div class="ward-pay-history-card__top">
+                <strong>{{ payment['paymentNo'] }}</strong>
+                <span class="pay-status">{{ paymentStatusLabel(payment['status']) }}</span>
+              </div>
+              <p>{{ asDate(payment['createdAt']) | date:'medium' }} · {{ payment['method'] || '—' }}</p>
+              <p>
+                <span [ngClass]="paymentTypeClass(payment['type'])">{{ paymentTypeLabel(payment['type']) }}</span>
+                · Collected by {{ collectedByName(payment) }}
+              </p>
+              <strong class="ward-pay-amount">{{ money(payment['amount']) }} PKR</strong>
+              <p *ngIf="payment['note']">{{ payment['note'] }}</p>
+            </div>
+          </article>
+        </div>
+      </section>
     </div>
 
     <div *ngSwitchCase="'settlement'">
@@ -143,34 +329,99 @@
       </div>
     </div>
 
-    <div *ngSwitchCase="'procedures'">
-      <div class="ward-billing-form">
-        <h4>Schedule Procedure</h4>
-        <div class="ward-billing-form__row">
-          <input [(ngModel)]="procedureForm.procedureName" placeholder="Procedure name" />
-          <input [(ngModel)]="procedureForm.procedureType" placeholder="Type" />
-          <input type="number" [(ngModel)]="procedureForm.rate" placeholder="Rate" />
-          <input type="number" [(ngModel)]="procedureForm.qty" placeholder="Qty" />
-          <button type="button" class="btn btn-primary btn-sm" (click)="createProcedure()">Schedule</button>
+    <div *ngSwitchCase="'procedures'" class="wcs ward-proc-panel">
+      <div class="wcs-head">
+        <div class="wcs-head__lead">
+          <span class="wcs-head__icon"><i class="fa fa-scissors" aria-hidden="true"></i></span>
+          <div>
+            <h3>Procedures</h3>
+            <p>Schedule and manage patient procedures</p>
+          </div>
         </div>
       </div>
-      <div class="table-responsive">
-        <table class="table table-sm ward-table">
-          <thead><tr><th>No</th><th>Name</th><th>Rate</th><th>Status</th><th></th></tr></thead>
-          <tbody>
-            <tr *ngFor="let row of procedures">
-              <td>{{ row['procedureNo'] }}</td>
-              <td>{{ row['procedureName'] }}</td>
-              <td>{{ money(row['amount']) }}</td>
-              <td>{{ row['status'] }}</td>
-              <td>
-                <button *ngIf="row['status'] === 'SCHEDULED'" class="btn btn-sm btn-outline-primary" (click)="completeProcedure(asId(row['_id']))">Complete</button>
-                <button *ngIf="row['status'] === 'SCHEDULED'" class="btn btn-sm btn-outline-secondary" (click)="cancelProcedure(asId(row['_id']))">Cancel</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+
+      <div class="wcs-kpis">
+        <article class="wcs-kpi wcs-kpi--blue">
+          <div class="wcs-kpi__icon"><i class="fa fa-list" aria-hidden="true"></i></div>
+          <div><strong>{{ procedures.length }}</strong><span>Total Procedures</span></div>
+        </article>
+        <article class="wcs-kpi wcs-kpi--purple">
+          <div class="wcs-kpi__icon"><i class="fa fa-calendar" aria-hidden="true"></i></div>
+          <div><strong>{{ procedureCount('PLANNED') }}</strong><span>Planned</span></div>
+        </article>
+        <article class="wcs-kpi wcs-kpi--orange">
+          <div class="wcs-kpi__icon"><i class="fa fa-clock-o" aria-hidden="true"></i></div>
+          <div><strong>{{ procedureCount('SCHEDULED') }}</strong><span>Scheduled</span></div>
+        </article>
+        <article class="wcs-kpi wcs-kpi--green">
+          <div class="wcs-kpi__icon"><i class="fa fa-check" aria-hidden="true"></i></div>
+          <div><strong>{{ procedureCount('COMPLETED') }}</strong><span>Completed</span></div>
+        </article>
       </div>
+
+      <section class="wcs-form">
+        <h4 class="wcs-form__title">Schedule New Procedure</h4>
+        <div class="wcs-form__grid">
+          <label class="wcs-field">
+            <span>Procedure Name *</span>
+            <input [(ngModel)]="procedureForm.procedureName" placeholder="Search / enter procedure" />
+          </label>
+          <label class="wcs-field">
+            <span>Type</span>
+            <input [(ngModel)]="procedureForm.procedureType" placeholder="e.g. Minor / Major" />
+          </label>
+          <label class="wcs-field">
+            <span>Quantity</span>
+            <input type="number" min="1" [(ngModel)]="procedureForm.qty" />
+          </label>
+          <label class="wcs-field">
+            <span>Rate (PKR)</span>
+            <input type="number" min="0" [(ngModel)]="procedureForm.rate" />
+          </label>
+          <button type="button" class="wcs-btn wcs-btn--primary" (click)="createProcedure()">
+            <i class="fa fa-calendar-plus-o" aria-hidden="true"></i> Schedule Procedure
+          </button>
+        </div>
+      </section>
+
+      <section class="wcs-table-card">
+        <div class="wcs-table-card__head">
+          <h4>Procedure Records</h4>
+          <span>{{ procedures.length }} records</span>
+        </div>
+        <div class="table-responsive wcs-table-wrap">
+          <table class="wcs-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Procedure No</th>
+                <th>Procedure Name</th>
+                <th>Type</th>
+                <th>Qty</th>
+                <th>Rate (PKR)</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of procedures; let i = index">
+                <td>{{ i + 1 }}</td>
+                <td>{{ row['procedureNo'] }}</td>
+                <td><strong>{{ row['procedureName'] }}</strong></td>
+                <td>{{ row['procedureType'] || '—' }}</td>
+                <td>{{ row['qty'] || 1 }}</td>
+                <td>{{ money(row['rate'] || row['amount']) }}</td>
+                <td><span class="wcs-badge" [ngClass]="procedureStatusClass(row['status'])">{{ procedureStatusLabel(row['status']) }}</span></td>
+                <td>
+                  <button *ngIf="row['status'] === 'SCHEDULED' || row['status'] === 'PLANNED'" type="button" class="wcs-btn wcs-btn--ghost" (click)="completeProcedure(asId(row['_id']))">Complete</button>
+                  <button *ngIf="row['status'] === 'SCHEDULED' || row['status'] === 'PLANNED'" type="button" class="wcs-btn wcs-btn--ghost" (click)="cancelProcedure(asId(row['_id']))">Cancel</button>
+                </td>
+              </tr>
+              <tr *ngIf="procedures.length === 0"><td colspan="8" class="text-muted">No procedures scheduled.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
 
     <div *ngSwitchCase="'operations'">
@@ -202,31 +453,126 @@
       </div>
     </div>
 
-    <div *ngSwitchCase="'discharge'" class="ward-discharge-statement">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4>Final Discharge Statement</h4>
+    <div *ngSwitchCase="'discharge'" class="ward-discharge">
+      <header class="ward-discharge__head">
+        <div>
+          <h3>Final Discharge Statement</h3>
+          <p>{{ hospitalName() }} · System generated discharge summary</p>
+        </div>
         <app-hms-document-toolbar
           [title]="'Discharge Statement'"
           filename="discharge-statement.pdf"
           [getHtml]="buildDischargeDocument"
         ></app-hms-document-toolbar>
+      </header>
+
+      <section class="ward-discharge-patient">
+        <div class="ward-discharge-patient__main">
+          <div class="ward-discharge-avatar" aria-hidden="true">{{ dischargePatientInitial() }}</div>
+          <div>
+            <span class="ward-discharge-patient__label">Patient Name</span>
+            <strong class="ward-discharge-patient__name">{{ dischargePatientName() }}</strong>
+            <div class="ward-discharge-patient__facts">
+              <span>{{ dischargePatientGender() }}</span>
+              <span>{{ dischargePatientAge() }}</span>
+              <span>{{ dischargePatientBloodGroup() }}</span>
+            </div>
+          </div>
+        </div>
+        <dl class="ward-discharge-meta">
+          <div><dt>MRN</dt><dd>{{ dischargePatientMrn() }}</dd></div>
+          <div><dt>Admission No</dt><dd>{{ dischargeAdmissionNo() }}</dd></div>
+          <div><dt>Ward / Room</dt><dd>{{ dischargeWardRoom() }}</dd></div>
+          <div><dt>Consultant</dt><dd>{{ dischargeConsultant() }}</dd></div>
+        </dl>
+      </section>
+
+      <section class="ward-discharge-stay">
+        <article>
+          <span>Admission Date &amp; Time</span>
+          <strong>{{ dischargeAdmittedAt() }}</strong>
+        </article>
+        <article>
+          <span>Discharge Date &amp; Time</span>
+          <strong>{{ dischargeDischargedAt() }}</strong>
+        </article>
+        <article>
+          <span>Length of Stay</span>
+          <strong>{{ dischargeLengthOfStay() }}</strong>
+        </article>
+      </section>
+
+      <section class="ward-discharge-charges">
+        <div class="ward-discharge-charges__head">
+          <i class="fa fa-file-text-o" aria-hidden="true"></i>
+          <h4>Charges Summary</h4>
+        </div>
+        <div class="table-responsive">
+          <table class="ward-discharge-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th class="text-right">Amount (PKR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of dischargeChargeRows; let i = index">
+                <td class="is-muted">{{ i + 1 }}</td>
+                <td>{{ row.label }}</td>
+                <td class="text-right is-amount">{{ money(row.amount) }}</td>
+              </tr>
+              <tr *ngIf="dischargeChargeRows.length === 0">
+                <td colspan="3" class="text-center text-muted">No charge breakdown available.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ward-discharge-totals">
+          <div><span>Gross Charges</span><strong>{{ money(dischargeStatement['grossCharges']) }}</strong></div>
+          <div><span>Discount</span><strong>{{ money(dischargeStatement['totalDiscount']) }}</strong></div>
+          <div class="is-net"><span>Net Payable</span><strong>{{ money(dischargeStatement['netCharges']) }}</strong></div>
+        </div>
+      </section>
+
+      <section class="ward-discharge-payment">
+        <article>
+          <span>Amount Paid</span>
+          <strong>{{ money(dischargeStatement['previousPayments']) }}</strong>
+        </article>
+        <article>
+          <span>Amount Due</span>
+          <strong>{{ money(dischargeStatement['balanceDue']) }}</strong>
+        </article>
+      </section>
+
+      <section class="ward-discharge-extras">
+        <article>
+          <span>Advance Credit</span>
+          <strong>{{ money(dischargeStatement['advanceCreditBalance']) }}</strong>
+        </article>
+        <article>
+          <span>Security Held</span>
+          <strong>{{ money(dischargeStatement['securityAvailable']) }}</strong>
+        </article>
+        <article>
+          <span>Refund Due</span>
+          <strong>{{ money(dischargeStatement['patientRefundDue']) }}</strong>
+        </article>
+        <article>
+          <span>Pharmacy Settlement</span>
+          <strong>
+            {{ money(pharmacySettlement()['pharmacyCharges']) }}
+            · P {{ pharmacySettlement()['pendingCount'] || 0 }}
+            · S {{ pharmacySettlement()['settledCount'] || 0 }}
+          </strong>
+        </article>
+      </section>
+
+      <div class="ward-discharge-thanks">
+        <i class="fa fa-heart" aria-hidden="true"></i>
+        <span>Thank you for choosing {{ hospitalName() }}. We wish you a speedy recovery.</span>
       </div>
-      <div class="ward-summary-grid">
-        <div><span>Gross Charges</span><strong>{{ money(dischargeStatement['grossCharges']) }}</strong></div>
-        <div><span>Discount</span><strong>{{ money(dischargeStatement['totalDiscount']) }}</strong></div>
-        <div><span>Net Charges</span><strong>{{ money(dischargeStatement['netCharges']) }}</strong></div>
-        <div><span>Previous Payments</span><strong>{{ money(dischargeStatement['previousPayments']) }}</strong></div>
-        <div><span>Advance Credit</span><strong>{{ money(dischargeStatement['advanceCreditBalance']) }}</strong></div>
-        <div><span>Security Held</span><strong>{{ money(dischargeStatement['securityAvailable']) }}</strong></div>
-        <div><span>Balance Due</span><strong>{{ money(dischargeStatement['balanceDue']) }}</strong></div>
-        <div><span>Refund Due</span><strong>{{ money(dischargeStatement['patientRefundDue']) }}</strong></div>
-      </div>
-      <h5 class="mt-3">Pharmacy Settlement</h5>
-      <p>
-        Pharmacy Charges: {{ money(pharmacySettlement()['pharmacyCharges']) }} ·
-        Pending: {{ pharmacySettlement()['pendingCount'] || 0 }} ·
-        Settled: {{ pharmacySettlement()['settledCount'] || 0 }}
-      </p>
     </div>
 
     <div *ngSwitchCase="'doctor-visits'">

@@ -1,160 +1,527 @@
-<div class="hms-page ops-page">
-  <header class="hms-page-header ops-header">
-    <div>
-      <h1>Operation Calendar</h1>
-      <p>Plan and monitor hospital operations by date, department and assigned doctors.</p>
-    </div>
-  </header>
+<div class="ops-shell" [class.has-drawer]="!!selected">
+  <div class="ops-page">
+    <header class="ops-header">
+      <div>
+        <p class="ops-kicker">Ward &amp; Theatre</p>
+        <h1>Operation Calendar</h1>
+        <p>Manage and view scheduled operations across departments.</p>
+      </div>
+      <div class="ops-header__actions">
+        <button
+          *ngIf="can('operations.create') || can('operations.update')"
+          type="button"
+          class="ops-btn ops-btn--primary"
+          (click)="openScheduleFlow()"
+        >
+          <i class="fa fa-plus" aria-hidden="true"></i>
+          Schedule Operation
+        </button>
+        <a class="ops-btn ops-btn--ghost" routerLink="/doctors-schedule">Apply Leave</a>
+        <a class="ops-btn ops-btn--ghost" routerLink="/doctors-schedule">Set Working Hours</a>
+      </div>
+    </header>
 
-  <section class="hms-kpi-grid ops-kpi-grid">
-    <article class="hms-kpi-card is-blue"><span>Today</span><strong>{{ kpis.today }}</strong></article>
-    <article class="hms-kpi-card is-teal"><span>Upcoming</span><strong>{{ kpis.upcoming }}</strong></article>
-    <article class="hms-kpi-card is-orange"><span>Pending Scheduling</span><strong>{{ kpis.pending }}</strong></article>
-    <article class="hms-kpi-card is-purple"><span>In Progress</span><strong>{{ kpis.inProgress }}</strong></article>
-    <article class="hms-kpi-card is-green"><span>Completed</span><strong>{{ kpis.completed }}</strong></article>
-  </section>
-
-  <section class="ops-tabs">
-    <button type="button" [class.is-active]="viewMode === 'list'" (click)="setView('list')">List</button>
-    <button type="button" [class.is-active]="viewMode === 'needs'" (click)="setView('needs')">Needs Scheduling</button>
-    <button type="button" [class.is-active]="viewMode === 'calendar'" (click)="setView('calendar')">Calendar</button>
-  </section>
-
-  <section class="hms-filter-card ops-filters">
-    <label>
-      <span>Date</span>
-      <input type="date" [(ngModel)]="selectedDate" (change)="refresh()" />
-    </label>
-    <label>
-      <span>Search</span>
-      <input type="search" [(ngModel)]="search" placeholder="Patient / operation #" (keyup.enter)="refresh()" />
-    </label>
-    <label>
-      <span>Department</span>
-      <select [(ngModel)]="departmentFilter">
-        <option value="">All</option>
-        <option *ngFor="let dept of departments" [value]="dept._id">{{ dept.name }}</option>
-      </select>
-    </label>
-    <label>
-      <span>Doctor</span>
-      <select [(ngModel)]="doctorFilter">
-        <option value="">All</option>
-        <option *ngFor="let doctor of doctors" [value]="doctor._id">{{ doctor.user?.name || doctor.specialization }}</option>
-      </select>
-    </label>
-    <label>
-      <span>Status</span>
-      <select [(ngModel)]="statusFilter">
-        <option value="">All</option>
-        <option *ngFor="let status of statuses" [value]="status">{{ statusLabel(status) }}</option>
-      </select>
-    </label>
-    <button type="button" class="hms-btn" (click)="refresh()">Apply</button>
-  </section>
-
-  <section class="hms-card ops-card" *ngIf="!loading; else loadingTpl">
-    <div class="ops-desktop-table" *ngIf="viewMode !== 'needs'">
-      <table class="hms-table">
-        <thead>
-          <tr>
-            <th>Operation #</th>
-            <th>Date &amp; Time</th>
-            <th>Patient</th>
-            <th>Procedure</th>
-            <th>Department</th>
-            <th>Operating Doctor</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let item of items">
-            <td>{{ item.operationNo || '—' }}</td>
-            <td>{{ item.scheduledStart ? (item.scheduledStart | date:'short') : 'Needs scheduling' }}</td>
-            <td>{{ patientName(item) }}</td>
-            <td>{{ procedureName(item) }}</td>
-            <td>{{ departmentName(item) }}</td>
-            <td>{{ doctorName(item) }}</td>
-            <td><span class="hms-status-chip">{{ statusLabel(item.status) }}</span></td>
-            <td><button type="button" class="hms-btn-secondary" (click)="openDetails(item)">Open</button></td>
-          </tr>
-          <tr *ngIf="!items.length"><td colspan="8" class="ops-empty">No operations found.</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="ops-needs" *ngIf="viewMode === 'needs'">
-      <article class="hms-mobile-card" *ngFor="let item of needsScheduling">
-        <strong>{{ procedureName(item) }}</strong>
-        <span>{{ patientName(item) }} · {{ doctorName(item) }}</span>
-        <span class="hms-status-chip">{{ statusLabel(item.status) }}</span>
-        <button type="button" class="hms-btn-secondary" (click)="openDetails(item)">Schedule</button>
-      </article>
-      <p class="ops-empty" *ngIf="!needsScheduling.length">No operations need scheduling.</p>
-    </div>
-
-    <div class="ops-mobile-list">
-      <article class="hms-mobile-card" *ngFor="let item of (viewMode === 'needs' ? needsScheduling : items)">
-        <div class="ops-mobile-topline">
-          <strong>{{ item.scheduledStart ? (item.scheduledStart | date:'shortTime') : 'TBD' }}</strong>
-          <span class="hms-status-chip">{{ statusLabel(item.status) }}</span>
+    <section class="ops-kpi-grid" aria-label="Operation KPIs">
+      <article class="ops-kpi">
+        <div class="ops-kpi__icon is-blue"><i class="fa fa-calendar" aria-hidden="true"></i></div>
+        <div>
+          <span>Today's Operations</span>
+          <strong>{{ kpis.today }}</strong>
+          <small>{{ dateLabel }}</small>
         </div>
-        <strong>{{ procedureName(item) }}</strong>
-        <span>{{ patientName(item) }}</span>
-        <span>{{ departmentName(item) }} · {{ doctorName(item) }}</span>
-        <button type="button" class="hms-btn-secondary" (click)="openDetails(item)">Open</button>
       </article>
+      <article class="ops-kpi">
+        <div class="ops-kpi__icon is-teal"><i class="fa fa-calendar-check-o" aria-hidden="true"></i></div>
+        <div>
+          <span>Scheduled</span>
+          <strong>{{ kpis.scheduled }}</strong>
+          <small>{{ scheduledPct }}% of today</small>
+        </div>
+      </article>
+      <article class="ops-kpi">
+        <div class="ops-kpi__icon is-green"><i class="fa fa-check-circle" aria-hidden="true"></i></div>
+        <div>
+          <span>Completed</span>
+          <strong>{{ kpis.completed }}</strong>
+          <small>{{ completedPct }}% of today</small>
+        </div>
+      </article>
+      <article class="ops-kpi">
+        <div class="ops-kpi__icon is-amber"><i class="fa fa-clock-o" aria-hidden="true"></i></div>
+        <div>
+          <span>Pending</span>
+          <strong>{{ kpis.pending }}</strong>
+          <small>{{ pendingPct }}% of today</small>
+        </div>
+      </article>
+      <article class="ops-kpi ops-kpi--util">
+        <div class="ops-kpi__ring" [style.--util]="kpis.otUtilization">
+          <span>{{ kpis.otUtilization }}%</span>
+        </div>
+        <div>
+          <span>OT Utilization</span>
+          <strong>{{ kpis.otUtilization }}%</strong>
+          <small>{{ kpis.otHoursUsed }} / {{ otCapacityHours }} hours</small>
+        </div>
+      </article>
+    </section>
+
+    <section class="ops-tabs" role="tablist" aria-label="View mode">
+      <button type="button" role="tab" [class.is-active]="viewMode === 'calendar'" (click)="setView('calendar')">Calendar</button>
+      <button type="button" role="tab" [class.is-active]="viewMode === 'list'" (click)="setView('list')">List</button>
+      <button type="button" role="tab" [class.is-active]="viewMode === 'needs'" (click)="setView('needs')">Needs Scheduling</button>
+    </section>
+
+    <section class="ops-filters">
+      <label>
+        <span>Department</span>
+        <select [(ngModel)]="departmentFilter" (change)="refresh()">
+          <option value="">All Departments</option>
+          <option *ngFor="let dept of departments" [value]="dept._id">{{ dept.name }}</option>
+        </select>
+      </label>
+      <label>
+        <span>Surgeon</span>
+        <select [(ngModel)]="doctorFilter" (change)="refresh()">
+          <option value="">All Surgeons</option>
+          <option *ngFor="let doctor of doctors" [value]="doctor._id">{{ doctor.user?.name || doctor.specialization }}</option>
+        </select>
+      </label>
+      <label>
+        <span>Status</span>
+        <select [(ngModel)]="statusFilter" (change)="refresh()">
+          <option value="">All Statuses</option>
+          <option *ngFor="let status of statuses" [value]="status">{{ statusLabel(status) }}</option>
+        </select>
+      </label>
+      <label>
+        <span>Date</span>
+        <input type="date" [(ngModel)]="selectedDate" (change)="refresh()" />
+      </label>
+      <label class="ops-filters__search">
+        <span>Search</span>
+        <input
+          type="search"
+          [(ngModel)]="search"
+          placeholder="Patient name, MRN or procedure..."
+          (keyup.enter)="refresh()"
+        />
+      </label>
+      <button type="button" class="ops-btn ops-btn--secondary" (click)="refresh()">Apply</button>
+    </section>
+
+    <section class="ops-toolbar">
+      <div class="ops-date-nav">
+        <button type="button" class="ops-icon-btn" (click)="shiftDate(-1)" aria-label="Previous">
+          <i class="fa fa-chevron-left" aria-hidden="true"></i>
+        </button>
+        <strong>{{ viewMode === 'calendar' ? rangeLabel : dateLabel }}</strong>
+        <button type="button" class="ops-icon-btn" (click)="shiftDate(1)" aria-label="Next">
+          <i class="fa fa-chevron-right" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="ops-range" role="tablist" *ngIf="viewMode === 'calendar'">
+        <button type="button" [class.is-active]="calendarRange === 'day'" (click)="setCalendarRange('day')">Day</button>
+        <button type="button" [class.is-active]="calendarRange === 'week'" (click)="setCalendarRange('week')">Week</button>
+        <button type="button" [class.is-active]="calendarRange === 'month'" (click)="setCalendarRange('month')">Month</button>
+      </div>
+
+      <button type="button" class="ops-btn ops-btn--secondary" (click)="goToday()">Today</button>
+    </section>
+
+    <ng-container *ngIf="!loading; else loadingTpl">
+      <section class="ops-board ops-desktop" *ngIf="viewMode === 'calendar' && calendarRange === 'day'">
+        <div class="ops-day-grid" [style.--cols]="dayColumns.length">
+          <div class="ops-day-grid__corner">
+            <small>Time</small>
+          </div>
+          <div class="ops-day-grid__head" *ngFor="let col of dayColumns">
+            <strong>{{ col.label }}</strong>
+            <small>{{ col.sublabel }}</small>
+          </div>
+
+          <div class="ops-day-grid__times" [style.height.px]="gridHeight">
+            <div class="ops-day-grid__hour" *ngFor="let hour of timeSlots" [style.height.px]="hourHeight">
+              {{ formatHour(hour) }}
+            </div>
+          </div>
+
+          <div
+            class="ops-day-grid__lane"
+            *ngFor="let col of dayColumns"
+            [style.height.px]="gridHeight"
+            (dragover)="onLaneDragOver($event)"
+            (drop)="onLaneDrop($event)"
+          >
+            <div class="ops-day-grid__line" *ngFor="let hour of timeSlots" [style.height.px]="hourHeight"></div>
+            <button
+              type="button"
+              class="ops-card"
+              *ngFor="let block of itemsForColumn(col.id)"
+              [ngClass]="block.kind === 'stopped' ? 'is-stopped-slot' : statusClass(block.item.status)"
+              [class.is-draggable]="canDragBlock(block)"
+              [ngStyle]="cardStyle(block)"
+              [draggable]="canDragBlock(block)"
+              (dragstart)="onDragStart($event, block.item)"
+              (dragend)="onDragEnd()"
+              (click)="onCardClick($event, block.item)"
+            >
+              <div class="ops-card__top">
+                <span class="ops-card__time">{{ blockTimeRangeLabel(block) }}</span>
+                <span class="ops-pill" [ngClass]="block.kind === 'stopped' ? 'is-stopped-slot' : statusClass(block.item.status)">
+                  {{ block.kind === 'stopped' ? 'Stopped' : statusLabel(block.item.status) }}
+                </span>
+              </div>
+              <strong>{{ procedureName(block.item) }}</strong>
+              <span class="ops-card__patient">{{ patientName(block.item) }}</span>
+              <div class="ops-card__foot">
+                <span>{{ doctorName(block.item) }}</span>
+                <span class="ops-priority" [ngClass]="'prio-' + (block.item.priority || 'routine')">
+                  {{ priorityLabel(block.item.priority) }}
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <footer class="ops-board__footer">
+          <div class="ops-legend">
+            <span *ngFor="let item of statusLegend" [class]="'legend-' + item.key"><i></i>{{ item.label }}</span>
+            <span class="legend-stopped"><i></i> Stopped slot</span>
+          </div>
+          <small>{{ calendarItems.length }} scheduled · {{ items.length }} total for this range · drag cards to move time</small>
+        </footer>
+      </section>
+
+      <section class="ops-board ops-desktop" *ngIf="viewMode === 'calendar' && calendarRange === 'week'">
+        <div class="ops-week-grid">
+          <article class="ops-week-col" *ngFor="let day of weekDays">
+            <header>
+              <strong>{{ day.label }}</strong>
+              <small>{{ day.items.length }} ops</small>
+            </header>
+            <button
+              type="button"
+              class="ops-card ops-card--static"
+              *ngFor="let item of day.items"
+              [ngClass]="statusClass(item.status)"
+              (click)="openDetails(item)"
+            >
+              <div class="ops-card__top">
+                <span class="ops-card__time">{{ timeRangeLabel(item) }}</span>
+                <span class="ops-pill" [ngClass]="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
+              </div>
+              <strong>{{ procedureName(item) }}</strong>
+              <span class="ops-card__patient">{{ patientName(item) }}</span>
+            </button>
+            <p class="ops-empty-inline" *ngIf="!day.items.length">No operations</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="ops-board ops-desktop" *ngIf="viewMode === 'calendar' && calendarRange === 'month'">
+        <div class="ops-month-grid">
+          <div class="ops-month-grid__dow" *ngFor="let dow of ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']">{{ dow }}</div>
+          <button
+            type="button"
+            class="ops-month-cell"
+            *ngFor="let cell of monthCells"
+            [class.is-muted]="!cell.inMonth"
+            [class.is-today]="cell.isToday"
+            (click)="selectMonthDay(cell.date)"
+          >
+            <span class="ops-month-cell__day">{{ cell.label }}</span>
+            <span class="ops-month-chip" *ngFor="let item of cell.items | slice:0:3" [ngClass]="statusClass(item.status)">
+              {{ patientName(item) !== '—' ? patientName(item) : procedureName(item) }}
+            </span>
+            <small *ngIf="cell.items.length > 3">+{{ cell.items.length - 3 }} more</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="ops-board ops-desktop" *ngIf="viewMode === 'list'">
+        <div class="ops-table-wrap">
+          <table class="ops-table">
+            <thead>
+              <tr>
+                <th>Operation #</th>
+                <th>Date &amp; Time</th>
+                <th>Patient</th>
+                <th>Procedure</th>
+                <th>Department</th>
+                <th>Surgeon</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of items">
+                <td>{{ item.operationNo || '—' }}</td>
+                <td>{{ item.scheduledStart ? (item.scheduledStart | date:'short') : 'Needs scheduling' }}</td>
+                <td>{{ patientName(item) }}</td>
+                <td>{{ procedureName(item) }}</td>
+                <td>{{ departmentName(item) }}</td>
+                <td>{{ doctorName(item) }}</td>
+                <td><span class="ops-priority" [ngClass]="'prio-' + (item.priority || 'routine')">{{ priorityLabel(item.priority) }}</span></td>
+                <td><span class="ops-pill" [ngClass]="statusClass(item.status)">{{ statusLabel(item.status) }}</span></td>
+                <td><button type="button" class="ops-btn ops-btn--secondary" (click)="openDetails(item)">Open</button></td>
+              </tr>
+              <tr *ngIf="!items.length"><td colspan="9" class="ops-empty">No operations found.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="ops-board ops-desktop" *ngIf="viewMode === 'needs'">
+        <div class="ops-needs">
+          <article class="ops-need" *ngFor="let item of needsScheduling">
+            <div>
+              <strong>{{ procedureName(item) }}</strong>
+              <span>{{ patientName(item) }} · {{ doctorName(item) }}</span>
+              <span class="ops-pill is-pending">{{ statusLabel(item.status) }}</span>
+            </div>
+            <button type="button" class="ops-btn ops-btn--primary" (click)="openDetails(item)">Schedule</button>
+          </article>
+          <p class="ops-empty" *ngIf="!needsScheduling.length">No operations need scheduling.</p>
+        </div>
+      </section>
+
+      <section class="ops-mobile">
+        <article
+          class="ops-agenda"
+          *ngFor="let item of (viewMode === 'needs' ? needsScheduling : agendaItems.length ? agendaItems : items)"
+          (click)="openDetails(item)"
+        >
+          <div class="ops-agenda__time">
+            <strong>{{ item.scheduledStart ? (item.scheduledStart | date:'HH:mm') : 'TBD' }}</strong>
+          </div>
+          <div class="ops-agenda__body" [ngClass]="statusClass(item.status)">
+            <div class="ops-card__top">
+              <strong>{{ procedureName(item) }}</strong>
+              <span class="ops-pill" [ngClass]="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
+            </div>
+            <span>{{ patientName(item) }}</span>
+            <span>{{ departmentName(item) }} · {{ doctorName(item) }}</span>
+          </div>
+        </article>
+        <p class="ops-empty" *ngIf="!(viewMode === 'needs' ? needsScheduling.length : (agendaItems.length || items.length))">
+          No operations found.
+        </p>
+      </section>
+    </ng-container>
+  </div>
+
+  <aside class="ops-drawer" *ngIf="selected as item" aria-label="Operation details">
+    <div class="ops-drawer__scrim" (click)="closeDetails()"></div>
+    <div class="ops-drawer__panel">
+      <header class="ops-drawer__head">
+        <div>
+          <p class="ops-kicker">Operation Details</p>
+          <h2>{{ item.operationNo || 'Operation' }}</h2>
+        </div>
+        <div class="ops-drawer__head-actions">
+          <span class="ops-pill" [ngClass]="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
+          <button type="button" class="ops-icon-btn" (click)="closeDetails()" aria-label="Close">
+            <i class="fa fa-times" aria-hidden="true"></i>
+          </button>
+        </div>
+      </header>
+
+      <section class="ops-drawer__block">
+        <div class="ops-drawer__block-head">
+          <h3>Patient</h3>
+          <a *ngIf="patientId(item)" class="ops-link" [routerLink]="['/patients/patient-profile', patientId(item)]">View Patient</a>
+        </div>
+        <p class="ops-drawer__title">{{ patientName(item) }}</p>
+        <div class="ops-meta-grid">
+          <div><span>MRN</span><strong>{{ patientMrn(item) }}</strong></div>
+          <div><span>Gender</span><strong>{{ patientGender(item) }}</strong></div>
+          <div><span>Age</span><strong>{{ patientAge(item) }}</strong></div>
+        </div>
+      </section>
+
+      <section class="ops-drawer__block">
+        <h3>Operation</h3>
+        <div class="ops-meta-grid ops-meta-grid--2">
+          <div><span>Procedure</span><strong>{{ procedureName(item) }}</strong></div>
+          <div><span>Department</span><strong>{{ departmentName(item) }}</strong></div>
+          <div><span>Primary Surgeon</span><strong>{{ doctorName(item) }}</strong></div>
+          <div>
+            <span>Priority</span>
+            <strong>
+              <span class="ops-priority" [ngClass]="'prio-' + (item.priority || 'routine')">
+                {{ priorityLabel(item.priority) }}
+              </span>
+            </strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="ops-drawer__block">
+        <h3>Schedule &amp; Location</h3>
+        <div class="ops-meta-grid ops-meta-grid--2">
+          <div><span>When</span><strong>{{ item.scheduledStart ? (item.scheduledStart | date:'medium') : 'Needs scheduling' }}</strong></div>
+          <div><span>Duration</span><strong>{{ durationMinutes(item) }} min</strong></div>
+          <div><span>Department / OT lane</span><strong>{{ departmentName(item) }}</strong></div>
+          <div><span>Time window</span><strong>{{ timeRangeLabel(item) }}</strong></div>
+        </div>
+      </section>
+
+      <section class="ops-drawer__block" *ngIf="assistantNames(item).length">
+        <h3>Theatre Team</h3>
+        <ul class="ops-team">
+          <li>
+            <span>{{ doctorName(item) }}</span>
+            <em>Lead Surgeon</em>
+          </li>
+          <li *ngFor="let name of assistantNames(item)">
+            <span>{{ name }}</span>
+            <em>Assistant</em>
+          </li>
+        </ul>
+      </section>
+
+      <section class="ops-drawer__block" *ngIf="item.treatmentPricingSnapshot as pricing">
+        <h3>Pricing Snapshot</h3>
+        <div class="ops-meta-grid ops-meta-grid--2">
+          <div><span>Package Rate</span><strong>PKR {{ pricing.baseRate || 0 | number:'1.0-0' }}</strong></div>
+          <div *ngIf="item.procedureDiscountApproved as discount">
+            <span>Discount</span>
+            <strong>
+              <ng-container [ngSwitch]="discount.type">
+                <ng-container *ngSwitchCase="'percentage'">{{ discount.value }}%</ng-container>
+                <ng-container *ngSwitchCase="'fixed'">PKR {{ discount.value | number:'1.0-0' }}</ng-container>
+                <ng-container *ngSwitchDefault>None</ng-container>
+              </ng-container>
+            </strong>
+          </div>
+          <div>
+            <span>Estimated Charge</span>
+            <strong>PKR {{ estimatedCharge(item) | number:'1.0-0' }}</strong>
+          </div>
+        </div>
+        <small class="ops-hint">Charge posts when the operation is completed.</small>
+      </section>
+
+      <section class="ops-drawer__block" *ngIf="item.stoppedFromStart">
+        <h3>Stopped From</h3>
+        <div class="ops-meta-grid ops-meta-grid--2">
+          <div>
+            <span>Original slot</span>
+            <strong>{{ item.stoppedFromStart | date:'medium' }}</strong>
+          </div>
+          <div>
+            <span>Original window</span>
+            <strong>
+              {{ item.stoppedFromStart | date:'HH:mm' }}
+              <ng-container *ngIf="item.stoppedFromEnd"> – {{ item.stoppedFromEnd | date:'HH:mm' }}</ng-container>
+            </strong>
+          </div>
+        </div>
+        <small class="ops-hint">Red card on the calendar marks where this operation was stopped.</small>
+      </section>
+
+      <section class="ops-drawer__block" *ngIf="item.clinicalNotes || item.operationNotes">
+        <h3>Notes</h3>
+        <p class="ops-notes" *ngIf="item.clinicalNotes">{{ item.clinicalNotes }}</p>
+        <p class="ops-notes" *ngIf="item.operationNotes">{{ item.operationNotes }}</p>
+      </section>
+
+      <section class="ops-drawer__block" *ngIf="drawerPanel === 'reschedule'">
+        <h3>Reschedule</h3>
+        <label class="ops-field">
+          <span>New date &amp; time</span>
+          <input type="datetime-local" [(ngModel)]="rescheduleAt" />
+        </label>
+        <div class="ops-drawer__actions">
+          <button type="button" class="ops-btn ops-btn--secondary" (click)="cancelDrawerPanel()" [disabled]="savingAction">Back</button>
+          <button type="button" class="ops-btn ops-btn--primary" (click)="submitReschedule()" [disabled]="savingAction">
+            Save Reschedule
+          </button>
+        </div>
+      </section>
+
+      <section class="ops-drawer__block" *ngIf="drawerPanel === 'stop'">
+        <h3>Operation Stopped</h3>
+        <p class="ops-hint">Surgery pause — reason required, then set the next OT slot.</p>
+        <label class="ops-field">
+          <span>Stop reason</span>
+          <textarea rows="3" [(ngModel)]="stopReason" placeholder="Why was the operation stopped?"></textarea>
+        </label>
+        <label class="ops-field">
+          <span>Next schedule date &amp; time</span>
+          <input type="datetime-local" [(ngModel)]="stopRescheduleAt" />
+        </label>
+        <div class="ops-drawer__actions">
+          <button type="button" class="ops-btn ops-btn--secondary" (click)="cancelDrawerPanel()" [disabled]="savingAction">Back</button>
+          <button type="button" class="ops-btn ops-btn--danger" (click)="submitStopOperation()" [disabled]="savingAction">
+            Confirm Stop
+          </button>
+        </div>
+      </section>
+
+      <footer class="ops-drawer__actions" *ngIf="drawerPanel === 'details' && canMutateOperation(item)">
+        <button
+          *ngIf="canScheduleOps() && canConfirm(item)"
+          type="button"
+          class="ops-btn ops-btn--secondary"
+          (click)="updateStatus(item, 'confirmed')"
+        >
+          Confirm
+        </button>
+        <button
+          *ngIf="canScheduleOps() && canMarkInProgress(item)"
+          type="button"
+          class="ops-btn ops-btn--secondary"
+          (click)="updateStatus(item, 'in_progress')"
+        >
+          In Progress
+        </button>
+        <button
+          *ngIf="canReschedule(item)"
+          type="button"
+          class="ops-btn ops-btn--secondary"
+          (click)="showReschedulePanel()"
+        >
+          Reschedule
+        </button>
+        <button
+          *ngIf="canStopOperation(item)"
+          type="button"
+          class="ops-btn ops-btn--secondary"
+          (click)="showStopPanel()"
+        >
+          Operation Stopped
+        </button>
+        <button
+          *ngIf="can('operations.complete') && canComplete(item)"
+          type="button"
+          class="ops-btn ops-btn--primary"
+          (click)="complete(item)"
+        >
+          Complete
+        </button>
+        <button
+          *ngIf="canCancel(item)"
+          type="button"
+          class="ops-btn ops-btn--danger"
+          (click)="cancel(item)"
+        >
+          Cancel
+        </button>
+      </footer>
+      <p class="ops-drawer__done" *ngIf="drawerPanel === 'details' && !canMutateOperation(item)">
+        This operation is {{ statusLabel(item.status).toLowerCase() }}. No further actions available.
+      </p>
+      <p class="ops-drawer__hint" *ngIf="drawerPanel === 'details' && canReschedule(item)">
+        Tip: drag the card on the day calendar to move the time slot quickly.
+      </p>
     </div>
-  </section>
+  </aside>
 </div>
 
 <ng-template #loadingTpl>
-  <p class="ops-empty">Loading operations…</p>
+  <p class="ops-empty ops-empty--page">Loading operations…</p>
 </ng-template>
-
-<aside class="ops-drawer" *ngIf="selected as item">
-  <div class="ops-drawer__backdrop" (click)="closeDetails()"></div>
-  <div class="ops-drawer__panel">
-    <header>
-      <div>
-        <h2>Operation Details</h2>
-        <small>{{ item.operationNo || item._id }}</small>
-      </div>
-      <span class="hms-status-chip">{{ statusLabel(item.status) }}</span>
-    </header>
-
-    <section>
-      <h3>Patient</h3>
-      <p><strong>{{ patientName(item) }}</strong></p>
-    </section>
-
-    <section>
-      <h3>Operation</h3>
-      <p>Procedure: {{ procedureName(item) }}</p>
-      <p>Department: {{ departmentName(item) }}</p>
-      <p>Doctor: {{ doctorName(item) }}</p>
-      <p>When: {{ item.scheduledStart ? (item.scheduledStart | date:'medium') : 'Needs scheduling' }}</p>
-      <p>Duration: {{ item.durationMinutes || item.treatmentPricingSnapshot?.durationMinutes || 0 }} min</p>
-      <p>Priority: {{ item.priority || 'routine' }}</p>
-    </section>
-
-    <section *ngIf="item.treatmentPricingSnapshot as pricing">
-      <h3>Pricing Snapshot</h3>
-      <p>Package Rate: PKR {{ pricing.baseRate || 0 | number:'1.0-2' }}</p>
-      <p *ngIf="item.procedureDiscountApproved as discount">
-        Approved Discount: {{ discount.type || 'none' }}
-        <ng-container *ngIf="discount.type === 'percentage'"> {{ discount.value }}%</ng-container>
-        <ng-container *ngIf="discount.type === 'fixed'"> PKR {{ discount.value }}</ng-container>
-      </p>
-      <small>Charge will be posted when operation is completed.</small>
-    </section>
-
-    <footer>
-      <button *ngIf="can('operations.update')" type="button" class="hms-btn-secondary" (click)="updateStatus(item, 'confirmed')">Confirm</button>
-      <button *ngIf="can('operations.update')" type="button" class="hms-btn" (click)="updateStatus(item, 'in_progress')">Mark In Progress</button>
-      <button *ngIf="can('operations.complete')" type="button" class="hms-btn" (click)="complete(item)">Complete Operation</button>
-      <button *ngIf="can('operations.cancel')" type="button" class="hms-btn-secondary" (click)="cancel(item)">Cancel</button>
-    </footer>
-  </div>
-</aside>

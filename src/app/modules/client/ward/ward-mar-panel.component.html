@@ -1,46 +1,130 @@
-<div class="ward-mar-panel">
-  <div class="ward-mar-toolbar" *ngIf="cards.length">
+<div class="wcs ward-mar-panel">
+  <div class="wcs-head">
+    <div class="wcs-head__lead">
+      <span class="wcs-head__icon"><i class="fa fa-medkit" aria-hidden="true"></i></span>
+      <div>
+        <h3>Medicine / MAR</h3>
+        <p>Manage patient medications and administration records</p>
+      </div>
+    </div>
     <app-hms-document-toolbar
+      *ngIf="cards.length"
       [title]="'MAR Sheet'"
       filename="mar-sheet.pdf"
       [getHtml]="buildMarDocument"
     ></app-hms-document-toolbar>
   </div>
-  <article class="ward-mar-card" *ngFor="let card of cards" data-testid="mar-medicine-card">
-    <header class="ward-mar-card__head">
+
+  <div class="wcs-kpis">
+    <article class="wcs-kpi wcs-kpi--teal">
+      <div class="wcs-kpi__icon"><i class="fa fa-medkit" aria-hidden="true"></i></div>
       <div>
-        <h4>{{ card.medicine }}</h4>
-        <p>{{ card.dose }} · {{ card.route }} · {{ card.frequency }}</p>
+        <strong>{{ cards.length }}</strong>
+        <span>Active Medicines</span>
+        <small>Currently prescribed</small>
       </div>
-      <span class="ward-mar-pharmacy-status">{{ card.pharmacyStatus }}</span>
-    </header>
+    </article>
+    <article class="wcs-kpi wcs-kpi--red">
+      <div class="wcs-kpi__icon"><i class="fa fa-bell" aria-hidden="true"></i></div>
+      <div>
+        <strong>{{ dueNowCount }}</strong>
+        <span>Due Now</span>
+        <small>Action needed</small>
+      </div>
+    </article>
+    <article class="wcs-kpi wcs-kpi--blue">
+      <div class="wcs-kpi__icon"><i class="fa fa-check-circle" aria-hidden="true"></i></div>
+      <div>
+        <strong>{{ administeredTodayCount }}</strong>
+        <span>Administered Today</span>
+        <small>Doses given today</small>
+      </div>
+    </article>
+    <article class="wcs-kpi wcs-kpi--orange">
+      <div class="wcs-kpi__icon"><i class="fa fa-hourglass-half" aria-hidden="true"></i></div>
+      <div>
+        <strong>{{ pendingPharmacyCount }}</strong>
+        <span>Pending Pharmacy</span>
+        <small>Under review</small>
+      </div>
+    </article>
+  </div>
 
-    <dl class="ward-mar-meta">
-      <div><dt>Recommended By</dt><dd>{{ card.recommendedBy || '—' }}</dd></div>
-      <div><dt>Last Given</dt><dd>{{ card.lastGivenAt ? (card.lastGivenAt | date:'medium') : '—' }}<small *ngIf="card.lastGivenBy"> · {{ card.lastGivenBy }}</small></dd></div>
-      <div><dt>Next Due</dt><dd>{{ card.nextDueAt ? (card.nextDueAt | date:'medium') : '—' }}<small *ngIf="card.nextDueLabel"> · {{ card.nextDueLabel }}</small></dd></div>
-    </dl>
-
-    <div class="ward-mar-timeline">
-      <button
-        type="button"
-        class="ward-mar-slot"
-        *ngFor="let slot of card.slots"
-        [ngClass]="slotClass(slot.status)"
-        (click)="openRecord(card, slot)"
-      >
-        <strong>{{ slot.label }}</strong>
-        <span>{{ slot.status }}</span>
-      </button>
+  <section class="wcs-table-card">
+    <div class="wcs-table-card__head">
+      <h4>Active Medicines ({{ cards.length }})</h4>
     </div>
-  </article>
 
-  <p *ngIf="!cards.length" class="ward-mar-empty">No active medicines for this patient.</p>
+    <div class="ward-mar-list" *ngIf="cards.length; else emptyTpl">
+      <article class="ward-mar-item" *ngFor="let card of cards" data-testid="mar-medicine-card">
+        <div class="ward-mar-item__icon"><i class="fa fa-medkit" aria-hidden="true"></i></div>
+        <div class="ward-mar-item__body">
+          <div class="ward-mar-item__top">
+            <div>
+              <h4>{{ card.medicine }}</h4>
+              <p>{{ card.dose }} · {{ card.route }} · {{ card.frequency }}</p>
+            </div>
+            <span class="wcs-badge wcs-badge--active">{{ card.pharmacyStatus || 'Active' }}</span>
+          </div>
+          <dl class="ward-mar-meta">
+            <div><dt>Recommended By</dt><dd>{{ card.recommendedBy || '—' }}</dd></div>
+            <div><dt>Last Given</dt><dd>{{ card.lastGivenAt ? (card.lastGivenAt | date:'medium') : '—' }}</dd></div>
+            <div><dt>Next Due</dt><dd>{{ card.nextDueAt ? (card.nextDueAt | date:'medium') : '—' }} <small *ngIf="card.nextDueLabel">· {{ card.nextDueLabel }}</small></dd></div>
+          </dl>
+          <div class="ward-mar-timeline">
+            <button
+              type="button"
+              class="ward-mar-slot"
+              *ngFor="let slot of card.slots"
+              [ngClass]="slotClass(slot.status)"
+              (click)="openRecord(card, slot)"
+            >
+              <strong>{{ slot.label }}</strong>
+              <span>{{ slot.status }}</span>
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="wcs-table-card" *ngIf="historyRows.length">
+    <div class="wcs-table-card__head">
+      <h4>Pharmacy / MAR History</h4>
+    </div>
+    <div class="table-responsive wcs-table-wrap">
+      <table class="wcs-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Medicine</th>
+            <th>Status</th>
+            <th>By</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of historyRows">
+            <td>{{ row.at | date:'medium' }}</td>
+            <td>{{ row.medicine }}</td>
+            <td><span class="wcs-badge wcs-badge--completed">{{ row.status }}</span></td>
+            <td>{{ row.by || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>
+
+<ng-template #emptyTpl>
+  <div class="wcs-empty">No active medicines for this patient.</div>
+</ng-template>
 
 <div class="ward-mar-record-backdrop" *ngIf="recordOpen">
   <div class="ward-mar-record-dialog hms-card" data-testid="mar-administration-modal">
-    <header><h3>Record Administration</h3></header>
+    <header class="ward-mar-record-dialog__head">
+      <h3>Record Administration</h3>
+      <button type="button" class="ward-mar-record-dialog__close" (click)="closeRecord()" aria-label="Close">×</button>
+    </header>
     <p *ngIf="activeCard && activeSlot"><strong>{{ activeCard.medicine }}</strong> · Scheduled {{ activeSlot.label }}</p>
     <label class="hms-form-field"><span>Status</span>
       <select [(ngModel)]="recordForm.marStatus" data-testid="mar-status">

@@ -182,12 +182,19 @@ export class AdmissionRecommendationDrawerComponent implements OnChanges {
 
     if (shouldReset) {
       this.validationErrors = [];
-      this.recommendationSuccess = null;
-      this.wardHintDismissed = false;
-      // Always re-fetch lookups on open so a prior empty/denied cache cannot stick.
-      this.lookupsLoaded = false;
-      this.loadLookupsIfNeeded();
-      this.resetForm();
+      // Parent echoes the saved record back into @Input() record after recommend.
+      // That changes context (new → id) — do not wipe the success panel or re-show the form.
+      const preservingSuccess =
+        Boolean(this.recommendationSuccess?._id) &&
+        String(this.record?._id || '') === String(this.recommendationSuccess?._id || '');
+      if (!preservingSuccess) {
+        this.recommendationSuccess = null;
+        this.wardHintDismissed = false;
+        // Always re-fetch lookups on open so a prior empty/denied cache cannot stick.
+        this.lookupsLoaded = false;
+        this.loadLookupsIfNeeded();
+        this.resetForm();
+      }
     } else if (this.open && changes['doctors']?.currentValue?.length) {
       this.applyContextDefaultsForEmptyFields();
     }

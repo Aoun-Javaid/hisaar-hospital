@@ -1,297 +1,450 @@
-<div id="main-content" class="patient-profile-page">
+<div id="main-content" class="pp-page">
   <div class="container-fluid">
-    <div class="block-header">
-      <div class="row clearfix align-items-center">
-        <div class="col-lg-5 col-md-12 col-sm-12">
-          <h1>Patient Profile</h1>
-          <span *ngIf="patient">{{ patientName() }} · {{ patient.patientNo || '-' }}</span>
-          <span *ngIf="!patient && !loading">Open a patient from the patients list to view profile details.</span>
-        </div>
-        <div class="col-lg-7 col-md-12 col-sm-12 text-lg-right profile-actions">
-          <a class="btn btn-default" [routerLink]="['/patients/all-patients']">Back to Patients</a>
-          <a
-            class="btn btn-default ml-2"
-            *ngIf="patient && canOpenClinicalRecords()"
-            [routerLink]="['/clinical-records']"
-            [queryParams]="{ patientId: patient._id, doctorId: patient.assignedDoctorId }">
-            Clinical Records
-          </a>
-          <a
-            class="btn btn-default ml-2"
-            *ngIf="patient && canOpenPrescriptions()"
-            [routerLink]="['/prescriptions']"
-            [queryParams]="{ patientId: patient._id, doctorId: patient.assignedDoctorId }">
-            Prescriptions
-          </a>
-          <a
-            class="btn btn-primary ml-2"
-            *ngIf="patient && canCreatePrescription()"
-            [routerLink]="['/prescriptions']"
-            [queryParams]="prescriptionQueryParams()">
-            New Prescription
-          </a>
-        </div>
+    <header class="pp-header">
+      <div class="pp-header__copy">
+        <h1>Patient Profile</h1>
+        <p *ngIf="patient">{{ patientName() }} · {{ patient.patientNo || '-' }}</p>
+        <p *ngIf="!patient && !loading">Open a patient from the patients list to view profile details.</p>
+        <p *ngIf="loading && !patient">Loading patient profile…</p>
       </div>
-    </div>
+      <div class="pp-header__actions" *ngIf="patient">
+        <a class="pp-btn pp-btn--ghost" [routerLink]="['/patients/all-patients']">
+          <i class="fa fa-arrow-left" aria-hidden="true"></i>
+          Back to Patients
+        </a>
+        <a
+          class="pp-btn pp-btn--ghost"
+          *ngIf="canOpenClinicalRecords()"
+          [routerLink]="['/clinical-records']"
+          [queryParams]="{ patientId: patient._id, doctorId: patient.assignedDoctorId }">
+          <i class="fa fa-file-text-o" aria-hidden="true"></i>
+          Clinical Records
+        </a>
+        <a
+          class="pp-btn pp-btn--ghost"
+          *ngIf="canOpenPrescriptions()"
+          [routerLink]="['/prescriptions']"
+          [queryParams]="{ patientId: patient._id, doctorId: patient.assignedDoctorId }">
+          <i class="fa fa-medkit" aria-hidden="true"></i>
+          Prescriptions
+        </a>
+        <a
+          class="pp-btn pp-btn--primary"
+          *ngIf="canCreatePrescription()"
+          [routerLink]="['/prescriptions']"
+          [queryParams]="prescriptionQueryParams()">
+          <i class="fa fa-plus" aria-hidden="true"></i>
+          New Prescription
+        </a>
+      </div>
+    </header>
 
-    <div class="row clearfix" *ngIf="patient || loading">
-      <div class="col-lg-4 col-md-12">
-        <div class="card profile-card">
-          <div class="body text-center">
-            <div class="profile-avatar">
-              <img class="rounded-circle img-thumbnail" src="assets/images/user.png" width="120" alt="Patient" />
+    <ng-container *ngIf="patient || loading">
+      <section class="pp-overview">
+        <article class="pp-card pp-profile-card">
+          <div class="pp-profile-card__main">
+            <div class="pp-avatar" aria-hidden="true">
+              <i class="fa fa-user"></i>
             </div>
-            <h4 class="mt-3 mb-1">{{ patientName() }}</h4>
-            <span class="text-muted d-block">{{ patient?.patientNo || '-' }}</span>
-            <div class="profile-badges">
-              <span class="badge badge-light">{{ patient?.gender || '-' }}</span>
-              <span class="badge badge-light">{{ ageLabel() }}</span>
-              <span class="badge badge-light">{{ patient?.status || '-' }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="card summary-card">
-          <div class="header">
-            <h2>Summary</h2>
-          </div>
-          <div class="body">
-            <div class="summary-grid">
-              <div class="summary-item">
-                <span>Medical History</span>
-                <strong>{{ history.length }}</strong>
-              </div>
-              <div class="summary-item">
-                <span>Prescriptions</span>
-                <strong>{{ prescriptions.length }}</strong>
-              </div>
-              <div class="summary-item">
-                <span>Lab Reports</span>
-                <strong>{{ labOrders.length }}</strong>
-              </div>
-              <div class="summary-item">
-                <span>Bills</span>
-                <strong>{{ bills.length }}</strong>
-              </div>
+            <div class="pp-profile-card__identity">
+              <h2>{{ patientName() }}</h2>
+              <span class="pp-profile-card__id">{{ patient?.patientNo || '-' }}</span>
+              <span class="pp-status" [class.is-active]="patient?.status === 'active'">
+                <span class="pp-status__dot"></span>
+                {{ statusLabel() }}
+              </span>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div class="col-lg-8 col-md-12">
-        <div class="card">
-          <div class="header">
-            <h2>Profile Details</h2>
-          </div>
-          <div class="body">
-            <div *ngIf="loading" class="text-muted">Loading patient profile...</div>
-            <div class="row" *ngIf="!loading">
-              <div class="col-md-6 mb-3"><strong>Email:</strong> {{ patient?.email || '-' }}</div>
-              <div class="col-md-6 mb-3"><strong>Phone:</strong> {{ patient?.phone || '-' }}</div>
-              <div class="col-md-6 mb-3"><strong>Date of Birth:</strong> {{ patient?.dateOfBirth | date:'mediumDate' }}</div>
-              <div class="col-md-6 mb-3"><strong>Blood Group:</strong> {{ patient?.bloodGroup || '-' }}</div>
-              <div class="col-md-6 mb-3"><strong>Assigned Doctor:</strong> {{ patient?.assignedDoctor?.name || '-' }}</div>
-              <div class="col-md-6 mb-3"><strong>Emergency Contact:</strong> {{ patient?.emergencyContactName || '-' }}</div>
-              <div class="col-md-6 mb-3"><strong>Emergency Phone:</strong> {{ patient?.emergencyContactPhone || '-' }}</div>
-              <div class="col-md-6 mb-3"><strong>Status:</strong> {{ patient?.status || '-' }}</div>
-              <div class="col-md-12 mb-3"><strong>Address:</strong> {{ patient?.address || '-' }}</div>
-              <div class="col-md-12 mb-3"><strong>Allergies:</strong> {{ (patient?.allergies || []).join(', ') || '-' }}</div>
-              <div class="col-md-12 mb-3"><strong>Chronic Diseases:</strong> {{ (patient?.chronicDiseases || []).join(', ') || '-' }}</div>
-              <div class="col-md-12 mb-0"><strong>Current Medications:</strong> {{ (patient?.currentMedications || []).join(', ') || '-' }}</div>
+          <div class="pp-profile-facts">
+            <div class="pp-fact">
+              <i class="fa fa-user" aria-hidden="true"></i>
+              <span>{{ genderLabel() }}</span>
+            </div>
+            <div class="pp-fact">
+              <i class="fa fa-birthday-cake" aria-hidden="true"></i>
+              <span>{{ ageLabel() }}</span>
+            </div>
+            <div class="pp-fact">
+              <i class="fa fa-tint" aria-hidden="true"></i>
+              <span>{{ patient?.bloodGroup || '-' }}</span>
+            </div>
+            <div class="pp-fact">
+              <i class="fa fa-phone" aria-hidden="true"></i>
+              <span>{{ patient?.phone || '-' }}</span>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </article>
 
-    <div class="record-section card" *ngIf="patient || loading">
-      <div class="header section-header">
-        <div>
-          <h2>Medical History</h2>
-          <span>Clinical notes, diagnoses, and visit records for this patient.</span>
-        </div>
-      </div>
-      <div class="body table-responsive">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Doctor</th>
-              <th>Title</th>
-              <th>Diagnosis</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody *ngIf="canOpenClinicalRecords()">
-            <tr *ngIf="historyLoading">
-              <td colspan="6" class="text-center text-muted">Loading medical history...</td>
-            </tr>
-            <tr *ngFor="let item of history">
-              <td>{{ item.createdAt | date:'mediumDate' }}</td>
-              <td>{{ item.recordType || 'clinical' }}</td>
-              <td>{{ item.doctor?.name || '-' }}</td>
-              <td>{{ item.title || '-' }}</td>
-              <td>{{ item.diagnosis || '-' }}</td>
-              <td>{{ historySummary(item) }}</td>
-            </tr>
-            <tr *ngIf="!historyLoading && history.length === 0">
-              <td colspan="6" class="text-center text-muted">No medical history found</td>
-            </tr>
-          </tbody>
-          <tbody *ngIf="!canOpenClinicalRecords()">
-            <tr>
-              <td colspan="6" class="text-center text-muted">You do not have permission to view medical history.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+        <article class="pp-card pp-info-card">
+          <div class="pp-card__head">
+            <div class="pp-card__title">
+              <span class="pp-card__icon tone-teal"><i class="fa fa-id-card-o" aria-hidden="true"></i></span>
+              <div>
+                <h3>Patient Information</h3>
+                <p>Contact details, demographics, and assignment.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="pp-btn pp-btn--soft"
+              *ngIf="patient && canEditPatient()"
+              (click)="editPatient()">
+              <i class="fa fa-pencil" aria-hidden="true"></i>
+              Edit
+            </button>
+          </div>
+          <div class="pp-info-grid" *ngIf="!loading && patient">
+            <div class="pp-info-item">
+              <span>Email</span>
+              <strong>{{ patient.email || '-' }}</strong>
+            </div>
+            <div class="pp-info-item">
+              <span>Date of Birth</span>
+              <strong>{{ patient.dateOfBirth | date:'mediumDate' }}</strong>
+            </div>
+            <div class="pp-info-item">
+              <span>Assigned Doctor</span>
+              <strong>{{ patient.assignedDoctor?.name || '-' }}</strong>
+            </div>
+            <div class="pp-info-item">
+              <span>Emergency Phone</span>
+              <strong>{{ patient.emergencyContactPhone || '-' }}</strong>
+            </div>
+            <div class="pp-info-item">
+              <span>Phone</span>
+              <strong>{{ patient.phone || '-' }}</strong>
+            </div>
+            <div class="pp-info-item">
+              <span>Blood Group</span>
+              <strong>{{ patient.bloodGroup || '-' }}</strong>
+            </div>
+            <div class="pp-info-item">
+              <span>Emergency Contact</span>
+              <strong>{{ patient.emergencyContactName || '-' }}</strong>
+            </div>
+            <div class="pp-info-item">
+              <span>Status</span>
+              <strong>{{ statusLabel() }}</strong>
+            </div>
+            <div class="pp-info-item pp-info-item--wide">
+              <span>Address</span>
+              <strong>{{ patient.address || '-' }}</strong>
+            </div>
+            <div class="pp-info-item pp-info-item--wide" *ngIf="patient.allergies?.length">
+              <span>Allergies</span>
+              <strong>{{ (patient.allergies || []).join(', ') }}</strong>
+            </div>
+            <div class="pp-info-item pp-info-item--wide" *ngIf="patient.chronicDiseases?.length">
+              <span>Chronic Diseases</span>
+              <strong>{{ (patient.chronicDiseases || []).join(', ') }}</strong>
+            </div>
+            <div class="pp-info-item pp-info-item--wide" *ngIf="patient.currentMedications?.length">
+              <span>Current Medications</span>
+              <strong>{{ (patient.currentMedications || []).join(', ') }}</strong>
+            </div>
+          </div>
+          <div class="pp-loading" *ngIf="loading">Loading patient details…</div>
+        </article>
+      </section>
 
-    <div class="record-section card" *ngIf="patient || loading">
-      <div class="header section-header">
-        <div>
-          <h2>Prescriptions</h2>
-          <span>All prescriptions created for this patient.</span>
+      <section class="pp-summary">
+        <h3 class="pp-summary__label">Quick Summary</h3>
+        <div class="pp-kpi-row">
+          <article class="pp-kpi">
+            <div class="pp-kpi__icon tone-blue"><i class="fa fa-file-text-o" aria-hidden="true"></i></div>
+            <div>
+              <strong>{{ history.length }}</strong>
+              <span>Total records</span>
+              <small>Medical History</small>
+            </div>
+          </article>
+          <article class="pp-kpi">
+            <div class="pp-kpi__icon tone-green"><i class="fa fa-medkit" aria-hidden="true"></i></div>
+            <div>
+              <strong>{{ prescriptions.length }}</strong>
+              <span>Total prescriptions</span>
+              <small>Prescriptions</small>
+            </div>
+          </article>
+          <article class="pp-kpi">
+            <div class="pp-kpi__icon tone-purple"><i class="fa fa-flask" aria-hidden="true"></i></div>
+            <div>
+              <strong>{{ labOrders.length }}</strong>
+              <span>Total reports</span>
+              <small>Lab Reports</small>
+            </div>
+          </article>
+          <article class="pp-kpi">
+            <div class="pp-kpi__icon tone-orange"><i class="fa fa-file-text" aria-hidden="true"></i></div>
+            <div>
+              <strong>{{ bills.length }}</strong>
+              <span>Total bills</span>
+              <small>Bills</small>
+            </div>
+          </article>
         </div>
-      </div>
-      <div class="body table-responsive">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Doctor</th>
-              <th>Medicines</th>
-              <th>Diagnosis</th>
-              <th>Advice</th>
-              <th>Follow Up</th>
-            </tr>
-          </thead>
-          <tbody *ngIf="canOpenPrescriptions()">
-            <tr *ngIf="prescriptionsLoading">
-              <td colspan="6" class="text-center text-muted">Loading prescriptions...</td>
-            </tr>
-            <tr *ngFor="let prescription of prescriptions">
-              <td>{{ prescription.createdAt | date:'mediumDate' }}</td>
-              <td>{{ prescription.doctor?.name || '-' }}</td>
-              <td>{{ primaryMedicine(prescription) }}</td>
-              <td>{{ prescription.diagnosis || '-' }}</td>
-              <td>{{ prescription.advice || '-' }}</td>
-              <td>{{ prescription.followUpDate | date:'mediumDate' }}</td>
-            </tr>
-            <tr *ngIf="!prescriptionsLoading && prescriptions.length === 0">
-              <td colspan="6" class="text-center text-muted">No prescriptions found</td>
-            </tr>
-          </tbody>
-          <tbody *ngIf="!canOpenPrescriptions()">
-            <tr>
-              <td colspan="6" class="text-center text-muted">You do not have permission to view prescriptions.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+      </section>
 
-    <div class="record-section card" *ngIf="patient || loading">
-      <div class="header section-header">
-        <div>
-          <h2>Laboratory Reports</h2>
-          <span>Lab tests ordered for this patient. View verified reports and write a follow-up prescription.</span>
-        </div>
-      </div>
-      <div class="body table-responsive">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>Order No</th>
-              <th>Date</th>
-              <th>Doctor</th>
-              <th>Tests</th>
-              <th>Status</th>
-              <th class="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngIf="labOrdersLoading">
-              <td colspan="6" class="text-center text-muted">Loading laboratory reports...</td>
-            </tr>
-            <tr *ngFor="let order of labOrders">
-              <td>{{ order.orderNo }}</td>
-              <td>{{ order.createdAt | date:'mediumDate' }}</td>
-              <td>{{ order.doctor?.name || '-' }}</td>
-              <td>{{ labTestsSummary(order) }}</td>
-              <td>
-                <span class="badge" [class.badge-success]="canPrintLabReport(order)" [class.badge-info]="!canPrintLabReport(order)">
-                  {{ labOrderStatusLabel(order) }}
-                </span>
-              </td>
-              <td class="text-right lab-order-actions">
-                <button
-                  type="button"
-                  class="btn btn-sm btn-default mr-1"
-                  [disabled]="!canPrintLabReport(order) || isLabReportLoading(order)"
-                  (click)="printLabReport(order)">
-                  {{ isLabReportLoading(order) ? 'Opening...' : 'View Report' }}
-                </button>
-                <a
-                  class="btn btn-sm btn-primary"
-                  *ngIf="canCreatePrescription()"
-                  [routerLink]="['/prescriptions']"
-                  [queryParams]="prescriptionQueryParams(order)">
-                  New Prescription
-                </a>
-              </td>
-            </tr>
-            <tr *ngIf="!labOrdersLoading && labOrders.length === 0">
-              <td colspan="6" class="text-center text-muted">No laboratory orders found for this patient.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <section class="pp-records">
+        <article class="pp-card pp-section-card">
+          <div class="pp-card__head">
+            <div class="pp-card__title">
+              <span class="pp-card__icon tone-blue"><i class="fa fa-heartbeat" aria-hidden="true"></i></span>
+              <div>
+                <h3>Medical History</h3>
+                <p>Clinical notes, diagnoses, and visit records for this patient.</p>
+              </div>
+            </div>
+          </div>
+          <div class="pp-table-wrap">
+            <table class="pp-table" *ngIf="canOpenClinicalRecords()">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Doctor</th>
+                  <th>Title</th>
+                  <th>Diagnosis</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="historyLoading">
+                  <td colspan="6" class="pp-cell-muted">Loading medical history…</td>
+                </tr>
+                <tr *ngFor="let item of history">
+                  <td>{{ item.createdAt | date:'mediumDate' }}</td>
+                  <td>{{ item.recordType || 'clinical' }}</td>
+                  <td>{{ item.doctor?.name || '-' }}</td>
+                  <td>{{ item.title || '-' }}</td>
+                  <td>{{ item.diagnosis || '-' }}</td>
+                  <td>{{ historySummary(item) }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="pp-empty" *ngIf="canOpenClinicalRecords() && !historyLoading && history.length === 0">
+              <i class="fa fa-file-text-o" aria-hidden="true"></i>
+              <strong>No medical history found</strong>
+              <span>There are no clinical records for this patient yet.</span>
+            </div>
+            <div class="pp-empty" *ngIf="!canOpenClinicalRecords()">
+              <i class="fa fa-lock" aria-hidden="true"></i>
+              <strong>Permission required</strong>
+              <span>You do not have permission to view medical history.</span>
+            </div>
+          </div>
+        </article>
 
-    <div class="record-section card" *ngIf="patient || loading">
-      <div class="header section-header">
-        <div>
-          <h2>Bills</h2>
-          <span>Billing activity and payment status for this patient.</span>
+        <article class="pp-card pp-section-card">
+          <div class="pp-card__head">
+            <div class="pp-card__title">
+              <span class="pp-card__icon tone-green"><i class="fa fa-medkit" aria-hidden="true"></i></span>
+              <div>
+                <h3>Prescriptions</h3>
+                <p>All prescriptions created for this patient.</p>
+              </div>
+            </div>
+          </div>
+          <div class="pp-table-wrap">
+            <table class="pp-table" *ngIf="canOpenPrescriptions()">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Doctor</th>
+                  <th>Medicines</th>
+                  <th>Diagnosis</th>
+                  <th>Advice</th>
+                  <th>Follow Up</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="prescriptionsLoading">
+                  <td colspan="6" class="pp-cell-muted">Loading prescriptions…</td>
+                </tr>
+                <tr *ngFor="let prescription of prescriptions">
+                  <td>{{ prescription.createdAt | date:'mediumDate' }}</td>
+                  <td>{{ prescription.doctor?.name || '-' }}</td>
+                  <td>{{ primaryMedicine(prescription) }}</td>
+                  <td>{{ prescription.diagnosis || '-' }}</td>
+                  <td>{{ prescription.advice || '-' }}</td>
+                  <td>{{ prescription.followUpDate | date:'mediumDate' }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="pp-empty" *ngIf="canOpenPrescriptions() && !prescriptionsLoading && prescriptions.length === 0">
+              <i class="fa fa-medkit" aria-hidden="true"></i>
+              <strong>No prescriptions found</strong>
+              <span>There are no prescriptions for this patient yet.</span>
+            </div>
+            <div class="pp-empty" *ngIf="!canOpenPrescriptions()">
+              <i class="fa fa-lock" aria-hidden="true"></i>
+              <strong>Permission required</strong>
+              <span>You do not have permission to view prescriptions.</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="pp-card pp-section-card">
+          <div class="pp-card__head">
+            <div class="pp-card__title">
+              <span class="pp-card__icon tone-purple"><i class="fa fa-flask" aria-hidden="true"></i></span>
+              <div>
+                <h3>Laboratory Reports</h3>
+                <p>Lab tests ordered for this patient. View verified reports and write a follow-up prescription.</p>
+              </div>
+            </div>
+          </div>
+          <div class="pp-table-wrap">
+            <table class="pp-table">
+              <thead>
+                <tr>
+                  <th>Order No</th>
+                  <th>Date</th>
+                  <th>Doctor</th>
+                  <th>Tests</th>
+                  <th>Status</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="labOrdersLoading">
+                  <td colspan="6" class="pp-cell-muted">Loading laboratory reports…</td>
+                </tr>
+                <tr *ngFor="let order of labOrders">
+                  <td>{{ order.orderNo }}</td>
+                  <td>{{ order.createdAt | date:'mediumDate' }}</td>
+                  <td>{{ order.doctor?.name || '-' }}</td>
+                  <td>{{ labTestsSummary(order) }}</td>
+                  <td>
+                    <span
+                      class="pp-badge"
+                      [class.is-ready]="canPrintLabReport(order)"
+                      [class.is-pending]="!canPrintLabReport(order)">
+                      {{ labOrderStatusLabel(order) }}
+                    </span>
+                  </td>
+                  <td class="text-right">
+                    <button
+                      type="button"
+                      class="pp-action-more"
+                      (click)="openLabActions(order, $event)"
+                      aria-label="Open laboratory actions">
+                      <i class="fa fa-ellipsis-v" aria-hidden="true"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="pp-empty" *ngIf="!labOrdersLoading && labOrders.length === 0">
+              <i class="fa fa-flask" aria-hidden="true"></i>
+              <strong>No laboratory orders found</strong>
+              <span>Lab tests will appear here once ordered.</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="pp-card pp-section-card">
+          <div class="pp-card__head">
+            <div class="pp-card__title">
+              <span class="pp-card__icon tone-orange"><i class="fa fa-file-text" aria-hidden="true"></i></span>
+              <div>
+                <h3>Bills</h3>
+                <p>Billing activity and payment status for this patient.</p>
+              </div>
+            </div>
+          </div>
+          <div class="pp-table-wrap">
+            <table class="pp-table" *ngIf="canViewBills()">
+              <thead>
+                <tr>
+                  <th>Bill No</th>
+                  <th>Date</th>
+                  <th>Total</th>
+                  <th>Paid</th>
+                  <th>Due</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="billsLoading">
+                  <td colspan="6" class="pp-cell-muted">Loading bills…</td>
+                </tr>
+                <tr *ngFor="let bill of bills">
+                  <td>{{ bill.billNo }}</td>
+                  <td>{{ bill.createdAt | date:'mediumDate' }}</td>
+                  <td>{{ bill.grandTotal }}</td>
+                  <td>{{ bill.paidAmount }}</td>
+                  <td>{{ bill.dueAmount }}</td>
+                  <td><span class="pp-badge is-pending">{{ bill.paymentStatus }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="pp-empty" *ngIf="canViewBills() && !billsLoading && bills.length === 0">
+              <i class="fa fa-file-text" aria-hidden="true"></i>
+              <strong>No bills found</strong>
+              <span>There are no billing records for this patient yet.</span>
+            </div>
+            <div class="pp-empty" *ngIf="!canViewBills()">
+              <i class="fa fa-lock" aria-hidden="true"></i>
+              <strong>Permission required</strong>
+              <span>You do not have permission to view bills.</span>
+            </div>
+          </div>
+        </article>
+      </section>
+    </ng-container>
+  </div>
+
+  <div
+    class="pp-actions-backdrop"
+    *ngIf="labActionsOpen && selectedLabOrder as order"
+    (click)="closeLabActions()">
+    <div
+      class="pp-actions-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pp-lab-actions-title"
+      (click)="$event.stopPropagation()">
+      <header class="pp-actions-modal__head">
+        <div class="pp-card__title">
+          <span class="pp-card__icon tone-purple"><i class="fa fa-flask" aria-hidden="true"></i></span>
+          <div>
+            <h3 id="pp-lab-actions-title">Laboratory Actions</h3>
+            <p>{{ order.orderNo }} · {{ labOrderStatusLabel(order) }}</p>
+          </div>
         </div>
+        <button type="button" class="pp-actions-modal__close" (click)="closeLabActions()" aria-label="Close">
+          <i class="fa fa-times" aria-hidden="true"></i>
+        </button>
+      </header>
+      <div class="pp-actions-modal__body">
+        <button
+          type="button"
+          class="pp-actions-item"
+          [disabled]="!canPrintLabReport(order) || isLabReportLoading(order)"
+          (click)="viewLabReport()">
+          <i class="fa fa-eye" aria-hidden="true"></i>
+          <span>
+            <strong>{{ isLabReportLoading(order) ? 'Opening…' : 'View Report' }}</strong>
+            <small>Open verified laboratory report</small>
+          </span>
+        </button>
+        <a
+          class="pp-actions-item"
+          *ngIf="canCreatePrescription()"
+          [routerLink]="['/prescriptions']"
+          [queryParams]="prescriptionQueryParams(order)"
+          (click)="closeLabActions()">
+          <i class="fa fa-plus" aria-hidden="true"></i>
+          <span>
+            <strong>New Prescription</strong>
+            <small>Create a follow-up prescription for this patient</small>
+          </span>
+        </a>
       </div>
-      <div class="body table-responsive">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>Bill No</th>
-              <th>Date</th>
-              <th>Total</th>
-              <th>Paid</th>
-              <th>Due</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody *ngIf="canViewBills()">
-            <tr *ngIf="billsLoading">
-              <td colspan="6" class="text-center text-muted">Loading bills...</td>
-            </tr>
-            <tr *ngFor="let bill of bills">
-              <td>{{ bill.billNo }}</td>
-              <td>{{ bill.createdAt | date:'mediumDate' }}</td>
-              <td>{{ bill.grandTotal }}</td>
-              <td>{{ bill.paidAmount }}</td>
-              <td>{{ bill.dueAmount }}</td>
-              <td><span class="badge badge-info">{{ bill.paymentStatus }}</span></td>
-            </tr>
-            <tr *ngIf="!billsLoading && bills.length === 0">
-              <td colspan="6" class="text-center text-muted">No bills found</td>
-            </tr>
-          </tbody>
-          <tbody *ngIf="!canViewBills()">
-            <tr>
-              <td colspan="6" class="text-center text-muted">You do not have permission to view bills.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <footer class="pp-actions-modal__foot">
+        <button type="button" class="pp-btn pp-btn--ghost" (click)="closeLabActions()">Cancel</button>
+      </footer>
     </div>
   </div>
 </div>

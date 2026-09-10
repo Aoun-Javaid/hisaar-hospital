@@ -28,6 +28,11 @@ export class WardDoctorOrderModalComponent {
   @Input() open = false;
   @Input() admissionId = '';
   @Input() patientId = '';
+  @Input() patientName = '';
+  @Input() patientMrn = '';
+  @Input() consultantName = '';
+  @Input() visitStatus = '';
+  @Input() patientMeta = '';
   @Input() doctors: Doctor[] = [];
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<void>();
@@ -86,7 +91,7 @@ export class WardDoctorOrderModalComponent {
     this.closed.emit();
   }
 
-  submit(): void {
+  submit(keepOpen = false): void {
     if (!this.admissionId || !this.patientId) {
       this.toastr.warning('Missing patient context.', 'Doctor Order');
       return;
@@ -152,6 +157,10 @@ export class WardDoctorOrderModalComponent {
         this.saving = false;
         this.toastr.success('Doctor order saved.', 'Doctor Order');
         this.saved.emit();
+        if (keepOpen) {
+          this.resetOrderFields();
+          return;
+        }
         this.close();
       },
       error: (err: { error?: { message?: string } }) => {
@@ -159,6 +168,29 @@ export class WardDoctorOrderModalComponent {
         this.toastr.error(err?.error?.message || 'Failed to save order.', 'Doctor Order');
       },
     });
+  }
+
+  private resetOrderFields(): void {
+    const recommendedByDoctorId = this.form.recommendedByDoctorId;
+    this.form = {
+      medicineName: '',
+      dose: '',
+      unit: '',
+      route: 'PO',
+      frequency: '',
+      duration: '',
+      instructions: '',
+      orderName: '',
+      tests: '',
+      modality: 'xray',
+      study: '',
+      bodyPart: '',
+      views: '',
+      clinicalIndication: '',
+      priority: 'normal',
+      notes: '',
+      recommendedByDoctorId,
+    };
   }
 
   private buildServiceNotes(): string {

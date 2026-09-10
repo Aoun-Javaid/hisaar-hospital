@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import {
@@ -23,6 +23,7 @@ import {
 } from './services/ward-api.mapper';
 
 type ActiveModal = 'ward' | 'floor' | 'room' | 'bed' | 'status' | 'viewBed' | 'transfer' | null;
+type DetailTab = 'rooms' | 'beds' | 'occupancy' | 'analytics';
 
 interface TransferContext {
   admissionId: string;
@@ -38,9 +39,32 @@ interface BedDetailContext {
   bedNo: string;
 }
 
+interface WardSummaryCard {
+  id: string;
+  name: string;
+  floorCount: number;
+  roomCount: number;
+  totalBeds: number;
+  occupiedBeds: number;
+  availableBeds: number;
+  cleaningBeds: number;
+  outOfServiceBeds: number;
+  occupancyPercent: number;
+}
+
+interface BedActivityRow {
+  id: string;
+  time: string;
+  bedNo: string;
+  patientName: string;
+  status: 'checked_in' | 'cleaning' | 'checked_out';
+  details: string;
+  staff: string;
+}
+
 @Component({
   selector: 'app-ward-bed-management',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
   templateUrl: './ward-bed-management.component.html',
   styleUrl: './ward-bed-management.component.scss',
 })
@@ -54,6 +78,9 @@ export class WardBedManagementComponent implements OnInit, OnDestroy {
   bedModalMode: 'add' | 'edit' = 'add';
   selectedBed: WardBedRecord | null = null;
   statusReason = '';
+  filtersExpanded = false;
+  detailTab: DetailTab = 'rooms';
+  showAllActivity = false;
 
   wardOptions: string[] = [];
   galleryOptions: WardGalleryOption[] = [];
@@ -225,6 +252,175 @@ export class WardBedManagementComponent implements OnInit, OnDestroy {
   get floorsForSelectedWard(): WardFloor[] {
     const wardId = String(this.selectedWardId || '');
     return this.wardFloors.filter((floor) => !wardId || String(floor.wardId) === wardId);
+  }
+
+  get bedKpis(): {
+    total: number;
+    available: number;
+    occupied: number;
+    cleaning: number;
+    outOfService: number;
+    availablePct: number;
+    occupiedPct: number;
+    cleaningPct: number;
+    outOfServicePct: number;
+  } {
+    const total = this.beds.length;
+    const available = this.beds.filter((bed) => bed.status === 'available').length;
+    const occupied = this.beds.filter((bed) => bed.status === 'occupied').length;
+    const cleaning = this.beds.filter((bed) => bed.status === 'cleaning').length;
+    const outOfService = this.beds.filter(
+      (bed) => bed.status === 'maintenance' || bed.status === 'blocked'
+    ).length;
+    const pct = (value: number) => (total ? Math.round((value / total) * 100) : 0);
+    return {
+      total,
+      available,
+      occupied,
+      cleaning,
+      outOfService,
+      availablePct: pct(available),
+      occupiedPct: pct(occupied),
+      cleaningPct: pct(cleaning),
+      outOfServicePct: pct(outOfService),
+    };
+  }
+
+  get wardSummaries(): WardSummaryCard[] {
+    const wards =
+      this.hospitalWards.length > 0
+        ? this.hospitalWards
+        : this.wardOptions.map((name, index) => ({
+            _id: `name:${name}`,
+            hospitalId: '',
+            name,
+            status: 'active' as const,
+          }));
+
+    return wards.map((ward) => {
+      const wardId = String(ward._id || '');
+      const byId = wardId && !wardId.startsWith('name:');
+      const wardRooms = this.rooms.filter((room) =>
+        byId ? String(room.wardId) === wardId : room.wardName === ward.name
+      );
+      const roomIds = new Set(wardRooms.map((room) => room.id));
+      const wardBeds = this.beds.filter((bed) => roomIds.has(bed.roomId));
+      const totalBeds = wardBeds.length || wardRooms.reduce((sum, room) => sum + (room.capacity || 0), 0);
+      const occupiedBeds = wardBeds.filter((bed) => bed.status === 'occupied').length;
+      const availableBeds = wardBeds.filter((bed) => bed.status === 'available').length;
+      const cleaningBeds = wardBeds.filter((bed) => bed.status === 'cleaning').length;
+      const outOfServiceBeds = wardBeds.filter(
+        (bed) => bed.status === 'maintenance' || bed.status === 'blocked'
+      ).length;
+      const floorIds = new Set(
+        [
+          ...this.wardFloors
+            .filter((floor) => (byId ? String(floor.wardId) === wardId : false))
+            .map((floor) => String(floor._id)),
+          ...wardRooms.map((room) => String(room.galleryId)).filter(Boolean),
+        ].filter(Boolean)
+      );
+
+      return {
+        id: wardId,
+        name: ward.name,
+        floorCount: floorIds.size,
+        roomCount: wardRooms.length,
+        totalBeds,
+        occupiedBeds,
+        availableBeds,
+        cleaningBeds,
+        outOfServiceBeds,
+        occupancyPercent: totalBeds ? Math.round((occupiedBeds / totalBeds) * 100) : 0,
+      };
+    });
+  }
+
+  get selectedWardSummary(): WardSummaryCard | null {
+    const byFilter = this.wardSummaries.find((ward) => ward.name === this.filters.ward);
+    if (byFilter) {
+      return byFilter;
+    }
+    return this.wardSummaries.find((ward) => ward.id === this.selectedWardId) || this.wardSummaries[0] || null;
+  }
+
+  get selectedWardRooms(): WardRoomRecord[] {
+    return this.filteredRooms;
+  }
+
+  get selectedWardBeds(): WardBedRecord[] {
+    const roomIds = new Set(this.selectedWardRooms.map((room) => room.id));
+    const query = this.filters.search.trim().toLowerCase();
+    return this.beds
+      .filter((bed) => roomIds.has(bed.roomId))
+      .filter((bed) => !this.filters.bedStatus || bed.status === this.filters.bedStatus)
+      .filter((bed) => {
+        if (!query) {
+          return true;
+        }
+        return [bed.bedNo, bed.patientName, bed.nurseName, bed.notes]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(query);
+      })
+      .sort((a, b) => a.bedNo.localeCompare(b.bedNo, undefined, { numeric: true }));
+  }
+
+  get recentBedActivity(): BedActivityRow[] {
+    const roomById = new Map(this.rooms.map((room) => [room.id, room]));
+    const rows: BedActivityRow[] = this.beds
+      .filter((bed) => bed.status === 'occupied' || bed.status === 'cleaning' || bed.occupiedSince)
+      .map((bed) => {
+        const room = roomById.get(bed.roomId);
+        const stamp = bed.occupiedSince ? new Date(bed.occupiedSince) : null;
+        const time =
+          stamp && !Number.isNaN(stamp.getTime())
+            ? stamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            : '—';
+
+        if (bed.status === 'cleaning') {
+          return {
+            id: bed.id,
+            time,
+            bedNo: bed.bedNo,
+            patientName: bed.patientName || '—',
+            status: 'cleaning' as const,
+            details: room ? `Cleaning scheduled for ${room.roomName}` : 'Bed marked for cleaning',
+            staff: bed.nurseName || '—',
+          };
+        }
+
+        return {
+          id: bed.id,
+          time,
+          bedNo: bed.bedNo,
+          patientName: bed.patientName || '—',
+          status: 'checked_in' as const,
+          details: room ? `Patient admitted to ${room.roomName}` : 'Patient admitted to bed',
+          staff: bed.nurseName || '—',
+        };
+      })
+      .sort((a, b) => a.time.localeCompare(b.time))
+      .reverse();
+
+    return this.showAllActivity ? rows : rows.slice(0, 8);
+  }
+
+  get wardDescriptionLength(): number {
+    return String(this.wardForm.get('description')?.value || '').length;
+  }
+
+  get roomNotesLength(): number {
+    return String(this.roomForm.get('description')?.value || '').length;
+  }
+
+  get bedNotesLength(): number {
+    return String(this.bedForm.get('notes')?.value || '').length;
+  }
+
+  get bedStatusDotClass(): string {
+    return this.statusDotClass(String(this.bedForm.get('status')?.value || 'available'));
   }
 
   private isMongoId(value: string | null | undefined): boolean {
@@ -626,9 +822,7 @@ export class WardBedManagementComponent implements OnInit, OnDestroy {
     this.galleryOptions = fromFloors.length ? fromFloors : fromRooms;
 
     if (this.filters.gallery && !this.galleryOptions.some((option) => option.id === this.filters.gallery)) {
-      this.filters.gallery = this.galleryOptions[0]?.id || '';
-    } else if (!this.filters.gallery && this.galleryOptions.length) {
-      this.filters.gallery = this.galleryOptions[0].id;
+      this.filters.gallery = '';
     }
   }
 
@@ -746,6 +940,87 @@ export class WardBedManagementComponent implements OnInit, OnDestroy {
   refresh(): void {
     this.loadData();
     this.toastr.success('Bed management data refreshed.');
+  }
+
+  applyFilters(): void {
+    this.selectedRoomId = this.filteredRooms[0]?.id || '';
+    this.refreshActionState();
+  }
+
+  toggleFilters(): void {
+    this.filtersExpanded = !this.filtersExpanded;
+  }
+
+  selectWard(ward: WardSummaryCard): void {
+    this.filters.ward = ward.name;
+    const catalog = this.hospitalWards.find((item) => item._id === ward.id || item.name === ward.name);
+    if (catalog) {
+      this.rememberActiveWard(catalog);
+      this.reloadFloorsForWard(String(catalog._id), () => {
+        this.selectedRoomId = this.filteredRooms[0]?.id || '';
+        this.refreshActionState();
+      });
+      return;
+    }
+
+    this.refreshGalleryForSelectedWard();
+    this.selectedRoomId = this.filteredRooms[0]?.id || '';
+    this.refreshActionState();
+  }
+
+  setDetailTab(tab: DetailTab): void {
+    this.detailTab = tab;
+  }
+
+  openRoomFromCard(roomId: string): void {
+    this.selectRoom(roomId);
+    this.detailTab = 'beds';
+  }
+
+  roomOccupancyPercent(room: WardRoomRecord): number {
+    const total = Math.max(room.capacity || 0, room.occupiedBeds + room.availableBeds + room.cleaningBeds + room.maintenanceBeds + room.onHoldBeds);
+    if (!total) {
+      return 0;
+    }
+    return Math.round((room.occupiedBeds / total) * 100);
+  }
+
+  statusDotClass(status: string): string {
+    const key = String(status || '').toLowerCase();
+    if (key === 'available') {
+      return 'status-dot--available';
+    }
+    if (key === 'occupied') {
+      return 'status-dot--occupied';
+    }
+    if (key === 'cleaning') {
+      return 'status-dot--cleaning';
+    }
+    if (key === 'maintenance' || key === 'blocked' || key === 'out_of_service') {
+      return 'status-dot--oos';
+    }
+    if (key === 'on_hold') {
+      return 'status-dot--hold';
+    }
+    return 'status-dot--available';
+  }
+
+  activityStatusLabel(status: BedActivityRow['status']): string {
+    if (status === 'checked_in') {
+      return 'Checked In';
+    }
+    if (status === 'checked_out') {
+      return 'Checked Out';
+    }
+    return 'Cleaning';
+  }
+
+  activityStatusClass(status: BedActivityRow['status']): string {
+    return `activity-badge--${status}`;
+  }
+
+  toggleShowAllActivity(): void {
+    this.showAllActivity = !this.showAllActivity;
   }
 
   selectRoom(roomId: string): void {

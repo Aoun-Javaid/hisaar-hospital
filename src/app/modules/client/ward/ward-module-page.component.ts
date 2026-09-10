@@ -641,6 +641,11 @@ export class WardModulePageComponent implements OnInit, OnDestroy {
     this.onFilterChange();
   }
 
+  backToPatientChart(): void {
+    if (!this.contextAdmissionId) return;
+    void this.router.navigate(['/ward/patient-detail', this.contextAdmissionId]);
+  }
+
   resetFilters(): void {
     this.activeTab = 'all';
     this.clearPatientContext();

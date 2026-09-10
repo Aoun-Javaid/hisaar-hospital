@@ -24,6 +24,9 @@ import { Doctor, Prescription, RoomAllotment } from '../../../shared/models/hosp
 import { WardBillingPanelComponent } from './ward-billing-panel.component';
 import { WardDoctorOrderModalComponent } from './ward-doctor-order-modal.component';
 import { WardMarPanelComponent } from './ward-mar-panel.component';
+import { WardActivityTimelineComponent } from './ward-activity-timeline.component';
+import { WardVitalsPanelComponent } from './ward-vitals-panel.component';
+import { WardDripPanelComponent } from './ward-drip-panel.component';
 import { WardPatient } from './ward-patient-list.models';
 import { WardModuleRow } from './ward-module.models';
 import { WardActivityRecord } from './services/ward-api.mapper';
@@ -72,7 +75,18 @@ interface AdmissionHistoryItem {
 
 @Component({
   selector: 'app-ward-patient-detail',
-  imports: [CommonModule, FormsModule, RouterLink, WardBillingPanelComponent, WardDoctorOrderModalComponent, WardMarPanelComponent, HmsDocumentToolbarComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    WardBillingPanelComponent,
+    WardDoctorOrderModalComponent,
+    WardMarPanelComponent,
+    WardActivityTimelineComponent,
+    WardVitalsPanelComponent,
+    WardDripPanelComponent,
+    HmsDocumentToolbarComponent,
+  ],
   templateUrl: './ward-patient-detail.component.html',
   styleUrl: './ward-patient-detail.component.scss',
 })
@@ -212,6 +226,10 @@ export class WardPatientDetailComponent implements OnInit {
     this.reloadDetail();
   }
 
+  refreshChartModules(): void {
+    this.reloadDetail();
+  }
+
   get canImaging(): boolean {
     return isWardModuleEnabled() && this.canDoctorOrder;
   }
@@ -236,6 +254,60 @@ export class WardPatientDetailComponent implements OnInit {
 
   setTab(tab: string): void {
     this.activeTab = tab;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: tab === 'overview' ? null : tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  backToOverview(): void {
+    this.setTab('overview');
+  }
+
+  /** Mockup chart views use quick-action strip only — hide extra nav chrome. */
+  get isChartModuleView(): boolean {
+    return [
+      'payments',
+      'billing',
+      'discharge',
+      'medicines',
+      'procedures',
+      'vitals',
+      'drips',
+      'nursing',
+      'io',
+      'lab',
+      'imaging',
+      'orders',
+    ].includes(this.activeTab);
+  }
+
+  get showChartReturnBar(): boolean {
+    return this.activeTab !== 'overview' && !this.isChartModuleView;
+  }
+
+  get showSecondaryTabs(): boolean {
+    return !this.isChartModuleView;
+  }
+
+  get activeTabLabel(): string {
+    return this.tabs.find((tab) => tab.key === this.activeTab)?.label || this.activeTab;
+  }
+
+  ageLabel(patient: WardPatient): string {
+    return patient.age > 0 ? `${patient.age} years` : '—';
+  }
+
+  genderLabel(patient: WardPatient): string {
+    return patient.sex === 'F' ? 'Female' : patient.sex === 'M' ? 'Male' : '—';
+  }
+
+  doctorOrderPatientMeta(patient: WardPatient): string {
+    const parts = [this.genderLabel(patient), this.ageLabel(patient)].filter((part) => part && part !== '—');
+    const base = parts.join(', ');
+    return patient.bloodGroup ? `${base} | ${patient.bloodGroup}` : base;
   }
 
   openDoctorOrder(): void {

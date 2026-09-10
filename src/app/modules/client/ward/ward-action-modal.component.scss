@@ -32,7 +32,28 @@
 .ward-modal__foot {
   border-bottom: 0;
   border-top: 1px solid #e5e7eb;
-  justify-content: flex-end;
+  justify-content: space-between;
+  background: #fafbfd;
+}
+
+.ward-modal__foot .hms-btn--ghost {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  border-radius: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  font-weight: 700;
+}
+
+.ward-modal__foot .hms-btn--primary {
+  background: #0d9488;
+  border: 1px solid #0d9488;
+  color: #fff;
+  border-radius: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  font-weight: 700;
 }
 
 .ward-modal__head h3 {

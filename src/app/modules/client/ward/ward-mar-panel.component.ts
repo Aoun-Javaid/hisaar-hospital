@@ -44,6 +44,45 @@ export class WardMarPanelComponent implements OnChanges {
     notes: '',
   };
 
+  get dueNowCount(): number {
+    return this.cards.reduce(
+      (sum, card) => sum + card.slots.filter((slot) => slot.status === 'Due' || slot.status === 'Late').length,
+      0
+    );
+  }
+
+  get administeredTodayCount(): number {
+    const today = new Date().toDateString();
+    return this.cards.reduce(
+      (sum, card) =>
+        sum +
+        card.slots.filter(
+          (slot) => slot.status === 'Given' && slot.administeredAt && new Date(slot.administeredAt).toDateString() === today
+        ).length,
+      0
+    );
+  }
+
+  get pendingPharmacyCount(): number {
+    return this.cards.filter((card) => /pending|awaiting|requested/i.test(String(card.pharmacyStatus || ''))).length;
+  }
+
+  get historyRows(): Array<{ at: string; medicine: string; status: string; by: string }> {
+    const rows: Array<{ at: string; medicine: string; status: string; by: string }> = [];
+    for (const card of this.cards) {
+      for (const slot of card.slots) {
+        if (slot.status !== 'Given' || !slot.administeredAt) continue;
+        rows.push({
+          at: slot.administeredAt,
+          medicine: card.medicine,
+          status: 'Administered',
+          by: slot.administeredBy || '',
+        });
+      }
+    }
+    return rows.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 20);
+  }
+
   constructor(
     private backend: BackendService,
     private toastr: ToastrService

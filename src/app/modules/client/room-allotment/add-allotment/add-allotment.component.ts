@@ -524,6 +524,11 @@ export class AddAllotmentComponent implements OnInit {
   }
 
   submitAllotment(): void {
+    if (this.admissionSuccess) {
+      this.toastr.info('Patient is already admitted. Use Patient Control Panel or Admissions.');
+      return;
+    }
+
     if (!this.can('room_allotments.create')) {
       this.toastr.error('You do not have permission to create room allotments.');
       return;
@@ -577,7 +582,10 @@ export class AddAllotmentComponent implements OnInit {
           ? String((this.recommendationSummary?.['recommendedOperatingDoctorId'] as { _id?: string })?._id || '')
           : String(this.recommendationSummary?.['recommendedOperatingDoctorId'] || '') || undefined,
       preferredOperationAt: this.recommendationSummary?.['preferredOperationAt'] || undefined,
-      operationScheduleId: this.recommendationSummary?.['operationScheduleId'] || undefined,
+      operationScheduleId:
+        typeof this.recommendationSummary?.['operationScheduleId'] === 'object'
+          ? String((this.recommendationSummary?.['operationScheduleId'] as { _id?: string })?._id || '') || undefined
+          : String(this.recommendationSummary?.['operationScheduleId'] || '') || undefined,
     };
 
     if (this.currentHospitalId) {
@@ -619,6 +627,9 @@ export class AddAllotmentComponent implements OnInit {
           };
 
           this.toastr.success(response.message || 'Room allotment created successfully');
+          window.setTimeout(() => {
+            document.querySelector('[data-testid="ward-admission-success"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 50);
         },
         error: (err) => this.toastr.error(err?.error?.message || 'Unable to save room allotment.'),
       });

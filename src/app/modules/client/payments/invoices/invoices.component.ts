@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { BackendService } from '../../../../core/services/backend.service';
@@ -26,10 +26,13 @@ export class InvoicesComponent implements OnInit {
   totalPages = 0;
   totalItems = 0;
   filtersOpen = true;
+  actionsOpen = false;
+  selectedBill: Bill | null = null;
 
   constructor(
     private backend: BackendService,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -137,6 +140,35 @@ export class InvoicesComponent implements OnInit {
         },
         error: (err) => this.toastr.error(err?.error?.message || 'Something went wrong'),
       });
+  }
+
+  openActions(bill: Bill, event?: Event): void {
+    event?.stopPropagation();
+    this.selectedBill = bill;
+    this.actionsOpen = true;
+  }
+
+  closeActions(): void {
+    this.actionsOpen = false;
+    this.selectedBill = null;
+  }
+
+  viewInvoice(): void {
+    if (!this.selectedBill?._id) return;
+    const id = this.selectedBill._id;
+    this.closeActions();
+    void this.router.navigate(['/payments/invoices/invoice-detail', id]);
+  }
+
+  payInvoice(): void {
+    if (!this.selectedBill) return;
+    const bill = this.selectedBill;
+    this.closeActions();
+    this.updatePayment(bill);
+  }
+
+  canShowPayment(bill: Bill | null): boolean {
+    return !!bill && this.can('bills.update_payment');
   }
 
   patientName(bill: Bill): string {

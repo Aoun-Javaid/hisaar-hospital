@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
@@ -27,6 +27,10 @@ export class TreatmentsProceduresComponent implements OnInit {
   statusFilter = 'true';
   form: FormGroup;
   includedItemDraft = '';
+  filtersOpen = true;
+  openMenuId: string | null = null;
+  page = 1;
+  readonly pageSize = 10;
 
   readonly types: TreatmentCatalogType[] = ['treatment', 'procedure', 'operation', 'surgery', 'package'];
 
@@ -63,6 +67,11 @@ export class TreatmentsProceduresComponent implements OnInit {
     this.loadItems();
   }
 
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.openMenuId = null;
+  }
+
   can(permission: string): boolean {
     return this.backend.hasPermission(permission);
   }
@@ -74,6 +83,39 @@ export class TreatmentsProceduresComponent implements OnInit {
       this.can('hospitals.update') ||
       this.can('*')
     );
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.items.length / this.pageSize));
+  }
+
+  get pageStart(): number {
+    if (!this.items.length) return 0;
+    return (this.page - 1) * this.pageSize + 1;
+  }
+
+  get pageEnd(): number {
+    return Math.min(this.page * this.pageSize, this.items.length);
+  }
+
+  get pagedItems(): TreatmentCatalogItem[] {
+    const start = (this.page - 1) * this.pageSize;
+    return this.items.slice(start, start + this.pageSize);
+  }
+
+  get pageNumbers(): number[] {
+    const total = this.totalPages;
+    const maxButtons = 5;
+    if (total <= maxButtons) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    let start = Math.max(1, this.page - 2);
+    let end = start + maxButtons - 1;
+    if (end > total) {
+      end = total;
+      start = Math.max(1, end - maxButtons + 1);
+    }
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }
 
   loadDepartments(): void {
@@ -103,6 +145,7 @@ export class TreatmentsProceduresComponent implements OnInit {
       .subscribe({
         next: (result) => {
           this.items = result.items || [];
+          this.page = 1;
           const kpis = (result as { kpis?: Record<string, number> }).kpis;
           if (kpis) {
             this.kpis = {
@@ -118,6 +161,30 @@ export class TreatmentsProceduresComponent implements OnInit {
         },
         error: (err) => this.toastr.error(err?.error?.message || 'Unable to load treatments.'),
       });
+  }
+
+  applyFilters(): void {
+    this.page = 1;
+    this.loadItems();
+  }
+
+  resetFilters(): void {
+    this.search = '';
+    this.departmentFilter = '';
+    this.typeFilter = '';
+    this.statusFilter = 'all';
+    this.page = 1;
+    this.loadItems();
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.page = page;
+  }
+
+  toggleMoreMenu(event: MouseEvent, id: string): void {
+    event.stopPropagation();
+    this.openMenuId = this.openMenuId === id ? null : id;
   }
 
   private recomputeLocalKpis(): void {
@@ -142,7 +209,24 @@ export class TreatmentsProceduresComponent implements OnInit {
   }
 
   typeLabel(type?: string): string {
-    return String(type || 'treatment').replace(/_/g, ' ');
+    const raw = String(type || 'treatment').replace(/_/g, ' ');
+    return raw.replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  typeBadgeClass(type?: string): string {
+    switch (String(type || '').toLowerCase()) {
+      case 'operation':
+      case 'surgery':
+        return 'is-operation';
+      case 'procedure':
+        return 'is-procedure';
+      case 'package':
+        return 'is-package';
+      case 'treatment':
+        return 'is-treatment';
+      default:
+        return 'is-treatment';
+    }
   }
 
   openModal(item?: TreatmentCatalogItem): void {
@@ -183,6 +267,7 @@ export class TreatmentsProceduresComponent implements OnInit {
       });
     }
     this.includedItemDraft = '';
+    this.openMenuId = null;
     this.showModal = true;
   }
 

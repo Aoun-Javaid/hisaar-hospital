@@ -355,7 +355,7 @@ export const clientRoutes: Routes = [
         loadComponent: () =>
           import('./operations/operation-calendar.component').then((m) => m.OperationCalendarComponent),
         data: { title: 'Hisaar360 Hospital Management System | Operation Calendar' },
-        canActivate: [roleGuard({ any: ['operations.read', 'operations.read_all', '*'] })],
+        canActivate: [roleGuard({ any: ['operations.read', 'operations.read_all', 'ward.admissions.recommend', '*'] })],
       },
       {
         path: 'operations/calendar',

@@ -316,6 +316,9 @@ export interface OperationSchedule {
   assistantDoctorIds?: string[];
   scheduledStart?: string | null;
   scheduledEnd?: string | null;
+  /** Original slot kept after stop + reschedule (red marker on calendar). */
+  stoppedFromStart?: string | null;
+  stoppedFromEnd?: string | null;
   durationMinutes?: number;
   priority?: 'routine' | 'urgent' | 'emergency';
   status: OperationScheduleStatus;

@@ -555,7 +555,12 @@ export class BackendService {
   }
 
   getOperationSchedules(params?: Record<string, unknown>): Observable<ListResult<OperationSchedule>> {
-    if (!this.hasPermission('operations.read') && !this.hasPermission('operations.read_all') && !this.hasPermission('*')) {
+    if (
+      !this.hasPermission('operations.read') &&
+      !this.hasPermission('operations.read_all') &&
+      !this.hasPermission('ward.admissions.recommend') &&
+      !this.hasPermission('*')
+    ) {
       return of(this.emptyListResult<OperationSchedule>());
     }
 
@@ -565,6 +570,16 @@ export class BackendService {
   }
 
   getOperationScheduleCalendar(params?: Record<string, unknown>): Observable<OperationSchedule[]> {
+    if (
+      !this.hasPermission('operations.read') &&
+      !this.hasPermission('operations.read_all') &&
+      !this.hasPermission('ward.admissions.recommend') &&
+      !this.hasPermission('appointments.read') &&
+      !this.hasPermission('*')
+    ) {
+      return of([] as OperationSchedule[]);
+    }
+
     return this.get<OperationSchedule[]>(`${CONFIG.operationSchedules}/calendar`, params).pipe(
       map((response) => {
         const data = this.unwrapData(response) as unknown;
@@ -593,8 +608,15 @@ export class BackendService {
     return this.patch<OperationSchedule>(`${CONFIG.operationSchedules}/${id}`, payload);
   }
 
-  updateOperationScheduleStatus(id: string, status: string): Observable<ApiResponse<OperationSchedule>> {
-    return this.post<OperationSchedule>(`${CONFIG.operationSchedules}/${id}/status`, { status });
+  updateOperationScheduleStatus(
+    id: string,
+    status: string,
+    extra?: { operationNotes?: string; scheduledStart?: string | null }
+  ): Observable<ApiResponse<OperationSchedule>> {
+    return this.post<OperationSchedule>(`${CONFIG.operationSchedules}/${id}/status`, {
+      status,
+      ...(extra || {}),
+    });
   }
 
   completeOperationSchedule(id: string): Observable<ApiResponse<OperationSchedule>> {

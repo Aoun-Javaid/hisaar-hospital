@@ -212,15 +212,35 @@
 }
 
 .hms-btn--ghost {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+
+.hms-btn--ghost:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.hms-btn--outline {
   background: #fff;
-  border: 1px solid var(--ward-border, #e2e8f0);
-  color: var(--ward-text, #0f172a);
+  border: 1px solid var(--ward-teal, #0d9488);
+  color: var(--ward-teal, #0d9488);
+}
+
+.hms-btn--outline:hover {
+  background: rgba(13, 148, 136, 0.08);
 }
 
 .hms-btn--primary {
-  background: var(--ward-blue, #2563eb);
-  border: 1px solid var(--ward-blue, #2563eb);
+  background: var(--ward-teal, #0d9488);
+  border: 1px solid var(--ward-teal, #0d9488);
   color: #fff;
+}
+
+.hms-btn--primary:hover {
+  background: #0f766e;
+  border-color: #0f766e;
 }
 
 .hms-btn:disabled {

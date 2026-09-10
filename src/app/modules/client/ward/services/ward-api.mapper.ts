@@ -140,7 +140,14 @@ export function patientFullName(patient?: Patient | null): string {
 }
 
 export function patientAge(patient?: Patient | null): number {
-  if (!patient?.dateOfBirth) {
+  if (!patient) {
+    return 0;
+  }
+  const explicit = Number((patient as { age?: number | string }).age);
+  if (Number.isFinite(explicit) && explicit > 0) {
+    return Math.floor(explicit);
+  }
+  if (!patient.dateOfBirth) {
     return 0;
   }
   const dob = new Date(patient.dateOfBirth);
@@ -154,6 +161,11 @@ export function patientAge(patient?: Patient | null): number {
     age -= 1;
   }
   return Math.max(age, 0);
+}
+
+export function patientAgeLabel(patient?: Patient | null): string {
+  const age = patientAge(patient);
+  return age > 0 ? `${age} years` : '—';
 }
 
 export function patientSex(patient?: Patient | null): 'M' | 'F' {
